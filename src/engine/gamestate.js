@@ -1,0 +1,173 @@
+import { Emitter } from './emitter.js';
+import { createPuzzles, PUZZLE_IDS } from '../puzzles/index.js';
+import { LOCK_CODE, NOTES } from '../config.js';
+
+export const SAVE_VERSION = 1;
+export const ROOM_COUNT = 5;
+
+// The one source of truth for progress. Save/load, the journal and the HUD all
+// read from here and listen to its events:
+//   'puzzle'        { puzzle, justSolved }   any puzzle change
+//   'solved'        { puzzle }               a puzzle was just solved
+//   'door'          { room }                 a door was opened
+//   'digit'         { room, digit }          a memory-tulip digit was collected
+//   'note'          { index }                a note was read (first time)
+//   'clue'          { id }                   a clue card was read (first time)
+//   'room'          { room }                 the player entered another room
+//   'finished'      {}                       the letter was read
+//   'loaded'        {}                       state was replaced from a save
+//   'autosave'      { reason }               something worth saving happened
+export class GameState extends Emitter {
+  constructor() {
+    super();
+    this.puzzles = createPuzzles();
+    for (const id of PUZZLE_IDS) {
+      this.puzzles[id].onChange((puzzle, justSolved) => {
+        this.emit('puzzle', { puzzle, justSolved });
+        if (justSolved) {
+          this.emit('solved', { puzzle });
+          this.emit('autosave', { reason: 'solved' });
+        }
+      });
+    }
+    this.reset();
+  }
+
+  reset(rng = Math.random) {
+    this.data = {
+      version: SAVE_VERSION,
+      room: 0,
+      player: { x: 0, z: 1.4, yaw: 0, pitch: 0 },
+      doors: [false, false, false, false, false],
+      visited: [true, false, false, false, false],
+      notes: [],
+      clues: [],
+      hintTier: {},
+      finished: false,
+      playTime: 0,
+    };
+    for (const id of PUZZLE_IDS) this.puzzles[id].newGame(rng);
+  }
+
+  puzzleIdFor(room, kind) {
+    return `r${room + 1}${kind === 'gold' || kind === 'A' ? 'a' : 'b'}`;
+  }
+
+  // A key counts as collected as soon as its puzzle is solved, so a reload in
+  // the middle of a key animation can never lose it.
+  hasKey(room, type) {
+    return this.puzzles[this.puzzleIdFor(room, type)].isSolved();
+  }
+  keyUsed(room) {
+    return !!this.data.doors[room];
+  }
+
+  isDoorOpen(room) {
+    return !!this.data.doors[room];
+  }
+  canOpenDoor(room) {
+    return !this.isDoorOpen(room) && this.hasKey(room, 'gold') && this.hasKey(room, 'silver');
+  }
+  openDoor(room) {
+    if (this.isDoorOpen(room)) return false;
+    this.data.doors[room] = true;
+    this.emit('door', { room });
+    if (room < 4) this.emit('digit', { room, digit: this.digit(room) });
+    this.emit('autosave', { reason: 'door' });
+    return true;
+  }
+
+  // Digits for the final lock: one per opened door, rooms 1-4.
+  digit(room) {
+    return String(LOCK_CODE).charAt(room);
+  }
+  collectedDigits() {
+    return [0, 1, 2, 3].map((r) => (this.isDoorOpen(r) ? this.digit(r) : null));
+  }
+
+  setRoom(room) {
+    if (room === this.data.room) return;
+    this.data.room = room;
+    const first = !this.data.visited[room];
+    this.data.visited[room] = true;
+    this.emit('room', { room, first });
+    this.emit('autosave', { reason: 'room' });
+  }
+
+  readNote(index) {
+    if (index < 0 || index >= NOTES.length) return;
+    if (!this.data.notes.includes(index)) {
+      this.data.notes.push(index);
+      this.data.notes.sort((a, b) => a - b);
+      this.emit('note', { index });
+      this.emit('autosave', { reason: 'note' });
+    }
+  }
+
+  readClue(id) {
+    if (!this.data.clues.includes(id)) {
+      this.data.clues.push(id);
+      this.emit('clue', { id });
+    }
+  }
+
+  // Hints: returns the next tier text for a puzzle (stays on tier 3).
+  nextHint(id) {
+    const cur = this.data.hintTier[id] ?? -1;
+    const tier = Math.min(2, cur + 1);
+    this.data.hintTier[id] = tier;
+    return { tier, text: this.puzzles[id].hint(tier) };
+  }
+  hintAt(id, tier) {
+    this.data.hintTier[id] = Math.max(this.data.hintTier[id] ?? -1, tier);
+    return this.puzzles[id].hint(tier);
+  }
+
+  finish() {
+    if (!this.data.finished) {
+      this.data.finished = true;
+      this.emit('finished', {});
+    }
+    this.emit('autosave', { reason: 'finished' });
+  }
+
+  solvedCount() {
+    return PUZZLE_IDS.filter((id) => this.puzzles[id].isSolved()).length;
+  }
+
+  // ---- serialisation ----------------------------------------------------
+  serialize() {
+    const puzzles = {};
+    for (const id of PUZZLE_IDS) puzzles[id] = this.puzzles[id].getState();
+    return JSON.parse(JSON.stringify({ ...this.data, puzzles }));
+  }
+
+  // Returns true if the save was usable.
+  load(obj) {
+    if (!obj || typeof obj !== 'object' || obj.version !== SAVE_VERSION) return false;
+    this.reset();
+    const d = this.data;
+    const num = (v, def) => (typeof v === 'number' && Number.isFinite(v) ? v : def);
+    d.room = Math.max(0, Math.min(ROOM_COUNT, num(obj.room, 0) | 0));
+    if (obj.player) {
+      d.player = {
+        x: num(obj.player.x, d.player.x),
+        z: num(obj.player.z, d.player.z),
+        yaw: num(obj.player.yaw, 0),
+        pitch: num(obj.player.pitch, 0),
+      };
+    }
+    if (Array.isArray(obj.doors)) d.doors = d.doors.map((_, i) => !!obj.doors[i]);
+    if (Array.isArray(obj.visited)) d.visited = d.visited.map((_, i) => i === 0 || !!obj.visited[i]);
+    if (Array.isArray(obj.notes)) d.notes = obj.notes.filter((n) => Number.isInteger(n) && n >= 0 && n < NOTES.length);
+    if (Array.isArray(obj.clues)) d.clues = obj.clues.filter((c) => typeof c === 'string');
+    if (obj.hintTier && typeof obj.hintTier === 'object') d.hintTier = { ...obj.hintTier };
+    d.finished = !!obj.finished;
+    d.playTime = num(obj.playTime, 0);
+    for (const id of PUZZLE_IDS) if (obj.puzzles && obj.puzzles[id]) this.puzzles[id].setState(obj.puzzles[id]);
+    // Doors can only be open if their keys exist (repairs hand-edited saves).
+    d.doors = d.doors.map((open, r) => open && this.hasKey(r, 'gold') && this.hasKey(r, 'silver'));
+    this.emit('loaded', {});
+    return true;
+  }
+}

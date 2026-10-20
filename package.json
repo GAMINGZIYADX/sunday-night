@@ -1,0 +1,24 @@
+{
+  "name": "sunday-night",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Sunday Night - a cozy first-person puzzle house.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:debug": "vite build --mode debug --outDir dist-debug",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "e2e": "npm run build && npm run build:debug && node e2e/run-all.mjs"
+  },
+  "dependencies": {
+    "three": "^0.180.0"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.56.1",
+    "vite": "^6.4.4",
+    "vite-plugin-singlefile": "^2.3.4",
+    "vitest": "^3.2.7"
+  }
+}
