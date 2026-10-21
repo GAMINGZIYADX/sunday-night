@@ -199,31 +199,67 @@ export function drawTulipField(g, w, h) {
       g.globalAlpha = 1;
     }
   }
-  // Bottom right: a small cat sitting among the white tulips, looking at the sun.
-  const cx = w * 0.84;
-  const cy = h * 0.9;
-  g.fillStyle = '#2a2433';
-  g.beginPath();
-  g.ellipse(cx, cy, w * 0.035, h * 0.05, 0, 0, Math.PI * 2);
-  g.fill();
-  g.beginPath();
-  g.arc(cx, cy - h * 0.06, w * 0.024, 0, Math.PI * 2);
-  g.fill();
-  g.beginPath();
-  g.moveTo(cx - w * 0.022, cy - h * 0.07);
-  g.lineTo(cx - w * 0.016, cy - h * 0.1);
-  g.lineTo(cx - w * 0.004, cy - h * 0.078);
-  g.moveTo(cx + w * 0.022, cy - h * 0.07);
-  g.lineTo(cx + w * 0.016, cy - h * 0.1);
-  g.lineTo(cx + w * 0.004, cy - h * 0.078);
-  g.fill();
-  g.strokeStyle = '#2a2433';
-  g.lineWidth = w * 0.01;
+  // Bottom right: a small cat sitting among the white tulips, seen from
+  // behind, looking towards the sun. One smooth silhouette (haunches,
+  // shoulders, head, ears) with the tail curled round its feet, and a warm
+  // rim of sunset light along the side that faces the sun.
+  const u = w * 0.01;
+  const cx = w * 0.845;
+  const by = h * 0.955; // where it sits
+  const catShape = () => {
+    const p = new Path2D();
+    // body: wide haunches narrowing to the shoulders
+    p.moveTo(cx, by);
+    p.bezierCurveTo(cx - 3.2 * u, by + 0.2 * u, cx - 4.6 * u, by - 1.6 * u, cx - 4.2 * u, by - 4.2 * u);
+    p.bezierCurveTo(cx - 3.9 * u, by - 6.4 * u, cx - 2.2 * u, by - 7.6 * u, cx - 1.7 * u, by - 9.2 * u);
+    p.lineTo(cx + 1.5 * u, by - 9.2 * u);
+    p.bezierCurveTo(cx + 2.1 * u, by - 7.6 * u, cx + 3.9 * u, by - 6.4 * u, cx + 4.2 * u, by - 4.2 * u);
+    p.bezierCurveTo(cx + 4.6 * u, by - 1.6 * u, cx + 3.2 * u, by + 0.2 * u, cx, by);
+    p.closePath();
+    // head, turned a little towards the sun
+    const hx = cx - 0.35 * u;
+    const hy = by - 11.2 * u;
+    p.moveTo(hx + 2.6 * u, hy);
+    p.ellipse(hx, hy, 2.6 * u, 2.3 * u, 0, 0, Math.PI * 2);
+    // ears: soft-sided triangles
+    for (const side of [-1, 1]) {
+      p.moveTo(hx + side * 2.45 * u, hy - 0.4 * u);
+      p.quadraticCurveTo(hx + side * 2.6 * u, hy - 2.6 * u, hx + side * 2.0 * u, hy - 3.9 * u);
+      p.quadraticCurveTo(hx + side * 1.2 * u, hy - 2.9 * u, hx + side * 0.45 * u, hy - 2.15 * u);
+      p.closePath();
+    }
+    return p;
+  };
+  const tail = (dx) => {
+    g.beginPath();
+    g.moveTo(cx + 3.3 * u + dx, by - 0.9 * u);
+    g.bezierCurveTo(cx + 6.4 * u + dx, by - 0.2 * u, cx + 7.2 * u + dx, by - 2.8 * u, cx + 6.0 * u + dx, by - 4.6 * u);
+    g.stroke();
+  };
+  g.save();
   g.lineCap = 'round';
+  g.lineWidth = 1.25 * u;
+  // a soft shadow on the ground
+  g.fillStyle = 'rgba(20,15,30,0.35)';
   g.beginPath();
-  g.moveTo(cx + w * 0.03, cy + h * 0.035);
-  g.quadraticCurveTo(cx + w * 0.08, cy + h * 0.02, cx + w * 0.07, cy - h * 0.03);
-  g.stroke();
+  g.ellipse(cx + 1 * u, by + 0.2 * u, 5.5 * u, 1.1 * u, 0, 0, Math.PI * 2);
+  g.fill();
+  // the rim light, then the cat on top, shifted away from the sun
+  g.translate(-0.45 * u, 0);
+  g.fillStyle = g.strokeStyle = '#f2a98c';
+  g.fill(catShape());
+  tail(0);
+  g.translate(0.45 * u, 0);
+  g.fillStyle = g.strokeStyle = '#2a2433';
+  g.fill(catShape());
+  tail(0);
+  g.restore();
+  // a couple of tulips in front of it, so it sits among them
+  for (const [tx, ty, ts] of [
+    [-6.2, 0.2, 4.6],
+    [8.9, 0.5, 4.8],
+  ])
+    drawTulip(g, cx + tx * u, by + ty * u, ts * u, WHITE, { stem: true, leaf: true });
   // soft painterly vignette
   const v = g.createRadialGradient(w / 2, h / 2, w * 0.3, w / 2, h / 2, w * 0.75);
   v.addColorStop(0, 'rgba(0,0,0,0)');
