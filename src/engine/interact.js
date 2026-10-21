@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 
-// Center-of-screen interaction. Objects register with a prompt and a callback;
+// Center-of-screen interaction (on touch screens also at the tapped point).
+// Objects register with a prompt and a callback;
 // walls register as occluders so nothing can be used through them.
 export class Interactions {
   constructor(camera) {
@@ -42,21 +43,30 @@ export class Interactions {
   }
 
   update() {
-    const list = [];
-    for (const it of this.items) if (this.active(it)) list.push(it.object);
-    let found = null;
-    if (list.length) {
-      this.ray.setFromCamera(this._center, this.camera);
-      const hits = this.ray.intersectObjects(list.concat(this.occluders), true);
-      for (const h of hits) {
-        if (!h.object.visible) continue;
-        const it = h.object.userData.interact;
-        if (it && this.active(it)) found = it;
-        break;
-      }
-    }
+    const found = this._cast(this._center);
     if (found !== this.hover) this.setHover(found);
     return this.hover;
+  }
+
+  // What a tap at this screen point would use (touch screens).
+  pickAt(clientX, clientY) {
+    // The canvas fills the window.
+    const ndc = new THREE.Vector2((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
+    return this._cast(ndc);
+  }
+
+  _cast(ndc) {
+    const list = [];
+    for (const it of this.items) if (this.active(it)) list.push(it.object);
+    if (!list.length) return null;
+    this.ray.setFromCamera(ndc, this.camera);
+    const hits = this.ray.intersectObjects(list.concat(this.occluders), true);
+    for (const h of hits) {
+      if (!h.object.visible) continue;
+      const it = h.object.userData.interact;
+      return it && this.active(it) ? it : null;
+    }
+    return null;
   }
 
   setHover(item) {

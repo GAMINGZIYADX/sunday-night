@@ -54,7 +54,7 @@ export function slidingOverlay(game, puzzle, { onSolvedClose } = {}) {
     const sy = Math.floor((v - 1) / SN) * ts;
     c.getContext('2d').drawImage(art, sx, sy, ts, ts, 0, 0, ts, ts);
     const t = el('div.slide-tile', [c, el('span.num.hidden', String(v))]);
-    t.addEventListener('mousedown', (e) => {
+    t.addEventListener('pointerdown', (e) => {
       e.preventDefault();
       const idx = puzzle.tiles.indexOf(v);
       if (puzzle.move(idx)) game.audio.slide();
@@ -105,9 +105,12 @@ export function slidingOverlay(game, puzzle, { onSolvedClose } = {}) {
   const close = () => game.modals.close(m);
   const peekBtn = button(LABELS.peek, () => {}, 'small');
   const showPeek = (on) => peek.classList.toggle('on', on);
-  peekBtn.addEventListener('mousedown', () => showPeek(true));
-  peekBtn.addEventListener('mouseup', () => showPeek(false));
-  peekBtn.addEventListener('mouseleave', () => showPeek(false));
+  // Held down with a mouse or a finger.
+  peekBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    showPeek(true);
+  });
+  for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) peekBtn.addEventListener(ev, () => showPeek(false));
   const numBtn = button(
     LABELS.numbers,
     () => {
@@ -119,26 +122,28 @@ export function slidingOverlay(game, puzzle, { onSolvedClose } = {}) {
   const c = card(
     null,
     [
-      header(PUZZLE_NAMES.r1b),
-      board,
-      msg,
-      el('div.pz-tools', [
-        peekBtn,
-        numBtn,
-        gentle,
-        button(
-          LABELS.hint,
-          () => {
-            game.showHint('r1b');
-            layout(); // the third hint unlocks the gentle shuffle
-          },
-          'small',
-        ),
-        button(LABELS.close, close, 'small'),
+      el('div.pz-main', [board]),
+      el('div.pz-side', [
+        header(PUZZLE_NAMES.r1b),
+        msg,
+        el('div.pz-tools', [
+          peekBtn,
+          numBtn,
+          gentle,
+          button(
+            LABELS.hint,
+            () => {
+              game.showHint('r1b');
+              layout(); // the third hint unlocks the gentle shuffle
+            },
+            'small',
+          ),
+          button(LABELS.close, close, 'small'),
+        ]),
+        el('p.note-small', { style: { textAlign: 'center' } }, LABELS.slidingHelp),
       ]),
-      el('p.note-small', { style: { textAlign: 'center' } }, LABELS.slidingHelp),
     ],
-    { onClose: close },
+    { onClose: close, cls: 'pz' },
   );
   const off = puzzle.onChange((p, just) => {
     layout();
@@ -191,7 +196,7 @@ export function sudokuOverlay(game, puzzle) {
     const c = i % n;
     // Wider gaps mark the boxes.
     const cell = el(`div.cell${c > 0 && c % bc === 0 ? '.bl' : ''}${r > 0 && r % br === 0 ? '.bt' : ''}`);
-    cell.addEventListener('mousedown', () => {
+    cell.addEventListener('pointerdown', () => {
       if (!puzzle.isGiven(i)) {
         sel = i;
         render();
@@ -234,18 +239,20 @@ export function sudokuOverlay(game, puzzle) {
   const c = card(
     null,
     [
-      header(PUZZLE_NAMES.r4b),
-      grid,
-      pad,
-      msg,
-      el('div.pz-tools', [
-        button(LABELS.clear, () => put(0), 'small'),
-        button(LABELS.check, check, 'small'),
-        button(LABELS.hint, () => game.showHint('r4b'), 'small'),
-        button(LABELS.close, close, 'small'),
+      el('div.pz-main', [grid]),
+      el('div.pz-side', [
+        header(PUZZLE_NAMES.r4b),
+        pad,
+        msg,
+        el('div.pz-tools', [
+          button(LABELS.clear, () => put(0), 'small'),
+          button(LABELS.check, check, 'small'),
+          button(LABELS.hint, () => game.showHint('r4b'), 'small'),
+          button(LABELS.close, close, 'small'),
+        ]),
       ]),
     ],
-    { onClose: close },
+    { onClose: close, cls: 'pz' },
   );
   const off = puzzle.onChange((p, just) => {
     render();
@@ -311,18 +318,20 @@ export function lockOverlay(game, puzzle) {
   const c = card(
     null,
     [
-      header(PUZZLE_NAMES.r5a),
-      lock,
-      msg,
-      el('div.pz-tools', [
-        button(LABELS.lockOpen, tryIt, 'primary'),
-        button(LABELS.lockJournal, () => game.openJournal(), 'small'),
-        button(LABELS.hint, () => game.showHint('r5a'), 'small'),
-        button(LABELS.close, close, 'small'),
+      el('div.pz-main', [lock]),
+      el('div.pz-side', [
+        header(PUZZLE_NAMES.r5a),
+        msg,
+        el('div.pz-tools', [
+          button(LABELS.lockOpen, tryIt, 'primary'),
+          button(LABELS.lockJournal, () => game.openJournal(), 'small'),
+          button(LABELS.hint, () => game.showHint('r5a'), 'small'),
+          button(LABELS.close, close, 'small'),
+        ]),
+        el('p.note-small', { style: { textAlign: 'center' } }, LABELS.lockHelp),
       ]),
-      el('p.note-small', { style: { textAlign: 'center' } }, LABELS.lockHelp),
     ],
-    { onClose: close },
+    { onClose: close, cls: 'pz' },
   );
   const off = puzzle.onChange((p, just) => {
     render();
@@ -426,13 +435,13 @@ export function constellationOverlay(game, puzzle) {
   };
   const wrap = el('div.sky-wrap', [canvas]);
   const msg = el('div.pz-msg', CLUES.telescope.text.replace('\n', ' '));
-  canvas.addEventListener('mousedown', (e) => {
+  canvas.addEventListener('pointerdown', (e) => {
     if (done) return;
     const rect = canvas.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * W;
     const y = ((e.clientY - rect.top) / rect.height) * H;
     let best = null;
-    let bd = 40;
+    let bd = e.pointerType === 'mouse' ? 40 : 56; // fingers are wider than a mouse pointer
     all.forEach((s) => {
       const d = Math.hypot(s.x - x, s.y - y);
       if (d < bd) {
@@ -453,12 +462,14 @@ export function constellationOverlay(game, puzzle) {
   const c = card(
     null,
     [
-      header(PUZZLE_NAMES.r5b, TULIP_SVG('#fbf7f0', 26)),
-      wrap,
-      msg,
-      el('div.pz-tools', [button(LABELS.hint, () => game.showHint('r5b'), 'small'), button(LABELS.close, close, 'small')]),
+      el('div.pz-main', [wrap]),
+      el('div.pz-side', [
+        header(PUZZLE_NAMES.r5b, TULIP_SVG('#fbf7f0', 26)),
+        msg,
+        el('div.pz-tools', [button(LABELS.hint, () => game.showHint('r5b'), 'small'), button(LABELS.close, close, 'small')]),
+      ]),
     ],
-    { wide: true, onClose: close },
+    { wide: true, onClose: close, cls: 'pz' },
   );
   const off = puzzle.onChange((p, just) => {
     if (just) {
@@ -538,7 +549,15 @@ export function vasePicker(game, puzzle, slot) {
 export function cipherOverlay(game, puzzle) {
   let m;
   const close = () => game.modals.close(m);
-  const input = el('input.cipher-input', { maxlength: String(puzzle.length), spellcheck: 'false', autocomplete: 'off', value: puzzle.text });
+  const input = el('input.cipher-input', {
+    maxlength: String(puzzle.length),
+    spellcheck: 'false',
+    autocomplete: 'off',
+    autocorrect: 'off',
+    autocapitalize: 'characters',
+    enterkeyhint: 'done',
+    value: puzzle.text,
+  });
   const msg = el('div.pz-msg', fill(LABELS.stripCard, { CODE: CIPHER_ENCODED }));
   const submit = () => {
     if (puzzle.setText(input.value)) return;
@@ -547,7 +566,8 @@ export function cipherOverlay(game, puzzle) {
     game.audio.soft();
   };
   input.addEventListener('keydown', (e) => {
-    if (e.code === 'Enter') submit();
+    // Phone keyboards often leave e.code empty, so check e.key too.
+    if (e.code === 'Enter' || e.key === 'Enter') submit();
     e.stopPropagation();
     if (e.code === 'Escape') close();
   });

@@ -306,19 +306,21 @@ export const PROMPTS = {
   // living room
   vaseClue: 'Read the faded note',
   rug: 'Look at the rug pattern',
-  bookTurn: 'Turn these three books (right-click: the other way)',
+  bookTurn: 'Turn these three books',
   glass: 'Look at the coloured window',
   vaseFixed: 'Already planted',
   vaseChange: 'Change this tulip',
   vaseEmpty: 'Plant a tulip here',
   basket: 'A basket of tulips',
   // kitchen
-  dial: 'Turn dial {N} (now {V}) · right-click turns back',
+  dial: 'Turn dial {N} (now {V})',
   recipe: 'Read the recipe card',
   magnet: 'Put {CH} on the strip',
   strip: 'Type the word on the strip',
   eraser: 'Take the last letter off',
-  wheel: 'Turn the wheel (now A → {TO}) · right-click turns back',
+  wheel: 'Turn the wheel (now A → {TO})',
+  // Added after the prompts of things that can also turn the other way.
+  altMouse: 'right-click turns back',
   card: 'Read the pinned card',
   // study
   chalkboard: 'Solve the chalkboard puzzle',
@@ -449,6 +451,52 @@ export const LABELS = {
   readCard: 'Read the card',
   // letter
   readFaster: 'click to read faster',
+  // touch screens
+  use: 'Use',
+  turnBack: 'Turn back',
+  pause: 'Pause',
+  fullscreen: 'Full screen',
+  rotate: 'Turn your phone sideways to play',
+  simpleGraphics: 'Simpler graphics (smoother on phones)',
+};
+
+// On phones and tablets these replace the keyboard-and-mouse wording above.
+// Same names as above; for hints, the number is which of the three to replace.
+export const TOUCH_TEXT = {
+  UI: {
+    clickToStart: 'Tap to start',
+    controls: [
+      ['Left thumb', 'walk (push further to go faster)'],
+      ['Right thumb', 'drag to look around'],
+      ['Tap', 'use what you tap, or the button under the dot'],
+      ['Buttons', 'journal, hint and pause, top right'],
+    ],
+  },
+  LABELS: {
+    hint: 'Hint',
+    mute: 'Mute',
+    sensitivity: 'Look sensitivity',
+    copySelected: 'Selected. Long-press it to copy.',
+    hintMore: '',
+    slidingHelp: 'Tap a piece next to the gap. Hold Peek to see the painting.',
+    lockJournal: 'Journal',
+    lockNotYet: 'Not yet. Your journal has the digits from each door.',
+    lockHelp: 'Tap the arrows to set each digit, then Open.',
+    readFaster: 'tap to read faster',
+  },
+  TOASTS: {
+    soundOff: 'Sound off',
+  },
+  HINTS: {
+    r1a: {
+      2: 'Left to right: snowy and far apart, spring blossom and far apart, summer sun and closer, autumn leaves and closer, snowy and together. Tap one frame, then another, to swap them.',
+    },
+    r2b: {
+      1: 'Tap a book to turn it with the ones either side (Turn back goes the other way). One turn moves a book two places; two turns of the same three swap two books around the third.',
+    },
+    r3b: { 2: 'Set the dials to {DIALS}. Tap a dial to turn it up, or Turn back to turn it down.' },
+    r5a: { 1: 'Every door you opened made a memory tulip glow and gave you a digit. Open your journal with the book button, top right.' },
+  },
 };
 
 // Words painted on things in the world.

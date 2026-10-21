@@ -21,6 +21,7 @@ import { INTRO_LINE, UI } from '../config.js';
 import { PUZZLE_IDS } from '../puzzles/index.js';
 import { TOASTS } from '../config.js';
 import { fill } from './text.js';
+import { TOUCH, enterFullscreen } from './device.js';
 
 export const START = { x: -0.25, z: 1.55, yaw: 0.35 };
 
@@ -202,9 +203,10 @@ export class Game {
       this.wakeT = 0;
       setTimeout(() => this.hud.showIntro(INTRO_LINE, 5600), 1300);
     } else this.hud.showBanner(this.zone);
-    this.hud.showControls(60000);
+    this.hud.showControls(TOUCH ? 14000 : 60000);
     this.input.enabled = true;
     this.input.lock();
+    enterFullscreen();
   }
 
   // Bring every room's visuals in line with the GameState.
@@ -267,6 +269,25 @@ export class Game {
     this.audio.setVolumes({ master: s.master, music: s.music, sfx: s.sfx });
     this.audio.setMuted(s.muted);
     document.body.classList.toggle('reduced', s.reducedMotion);
+    this._applyGraphics();
+  }
+
+  // Resolution cap and shadows. Phones start a little lower than computers;
+  // "Simpler graphics" goes lower still and turns the shadows off.
+  _applyGraphics() {
+    const simple = !!this.settings.data.simpleGraphics;
+    if (this._gfxSimple === simple) return;
+    const first = this._gfxSimple === undefined;
+    this._gfxSimple = simple;
+    const cap = simple ? 1 : TOUCH ? 1.25 : 1.5;
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cap));
+    this._perf = null; // restart the frame-rate watcher from the new ratio
+    if (first && !simple) return;
+    this.renderer.shadowMap.enabled = !simple;
+    this.lights.spot.castShadow = !simple;
+    this.scene.traverse((o) => {
+      if (o.material) for (const m of [].concat(o.material)) m.needsUpdate = true;
+    });
   }
 
   // ------------------------------------------------------------------ hints
@@ -306,6 +327,21 @@ export class Game {
     this.input.on('key', (e) => this._onKey(e));
     this.input.on('interact', () => this._use(false));
     this.input.on('interactAlt', () => this._use(true));
+    this.input.on('tap', ({ x, y }) => this._tap(x, y));
+    this.hud.actions = {
+      use: (alt) => this._use(alt),
+      journal: () => this.state === 'playing' && !this.modals.open && journal(this),
+      hint: () => this.state === 'playing' && !this.modals.open && this.showHint(),
+      pause: () => this.state === 'playing' && !this.modals.open && pauseMenu(this),
+    };
+    // Switching apps or locking the phone pauses (and saves) the game.
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && this.state === 'playing' && !this.modals.open) pauseMenu(this);
+    });
+    // Phones can suspend sound in the background; any touch wakes it again.
+    document.addEventListener('pointerup', () => {
+      if (this.audio.ctx && this.audio.ctx.state !== 'running') this.audio.init();
+    });
     this.input.onLockChange((locked) => {
       if (this.state !== 'playing') return;
       if (!locked && !this.modals.open && this.input.wasLocked) pauseMenu(this);
@@ -420,6 +456,13 @@ export class Game {
     if (item && item.onUse) item.onUse(alt);
   }
 
+  // Touch: a tap uses whatever is under the finger (within reach).
+  _tap(x, y) {
+    if (this.state !== 'playing' || this.modals.open) return;
+    const item = this.interact.pickAt(x, y);
+    if (item && item.onUse) item.onUse(false);
+  }
+
   // -------------------------------------------------------------- the frame
   // Keeps the frame rate smooth on modest GPUs: if frames get slow, render at a
   // slightly lower resolution; when there is headroom again, go back up.
@@ -432,7 +475,8 @@ export class Game {
     p.t = 0;
     p.n = 0;
     let next = p.ratio;
-    if (avg > 1 / 45 && p.ratio > 0.75) next = Math.max(0.75, p.ratio - 0.25);
+    const floor = TOUCH ? 0.6 : 0.75;
+    if (avg > 1 / 45 && p.ratio > floor) next = Math.max(floor, p.ratio - 0.25);
     else if (avg < 1 / 58 && p.ratio < p.max) next = Math.min(p.max, p.ratio + 0.25);
     if (next !== p.ratio) {
       p.ratio = next;
@@ -460,7 +504,11 @@ export class Game {
       this.interact.zone = this.zone;
       const hover = this.modals.open ? null : this.interact.update();
       const prompt = hover ? (typeof hover.prompt === 'function' ? hover.prompt() : hover.prompt) : null;
-      this.hud.setPrompt(this.modals.open ? null : prompt);
+      this.hud.setPrompt(this.modals.open ? null : prompt, !!hover?.alt);
+      if (TOUCH) {
+        const st = this.input.stick;
+        this.hud.setStick(st && !this.modals.open ? { ox: st.ox, oy: st.oy, dx: st.x - st.ox, dy: st.y - st.oy } : null);
+      }
     } else if (this.state === 'menu') {
       // Gentle idle sway behind the menu.
       this.camera.rotation.y = 0.72 + Math.sin(this.time * 0.15) * 0.08;

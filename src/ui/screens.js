@@ -6,6 +6,7 @@ import { KEY_SVG } from './dom.js';
 import { exportCode, importCode } from '../engine/save.js';
 import { LABELS, TOASTS } from '../config.js';
 import { fill } from '../engine/text.js';
+import { TOUCH, enterFullscreen, isFullscreen } from '../engine/device.js';
 
 const tulips = () => el('div.tulip-row', { html: TULIP_SVG('#6f9be0', 26) + TULIP_SVG('#fbf7f0', 26) + TULIP_SVG('#6f9be0', 26) });
 
@@ -14,15 +15,17 @@ export function clickToStart(game, onStart) {
   const c = el('div.card', [tulips(), el('h1', GAME_TITLE), el('p.sub', UI.subtitle), el('div.start-hint', UI.clickToStart)]);
   const m = game.modals.show(c, { name: 'start', escClose: false });
   const go = () => {
-    m.el.removeEventListener('mousedown', go);
+    m.el.removeEventListener(TOUCH ? 'click' : 'mousedown', go);
     window.removeEventListener('keydown', key);
     game.modals.close(m, { silent: true });
+    enterFullscreen();
     onStart();
   };
   const key = (e) => {
     if (e.code === 'Enter' || e.code === 'Space') go();
   };
-  m.el.addEventListener('mousedown', go);
+  // A tap has to finish (click) before the browser allows sound and full screen.
+  m.el.addEventListener(TOUCH ? 'click' : 'mousedown', go);
   window.addEventListener('keydown', key);
 }
 
@@ -57,6 +60,12 @@ export function pauseMenu(game) {
         button(UI.journal, () => journal(game)),
         button(UI.settings, () => settingsPanel(game)),
         button(LABELS.backupCode, () => backupPanel(game)),
+        TOUCH && !isFullscreen()
+          ? button(LABELS.fullscreen, () => {
+              enterFullscreen();
+              close();
+            })
+          : null,
         button(LABELS.mainMenu, () => {
           game.saveNow('menu');
           game.toMainMenu();
@@ -118,6 +127,7 @@ export function settingsPanel(game) {
       toggle(LABELS.headBob, 'headBob'),
       toggle(LABELS.reducedMotion, 'reducedMotion'),
       toggle(LABELS.mute, 'muted'),
+      toggle(LABELS.simpleGraphics, 'simpleGraphics'),
       el('div.btn-row', [
         button(LABELS.resetSave, () =>
           confirmBox(game, LABELS.confirmReset, () => {
@@ -127,7 +137,7 @@ export function settingsPanel(game) {
         button(LABELS.done, () => game.modals.close(m), 'primary'),
       ]),
     ],
-    { icon: TULIP_SVG('#fbf7f0', 26), onClose: () => game.modals.close(m) },
+    { icon: TULIP_SVG('#fbf7f0', 26), onClose: () => game.modals.close(m), cls: 'settings' },
   );
   m = game.modals.show(c, { name: 'settings' });
 }

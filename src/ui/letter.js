@@ -24,7 +24,7 @@ export function playLetter(game, { onDone }) {
     fast = true;
     if (wake) wake();
   };
-  screen.addEventListener('mousedown', speed);
+  screen.addEventListener('pointerdown', speed);
   const wait = (sec) =>
     new Promise((res) => {
       const ms = (fast ? sec / 6 : sec) * 1000 * (reduced ? 0.6 : 1);

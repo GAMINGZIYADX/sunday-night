@@ -1,5 +1,13 @@
-// Keyboard + mouse + pointer lock. Gameplay code reads `keys` and consumes
-// mouse deltas; discrete actions are delivered through `onAction`.
+import { TOUCH } from './device.js';
+
+const STICK_R = 56; // px a thumb travels for full speed
+const TOUCH_LOOK = 1.5; // touch drag pixels -> mouse-like look pixels
+const TAP_MOVE = 12; // px a finger may wander and still count as a tap
+const TAP_MS = 380;
+
+// Keyboard + mouse + pointer lock, and on touch screens a thumb stick, drag
+// to look and tap to use. Gameplay code reads `axis()` and consumes look
+// deltas; discrete actions are delivered through `on(action)`.
 export class Input {
   constructor(canvas) {
     this.canvas = canvas;
@@ -8,7 +16,11 @@ export class Input {
     this.dy = 0;
     this.locked = false;
     this.wasLocked = false;
-    this.enabled = false; // gameplay input (movement/look/interact)
+    this.touch = TOUCH;
+    this.noLock = TOUCH; // fingers have no pointer to lock
+    this._enabled = false; // gameplay input (movement/look/interact)
+    this.stick = null; // { id, ox, oy, x, y } while a thumb is on the stick
+    this.looks = new Map(); // pointerId -> drag-to-look finger
     this.handlers = new Map();
     this.lockListeners = [];
 
@@ -43,10 +55,90 @@ export class Input {
       if (e.button === 2) this._emit('interactAlt');
     });
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+    this._bindTouch(canvas);
+  }
+
+  get enabled() {
+    return this._enabled;
+  }
+  set enabled(on) {
+    this._enabled = on;
+    if (!on) this.releaseTouches();
+  }
+
+  // Touch: the left part of the screen is a floating thumb stick (it appears
+  // where the thumb lands); anywhere else, dragging looks around and a quick
+  // tap uses whatever is under the finger.
+  _bindTouch(canvas) {
+    const isFinger = (e) => e.pointerType === 'touch' || e.pointerType === 'pen';
+    canvas.addEventListener(
+      'pointerdown',
+      (e) => {
+        if (!isFinger(e)) return;
+        e.preventDefault(); // no emulated mouse clicks after a touch
+        if (!this.enabled) return;
+        try {
+          canvas.setPointerCapture(e.pointerId);
+        } catch {
+          /* fine without */
+        }
+        const x = e.clientX;
+        const y = e.clientY;
+        if (!this.stick && x < window.innerWidth * 0.42) this.stick = { id: e.pointerId, ox: x, oy: y, x, y };
+        else this.looks.set(e.pointerId, { x, y, sx: x, sy: y, t: e.timeStamp, moved: 0 });
+      },
+      { passive: false },
+    );
+    canvas.addEventListener('pointermove', (e) => {
+      if (!isFinger(e) || !this.enabled) return;
+      const s = this.stick;
+      if (s && s.id === e.pointerId) {
+        s.x = e.clientX;
+        s.y = e.clientY;
+        // Past the rim, the stick follows the thumb so it never feels stuck.
+        const dx = s.x - s.ox;
+        const dy = s.y - s.oy;
+        const d = Math.hypot(dx, dy);
+        if (d > STICK_R) {
+          s.ox = s.x - (dx / d) * STICK_R;
+          s.oy = s.y - (dy / d) * STICK_R;
+        }
+        return;
+      }
+      const l = this.looks.get(e.pointerId);
+      if (!l) return;
+      const dx = e.clientX - l.x;
+      const dy = e.clientY - l.y;
+      l.x = e.clientX;
+      l.y = e.clientY;
+      l.moved = Math.max(l.moved, Math.hypot(l.x - l.sx, l.y - l.sy));
+      this.dx += dx * TOUCH_LOOK;
+      this.dy += dy * TOUCH_LOOK;
+    });
+    const end = (e) => {
+      if (!isFinger(e)) return;
+      if (this.stick && this.stick.id === e.pointerId) {
+        this.stick = null;
+        return;
+      }
+      const l = this.looks.get(e.pointerId);
+      if (!l) return;
+      this.looks.delete(e.pointerId);
+      // Event times, not now(): a busy frame must not turn a tap into a hold.
+      const tap = e.type === 'pointerup' && l.moved < TAP_MOVE && e.timeStamp - l.t < TAP_MS;
+      if (tap && this.enabled) this._emit('tap', { x: l.sx, y: l.sy });
+    };
+    canvas.addEventListener('pointerup', end);
+    canvas.addEventListener('pointercancel', end);
+  }
+
+  releaseTouches() {
+    this.stick = null;
+    this.looks.clear();
   }
 
   lockSupported() {
-    return 'requestPointerLock' in this.canvas;
+    return !this.touch && 'requestPointerLock' in this.canvas;
   }
 
   lock() {
@@ -92,11 +184,35 @@ export class Input {
     return d;
   }
 
+  // f/s are -1..1. Keys give full steps; the thumb stick is analog, and a
+  // gentle push walks slowly.
   axis() {
     const k = this.keys;
     if (!this.enabled) return { f: 0, s: 0, slow: false };
-    const f = (k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 1 : 0);
-    const s = (k.has('KeyD') || k.has('ArrowRight') ? 1 : 0) - (k.has('KeyA') || k.has('ArrowLeft') ? 1 : 0);
-    return { f, s, slow: k.has('ShiftLeft') || k.has('ShiftRight') };
+    let f = (k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 1 : 0);
+    let s = (k.has('KeyD') || k.has('ArrowRight') ? 1 : 0) - (k.has('KeyA') || k.has('ArrowLeft') ? 1 : 0);
+    let slow = k.has('ShiftLeft') || k.has('ShiftRight');
+    const st = this.stickVector();
+    if (st && !f && !s) {
+      f = -st.y;
+      s = st.x;
+      slow = st.mag < 0.55;
+      return { f, s, slow, analog: true };
+    }
+    return { f, s, slow };
+  }
+
+  // The stick as a vector with length 0..1 (0 inside the dead zone).
+  stickVector() {
+    const t = this.stick;
+    if (!t) return null;
+    const dx = t.x - t.ox;
+    const dy = t.y - t.oy;
+    const d = Math.hypot(dx, dy);
+    const dead = 0.14;
+    const raw = Math.min(1, d / STICK_R);
+    if (raw < dead) return { x: 0, y: 0, mag: 0, dx, dy };
+    const mag = (raw - dead) / (1 - dead);
+    return { x: (dx / d) * mag, y: (dy / d) * mag, mag, dx, dy };
   }
 }

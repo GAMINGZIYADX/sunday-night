@@ -9,6 +9,7 @@ export const DEFAULT_SETTINGS = {
   headBob: true,
   reducedMotion: false,
   muted: false,
+  simpleGraphics: false,
 };
 
 export class Settings {

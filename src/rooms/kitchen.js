@@ -136,6 +136,7 @@ export function buildKitchen(ctx) {
       puzzle: 'r3b',
       enabled: () => !pzB.isSolved(),
       prompt: () => fill(PROMPTS.dial, { N: i + 1, V: pzB.values[i] }),
+      alt: true, // can also turn the other way
       onUse: (alt) => {
         pzB.turn(i, alt ? -1 : 1);
         ctx.audio.click();
@@ -370,6 +371,7 @@ export function buildKitchen(ctx) {
     zones: [ROOM],
     puzzle: 'r3a',
     prompt: () => fill(PROMPTS.wheel, { TO: String.fromCharCode(65 + pzA.wheel) }),
+    alt: true, // can also turn the other way
     onUse: (alt) => {
       pzA.turnWheel(alt ? -1 : 1);
       ctx.audio.click();

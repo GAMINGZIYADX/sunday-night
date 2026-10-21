@@ -24,7 +24,7 @@ export class Modals {
   show(content, opts = {}) {
     const screen = el(`div.screen${opts.clear ? '.clear' : ''}`, [content]);
     const modal = { name: opts.name || '', el: screen, content, onClose: opts.onClose, escClose: opts.escClose !== false, onKey: opts.onKey };
-    if (opts.backdropClose) screen.addEventListener('mousedown', (e) => e.target === screen && this.close(modal));
+    if (opts.backdropClose) screen.addEventListener('pointerdown', (e) => e.target === screen && this.close(modal));
     this.root.appendChild(screen);
     this.stack.push(modal);
     this.game.onModalChange(true);
@@ -59,8 +59,10 @@ export class Modals {
 }
 
 // A standard card with a title and a close button.
-export function card(title, children, { wide = false, onClose = null, icon = '' } = {}) {
-  const c = el(`div.card${wide ? '.wide' : ''}`);
+// cls 'pz' marks a puzzle card: a .pz-main board and a .pz-side column, side by
+// side on short landscape screens (phones).
+export function card(title, children, { wide = false, onClose = null, icon = '', cls = '' } = {}) {
+  const c = el(`div.card${wide ? '.wide' : ''}${cls ? '.' + cls : ''}`);
   if (onClose) c.appendChild(el('button.close-x', { type: 'button', onclick: onClose, 'aria-label': LABELS.close }, '×'));
   if (title) c.appendChild(el('h2', { html: `${icon}<span></span>` }));
   if (title) c.querySelector('h2 span').textContent = title;

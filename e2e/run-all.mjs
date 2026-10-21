@@ -1,6 +1,6 @@
 // Runs every browser test in sequence (expects both builds to exist).
 import { spawnSync } from 'node:child_process';
-const tests = ['prod.mjs', 'props.mjs', 'playthrough.mjs', 'continue.mjs', 'collision.mjs'];
+const tests = ['prod.mjs', 'props.mjs', 'playthrough.mjs', 'continue.mjs', 'collision.mjs', 'touch.mjs'];
 let failed = 0;
 for (const t of tests) {
   const r = spawnSync(process.execPath, [`e2e/${t}`], { stdio: 'inherit' });

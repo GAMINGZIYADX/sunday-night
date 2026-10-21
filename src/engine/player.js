@@ -1,6 +1,7 @@
 import { EYE_H, PLAYER_R } from './layout.js';
 
-// First-person controller: smoothed WASD movement, mouse look, subtle bob.
+// First-person controller: smoothed WASD / thumb-stick movement, mouse or
+// touch look, subtle bob.
 export class Player {
   constructor(camera, input, collision, settings) {
     this.camera = camera;
@@ -41,14 +42,15 @@ export class Player {
     } else this.input.consumeMouse();
 
     const a = this.frozen ? { f: 0, s: 0, slow: false } : this.input.axis();
-    const speed = a.slow ? this.slowSpeed : this.speed;
+    // The thumb stick already scales the speed by how far it is pushed.
+    const speed = a.slow && !a.analog ? this.slowSpeed : this.speed;
     const sin = Math.sin(this.yaw);
     const cos = Math.cos(this.yaw);
     // Forward is -Z at yaw 0.
     let wx = -sin * a.f + cos * a.s;
     let wz = -cos * a.f - sin * a.s;
     const len = Math.hypot(wx, wz);
-    if (len > 0) {
+    if (len > 1) {
       wx /= len;
       wz /= len;
     }

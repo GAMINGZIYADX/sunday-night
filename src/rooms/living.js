@@ -234,6 +234,7 @@ export function buildLiving(ctx) {
       puzzle: 'r2b',
       enabled: () => !pzB.isSolved(),
       prompt: PROMPTS.bookTurn,
+      alt: true, // can also turn the other way
       onUse: (alt) => {
         pzB.turn(pzB.order.indexOf(name), alt ? -1 : 1);
         ctx.audio.slide();

@@ -10,8 +10,36 @@ offline, with no server and nothing downloaded. Use a desktop browser (Chrome,
 Edge or Firefox).
 
 Controls: **WASD** move · **mouse** look · **E / click** interact (right-click
-turns an oven dial back) · **Shift** walk slowly · **Tab** journal · **H** hint ·
-**M** mute · **Esc** pause.
+turns books, the cipher wheel and the oven dials back) · **Shift** walk slowly ·
+**Tab** journal · **H** hint · **M** mute · **Esc** pause.
+
+## Play it on a phone (Android)
+
+The same `dist/index.html` switches to touch controls by itself on a phone or
+tablet. Hold the phone sideways; it goes full screen when you start.
+
+- **Left thumb:** a stick appears where you touch. Walk with it, and push
+  further to go faster.
+- **Right thumb:** drag to look around.
+- **Tap** something to use it, or tap the button under the dot. Books, the
+  cipher wheel and the oven dials also get a **Turn back** button.
+- **Top right:** journal, hint and pause buttons.
+- If it stutters, turn on Pause → Settings → **Simpler graphics**.
+- Leaving the app pauses and saves the game.
+
+**Getting it onto the phone.** Phones are bad at opening HTML files saved on
+the phone itself (saving progress may not work), so give it a web link instead:
+
+1. Go to <https://app.netlify.com/drop> on a computer.
+2. Drag the `dist` folder onto the page. You get a link like
+   `https://something-random.netlify.app`. Make the free account it offers,
+   or the link only lasts a short while.
+3. Open that link in Chrome on the phone. Optional: Chrome menu → *Add to Home
+   screen* gives it an app icon.
+
+The link is public but random, so only people you send it to will find it.
+Each phone keeps its own save, so use Pause → *Backup code* to move a game
+between devices.
 
 ## Change the text, codes and names
 
@@ -30,6 +58,7 @@ Everything you'd want to change is in **`src/config.js`**, with comments:
 | Hints (3 per puzzle) | `HINTS` |
 | Cat names, envelope letter | `CATS`, `ENVELOPE_LETTER`, `SIGNATURE_NAME` |
 | Every other word on screen | `UI`, `PROMPTS`, `TOASTS`, `LABELS`, `WORLD_TEXT`, `CLUES` |
+| Words that change on phones ("Tap" instead of "Click"...) | `TOUCH_TEXT` |
 | Colours | `COLORS` |
 
 After editing, rebuild (see below) and send the new `dist/index.html`.
@@ -46,7 +75,8 @@ npm test             # unit tests (puzzles, sudoku uniqueness, save/load...)
 npm run e2e          # builds both versions, then runs the browser tests
 ```
 
-`npm run e2e` drives Chromium through Playwright. It uses the Chromium that
+`npm run e2e` drives Chromium through Playwright, including a run on an
+emulated Android phone held sideways (`e2e/touch.mjs`). It uses the Chromium that
 `playwright-core` finds. In a normal setup, run `npx playwright install chromium`
 once first.
 
@@ -78,6 +108,7 @@ you pause. The main menu then offers **Continue**.
 Debug code only exists in `npm run dev` and in `npm run build:debug`
 (→ `dist-debug/index.html`). Open it with `?debug=1`:
 
+- `?touch=1` / `?touch=0` force touch controls on or off (works in every build)
 - **Shift+1…6** jump to a room (6 = the clearing)
 - **Shift+K** solve both puzzles in the current room (grants both keys)
 - **Shift+O** open the current room's door
@@ -89,7 +120,8 @@ The production build is checked so that none of this is in it.
 
 - `src/config.js`: all text, answers, colours
 - `src/main.js`: bootstrap
-- `src/engine/`: renderer + light pool, input/pointer lock, AABB collision, player,
+- `src/engine/`: renderer + light pool, input (pointer lock, or thumb stick and taps on touch
+  screens; `device.js` decides which), AABB collision, player,
   interaction (raycast + glow), WebAudio synth, `GameState` (event emitter, single
   source of truth), save/backup, procedural textures, props, static-mesh batching
 - `src/rooms/`: one file per room, plus the shell (walls/hallways), doors, art

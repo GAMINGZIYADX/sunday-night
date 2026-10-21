@@ -181,7 +181,7 @@ try {
   await page
     .locator('.slide-tile')
     .nth(firstMove - 1)
-    .dispatchEvent('mousedown');
+    .dispatchEvent('pointerdown');
   if ((await ev(() => window.__game.gs.puzzles.r1b.moves)) !== 1) fail('sliding move did not register');
   for (let k = 0; k < 3; k++) await page.getByRole('button', { name: 'Hint (H)' }).click();
   await page.getByRole('button', { name: 'Gentle shuffle' }).click();
@@ -192,7 +192,7 @@ try {
     await page
       .locator('.slide-tile')
       .nth(v - 1)
-      .dispatchEvent('mousedown');
+      .dispatchEvent('pointerdown');
   await waitFor(() => window.__game.gs.puzzles.r1b.isSolved());
   await waitFor(() => !window.__game.modal(), null, 20000);
   await openDoorAndWalk(0, -3.5);
@@ -273,7 +273,7 @@ try {
   if (sud.grid.length !== 36) fail('expected a 6x6 sudoku');
   // One wrong entry first, checked, then corrected.
   const firstEmpty = sud.grid.indexOf(0);
-  await page.locator('.sudoku .cell').nth(firstEmpty).dispatchEvent('mousedown');
+  await page.locator('.sudoku .cell').nth(firstEmpty).dispatchEvent('pointerdown');
   await page
     .locator('.numpad .btn')
     .nth(sud.sol[firstEmpty] % 6)
@@ -283,7 +283,7 @@ try {
   await shot('p05-sudoku');
   for (let i = 0; i < 36; i++) {
     if (sud.grid[i]) continue;
-    await page.locator('.sudoku .cell').nth(i).dispatchEvent('mousedown');
+    await page.locator('.sudoku .cell').nth(i).dispatchEvent('pointerdown');
     await page
       .locator('.numpad .btn')
       .nth(sud.sol[i] - 1)
