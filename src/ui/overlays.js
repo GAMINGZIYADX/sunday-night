@@ -78,25 +78,25 @@ export function slidingOverlay(game, puzzle, { onSolvedClose } = {}) {
     'small',
   );
 
+  // Pieces fill the same 6px-inset square as the Peek picture, with a 2px
+  // gap around each one, so peeking lines up exactly with the pieces.
+  const place = (t, i) => {
+    const cell = `(100% - 12px) / ${SN}`;
+    t.style.left = `calc(6px + ${cell} * ${i % SN} + 2px)`;
+    t.style.top = `calc(6px + ${cell} * ${Math.floor(i / SN)} + 2px)`;
+    t.style.width = t.style.height = `calc(${cell} - 4px)`;
+  };
   const layout = () => {
-    const cell = 100 / SN;
     puzzle.tiles.forEach((v, i) => {
       if (v === 0) return;
       const t = tiles.get(v);
-      t.style.left = `calc(${(i % SN) * cell}% + 6px)`;
-      t.style.top = `calc(${Math.floor(i / SN) * cell}% + 6px)`;
-      t.style.width = `calc(${cell}% - 8px)`;
-      t.style.height = `calc(${cell}% - 8px)`;
+      place(t, i);
       t.querySelector('.num').classList.toggle('hidden', !numbers);
     });
     // The last piece is the missing corner: it only appears once solved.
-    const nine = tiles.get(LAST);
-    nine.style.display = puzzle.isSolved() ? '' : 'none';
-    if (puzzle.isSolved()) {
-      nine.style.left = `calc(${(SN - 1) * cell}% + 6px)`;
-      nine.style.top = `calc(${(SN - 1) * cell}% + 6px)`;
-      nine.style.width = nine.style.height = `calc(${cell}% - 8px)`;
-    }
+    const last = tiles.get(LAST);
+    last.style.display = puzzle.isSolved() ? '' : 'none';
+    if (puzzle.isSolved()) place(last, LAST - 1);
     gentle.classList.toggle('hidden', (game.gs.data.hintTier.r1b ?? -1) < 2 || puzzle.isSolved());
     msg.textContent = puzzle.isSolved() ? LABELS.paintingWhole : fill(LABELS.moves, { N: puzzle.moves });
   };

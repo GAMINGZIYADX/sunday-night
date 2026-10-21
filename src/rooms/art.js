@@ -18,7 +18,7 @@ function rng(seed) {
 }
 
 // The tulip field at dusk (Room 1 sliding puzzle). Composed so that every
-// one of the nine tiles has something of its own to recognise.
+// one of the sixteen tiles has something of its own to recognise.
 export function drawTulipField(g, w, h) {
   const r = rng(42);
   const H0 = h * 0.52; // horizon
@@ -35,15 +35,25 @@ export function drawTulipField(g, w, h) {
     g.arc(r() * w, r() * h * 0.28, r() * 1.8 + 0.5, 0, Math.PI * 2);
     g.fill();
   }
-  // Top left: a crescent moon.
-  g.fillStyle = '#fff3d2';
-  g.beginPath();
-  g.arc(w * 0.17, h * 0.15, w * 0.07, 0, Math.PI * 2);
-  g.fill();
-  g.fillStyle = '#3a3577';
-  g.beginPath();
-  g.arc(w * 0.2, h * 0.13, w * 0.062, 0, Math.PI * 2);
-  g.fill();
+  // Top left: a crescent moon (a disc with a second disc cut out of it, so
+  // the sky shows through instead of a darker patch).
+  const mr = w * 0.07;
+  const moon = document.createElement('canvas');
+  moon.width = moon.height = Math.ceil(mr * 2 + 8);
+  const mg = moon.getContext('2d');
+  const mc = moon.width / 2;
+  mg.fillStyle = '#fff3d2';
+  mg.shadowColor = 'rgba(255,240,200,0.8)';
+  mg.shadowBlur = mr * 0.25;
+  mg.beginPath();
+  mg.arc(mc, mc, mr, 0, Math.PI * 2);
+  mg.fill();
+  mg.shadowBlur = 0;
+  mg.globalCompositeOperation = 'destination-out';
+  mg.beginPath();
+  mg.arc(mc + mr * 0.42, mc - mr * 0.3, mr * 0.88, 0, Math.PI * 2);
+  mg.fill();
+  g.drawImage(moon, w * 0.17 - mc, h * 0.15 - mc);
   // Top middle: soft pink clouds and three birds.
   const cloud = (cx, cy, s, c) => {
     g.fillStyle = c;
@@ -105,17 +115,21 @@ export function drawTulipField(g, w, h) {
   g.beginPath();
   g.arc(sx, H0, w * 0.085, Math.PI, 0);
   g.fill();
-  // Hills.
+  // Hills: a rounded one on the left for the house, a gentle one on the right.
+  const hill = (x) => {
+    const bump = (c, wd, ht) => ht * Math.exp(-(((x - c) / wd) ** 2));
+    return h * (bump(w * 0.2, w * 0.2, 0.085) + bump(w * 0.82, w * 0.22, 0.035));
+  };
   g.fillStyle = '#6c5c88';
   g.beginPath();
-  g.moveTo(0, H0);
-  for (let x = 0; x <= w; x += 8) g.lineTo(x, H0 - Math.max(0, Math.sin((x / w) * Math.PI * 1.1 - 0.2)) * h * 0.06 * (x < w * 0.4 ? 1.6 : 0.6));
+  g.moveTo(0, h);
+  for (let x = 0; x <= w; x += 4) g.lineTo(x, H0 + 2 - hill(x));
   g.lineTo(w, h);
-  g.lineTo(0, h);
+  g.closePath();
   g.fill();
-  // Middle left: the little house with a lit window.
+  // Middle left: the little house with a lit window, sitting on the hill.
   const hx = w * 0.13;
-  const hy = H0 - h * 0.06;
+  const hy = H0 - hill(w * 0.185) + h * 0.015;
   g.fillStyle = '#4b3f5e';
   g.fillRect(hx, hy - h * 0.06, w * 0.11, h * 0.07);
   g.beginPath();
@@ -127,15 +141,29 @@ export function drawTulipField(g, w, h) {
   g.fillStyle = '#ffd38a';
   g.fillRect(hx + w * 0.02, hy - h * 0.04, w * 0.025, h * 0.025);
   g.fillRect(hx + w * 0.065, hy - h * 0.04, w * 0.025, h * 0.025);
-  // Middle right: a round tree.
+  // Middle right: a round tree on the right-hand hill. Each puff of the
+  // crown is its own circle so they join cleanly.
+  const ground = H0 - hill(w * 0.826) + 3;
   g.fillStyle = '#3e3850';
-  g.fillRect(w * 0.82, H0 - h * 0.1, w * 0.012, h * 0.1);
-  g.fillStyle = '#4f5a6a';
-  g.beginPath();
-  g.arc(w * 0.826, H0 - h * 0.12, w * 0.05, 0, Math.PI * 2);
-  g.arc(w * 0.8, H0 - h * 0.1, w * 0.035, 0, Math.PI * 2);
-  g.arc(w * 0.855, H0 - h * 0.095, w * 0.035, 0, Math.PI * 2);
-  g.fill();
+  g.fillRect(w * 0.818, ground - h * 0.09, w * 0.016, h * 0.09);
+  const puffs = [
+    [0.826, 0.125, 0.05],
+    [0.795, 0.1, 0.034],
+    [0.858, 0.1, 0.034],
+    [0.81, 0.145, 0.03],
+    [0.845, 0.145, 0.03],
+  ];
+  for (const [col, dy] of [
+    ['#4f5a6a', 0],
+    ['#5d6a7a', -0.008],
+  ]) {
+    g.fillStyle = col;
+    for (const [px, py, pr] of puffs) {
+      g.beginPath();
+      g.arc(w * px - (dy ? pr * w * 0.25 : 0), ground - h * py + dy * h, w * pr * (dy ? 0.7 : 1), 0, Math.PI * 2);
+      g.fill();
+    }
+  }
   // Field.
   const field = g.createLinearGradient(0, H0, 0, h);
   field.addColorStop(0, '#5c7a5a');
@@ -143,26 +171,32 @@ export function drawTulipField(g, w, h) {
   g.fillStyle = field;
   g.fillRect(0, H0, w, h - H0);
   // A winding path from the bottom middle to the sun.
+  const path = new Path2D();
+  path.moveTo(w * 0.485, H0);
+  path.bezierCurveTo(w * 0.44, h * 0.7, w * 0.62, h * 0.8, w * 0.42, h);
+  path.lineTo(w * 0.62, h);
+  path.bezierCurveTo(w * 0.78, h * 0.8, w * 0.5, h * 0.7, w * 0.515, H0);
+  path.closePath();
   g.fillStyle = '#d8b994';
-  g.beginPath();
-  g.moveTo(w * 0.47, H0);
-  g.bezierCurveTo(w * 0.44, h * 0.7, w * 0.62, h * 0.8, w * 0.42, h);
-  g.lineTo(w * 0.62, h);
-  g.bezierCurveTo(w * 0.78, h * 0.8, w * 0.5, h * 0.7, w * 0.53, H0);
-  g.closePath();
-  g.fill();
+  g.fill(path);
   // Tulip rows: blue on the left, white on the right, mixed in the middle.
+  // Rows follow the curve of the path instead of stopping in straight lines.
+  const onPath = (x, y, size) => g.isPointInPath(path, x - size * 0.45, y) || g.isPointInPath(path, x + size * 0.45, y);
   for (let row = 0; row < 9; row++) {
     const t = row / 8;
-    const y = H0 + h * 0.03 + t * t * (h - H0 - h * 0.02);
-    const size = 3 + t * t * w * 0.05;
-    const step = size * 1.25;
+    const y = H0 + h * 0.035 + t * t * (h - H0 - h * 0.02);
+    const size = 5 + t * t * w * 0.048;
+    const step = size * 1.3;
     for (let x = -step + (row % 2) * step * 0.5; x < w + step; x += step) {
       const u = x / w;
-      if (u > 0.4 && u < 0.66 && row > 2) continue; // keep the path clear
+      const jx = x + (r() - 0.5) * step * 0.3;
+      if (onPath(jx, y, size) || onPath(jx, y + size * 0.8, size)) continue; // keep the path clear
       let color = u < 0.38 ? BLUE : u > 0.66 ? WHITE : r() < 0.5 ? BLUE : WHITE;
       if (r() < 0.08) color = color === BLUE ? WHITE : BLUE;
-      drawTulip(g, x + (r() - 0.5) * step * 0.3, y, size, color, { stem: size > 6, leaf: size > 12 });
+      // Far rows fade into the dusk so they read as distance, not dotted lines.
+      g.globalAlpha = 0.45 + 0.55 * Math.min(1, t * 1.6);
+      drawTulip(g, jx, y, size, color, { stem: size > 6, leaf: size > 12 });
+      g.globalAlpha = 1;
     }
   }
   // Bottom right: a small cat sitting among the white tulips, looking at the sun.
