@@ -134,6 +134,99 @@ export function installDebug(game, params) {
       }
       return bad;
     },
+    // Props that float or have furniture passing through them (run with ?nomerge).
+    checkProps() {
+      const ray = new THREE.Raycaster();
+      const out = [];
+      const boxes = [];
+      game.roomGroups.forEach((grp, room) => {
+        if (!grp) return;
+        const solids = [];
+        grp.traverse((o) => {
+          if (!o.isMesh || o.isInstancedMesh) return;
+          const m = Array.isArray(o.material) ? o.material[0] : o.material;
+          if (!m || m.colorWrite === false || m.depthWrite === false) return;
+          solids.push(o);
+        });
+        grp.updateMatrixWorld(true);
+        grp.traverse((p) => {
+          if (!p.userData.prop) return;
+          let o = p;
+          while (o) {
+            if (!o.visible) return;
+            o = o.parent;
+          }
+          const own = new Set();
+          p.traverse((c) => own.add(c));
+          const box = new THREE.Box3();
+          p.traverse((m) => {
+            if (!m.isMesh || m.userData.noGlow) return;
+            const mm = Array.isArray(m.material) ? m.material[0] : m.material;
+            if (mm.depthWrite === false || mm.colorWrite === false) return;
+            box.expandByObject(m);
+          });
+          const c = box.getCenter(new THREE.Vector3());
+          const others = solids.filter((s) => !own.has(s));
+          const from = new THREE.Vector3(c.x, box.min.y + 0.015, c.z);
+          ray.set(from, new THREE.Vector3(0, -1, 0));
+          ray.far = 5;
+          const down = ray.intersectObjects(others, false)[0];
+          const gap = down ? down.distance - 0.015 : Infinity;
+          // Upward rays from five points inside the footprint: anything hit
+          // before the prop's own top passes through it.
+          let up = null;
+          const sx = (box.max.x - box.min.x) * 0.3;
+          const sz = (box.max.z - box.min.z) * 0.3;
+          for (const [dx, dz] of [
+            [0, 0],
+            [sx, sz],
+            [-sx, sz],
+            [sx, -sz],
+            [-sx, -sz],
+          ]) {
+            ray.set(new THREE.Vector3(c.x + dx, box.min.y + 0.03, c.z + dz), new THREE.Vector3(0, 1, 0));
+            ray.far = Math.max(0.01, box.max.y - box.min.y - 0.05);
+            up = up || ray.intersectObjects(others, false)[0];
+          }
+          // Overlap with other props (e.g. a candle standing inside a stack of books).
+          box.userData = { p };
+          boxes.push({ p, box, room });
+          if (gap > 0.02 || up) {
+            out.push({
+              room,
+              prop: p.userData.prop,
+              at: [c.x, box.min.y, c.z].map((v) => +v.toFixed(2)),
+              gap: gap === Infinity ? 'none' : +gap.toFixed(3),
+              through: up ? { y: +(box.min.y + 0.03 + up.distance).toFixed(2), what: up.object.name || up.object.geometry.type } : null,
+            });
+          }
+        });
+      });
+      for (let i = 0; i < boxes.length; i++)
+        for (let j = i + 1; j < boxes.length; j++) {
+          const a = boxes[i];
+          const b = boxes[j];
+          if (a.room !== b.room) continue;
+          const inter = a.box.clone().intersect(b.box);
+          if (inter.isEmpty()) continue;
+          const v = (bx) => {
+            const sz = bx.getSize(new THREE.Vector3());
+            return sz.x * sz.y * sz.z;
+          };
+          const frac = v(inter) / Math.min(v(a.box), v(b.box));
+          if (frac > 0.08)
+            out.push({
+              room: a.room,
+              overlap: [a.p.userData.prop, b.p.userData.prop],
+              at: a.box
+                .getCenter(new THREE.Vector3())
+                .toArray()
+                .map((x) => +x.toFixed(2)),
+              frac: +frac.toFixed(2),
+            });
+        }
+      return out;
+    },
     zoneAt,
     ROOMS,
   };

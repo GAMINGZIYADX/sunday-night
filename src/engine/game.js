@@ -60,6 +60,8 @@ export class Game {
     this.doors = [];
     this.rooms = [];
 
+    // Debug builds can skip mesh batching (?nomerge) so props keep their identity.
+    this.noMerge = __DEBUG__ && new URLSearchParams(location.search).has('nomerge');
     this.ctx = this._makeCtx();
     this.cats = new CatDirector(this.ctx);
     this.ctx.cats = this.cats;

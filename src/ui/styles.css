@@ -1303,3 +1303,19 @@ textarea.code {
 .reduced * {
   animation-duration: 0.01s !important;
 }
+
+/* 6x6 sudoku */
+.sudoku.n6 {
+  width: min(calc(92vh - 270px), 80vw, 400px);
+  gap: 3px;
+}
+.sudoku.n6 .cell {
+  font-size: 28px;
+  border-radius: 8px;
+}
+.sudoku.n6 .cell.bl {
+  margin-left: 5px;
+}
+.sudoku.n6 .cell.bt {
+  margin-top: 5px;
+}

@@ -23,9 +23,10 @@ Everything you'd want to change is in **`src/config.js`**, with comments:
 | The final letter | `FINAL_MESSAGE` (blank line = new paragraph, last line starting with `—` is the signature) |
 | The five room notes | `NOTES` |
 | Letter pacing | `LETTER_TIMING` |
-| Kitchen secret word | `CIPHER_WORD` and `CIPHER_SHIFT`; the card text is worked out for you |
-| Oven dial answer and recipe | `DIAL_SOLUTION`, `DIAL_RECIPE` |
-| Sudoku | `SUDOKU_GIVENS` (keep it to one solution: run `npm test` to check) |
+| Kitchen secret sentence | `CIPHER_SENTENCE`, `CIPHER_WORD` (a word of the sentence) and `CIPHER_SHIFT`; the card text is worked out for you. Keep a one-letter word in the sentence: it is how she cracks it |
+| Oven dial answer and riddle | `DIAL_SOLUTION`, `DIAL_RECIPE` (if you change the riddle, also change `dialRuleHolds` in `src/puzzles/dials.js`; `npm test` checks it has one answer) |
+| Sudoku (6×6) | `SUDOKU_GIVENS` (keep it to one solution: run `npm test` to check) |
+| Vase pattern, rug, constellation, hiding spots | `VASE_GIVEN`, `RUG_SHOWN`, `CONSTELLATION_LABELS`, `CONSTELLATION_DECOYS`, `HIDING_SPOTS` |
 | Hints (3 per puzzle) | `HINTS` |
 | Cat names, envelope letter | `CATS`, `ENVELOPE_LETTER`, `SIGNATURE_NAME` |
 | Every other word on screen | `UI`, `PROMPTS`, `TOASTS`, `LABELS`, `WORLD_TEXT`, `CLUES` |
@@ -48,6 +49,18 @@ npm run e2e          # builds both versions, then runs the browser tests
 `npm run e2e` drives Chromium through Playwright. It uses the Chromium that
 `playwright-core` finds. In a normal setup, run `npx playwright install chromium`
 once first.
+
+## The puzzles
+
+| Room | Gold key (themed) | Silver key (classic) |
+| --- | --- | --- |
+| Bedroom | Five frames: order them by distance *and* season (each clue alone has ties) | 4×4 sliding picture (the fifteen puzzle) |
+| Living room | Twelve vases: work out the growing pattern from the rug and three planted vases | Rainbow books that only move by turning three at a time |
+| Kitchen | A whole sentence in a Caesar cipher with no key given; crack it from the one-letter word, spell the last word | Four oven dials from a five-clue riddle |
+| Study | Hide and seek: six spots, and the cats sneak elsewhere after every wrong guess, so she has to listen | 6×6 sudoku |
+| Garden | The four memory digits on the gate lock | Constellation of month letters (J F M A M J J A S O N D) with repeats and decoys |
+
+Every puzzle has three hints (H, or from the journal), and the last always gives the answer away.
 
 ## Saving
 

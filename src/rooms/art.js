@@ -1,6 +1,7 @@
 import { drawTulip, hex, roundRect, HAND_FONT, ROUND_FONT } from '../engine/textures.js';
 import { COLORS } from '../config.js';
 import { WORLD_TEXT } from '../config.js';
+import { shape } from '../puzzles/sudokuMath.js';
 
 // Procedural artwork shared by the 3D world and the 2D puzzle overlays.
 
@@ -197,24 +198,110 @@ export function drawTulipField(g, w, h) {
   g.fillRect(0, 0, w, h);
 }
 
-// Two tulips at a distance: 'far', 'closer', 'together' (Room 1 frames).
+// Two tulips at a distance, in a season (Room 1 frames). kind is
+// '<season>-<distance>': winter/spring/summer/autumn and far/closer/together.
 export function drawFramePicture(g, w, h, kind) {
+  const [season, dist] = kind.split('-');
+  const r = rng(kind.length * 31 + kind.charCodeAt(0) * 7 + kind.charCodeAt(kind.length - 1));
+  const look = {
+    winter: { sky: ['#dfe8f3', '#c9d6e6'], ground: '#ffffff', edge: '#e2e9f2' },
+    spring: { sky: ['#fbe8ef', '#f6d6e2'], ground: '#b7d8a4', edge: '#a3c98f' },
+    summer: { sky: ['#ffeec2', '#ffe1a0'], ground: '#9cc77f', edge: '#88b56c' },
+    autumn: { sky: ['#f9dcc0', '#efc09a'], ground: '#c79a6a', edge: '#b3855a' },
+  }[season];
   const bg = g.createLinearGradient(0, 0, 0, h);
-  bg.addColorStop(0, '#fbeee2');
-  bg.addColorStop(1, '#f2d9cf');
+  bg.addColorStop(0, look.sky[0]);
+  bg.addColorStop(1, look.sky[1]);
   g.fillStyle = bg;
   g.fillRect(0, 0, w, h);
-  // a soft ground line
-  g.fillStyle = '#d9c3a5';
+  // Season details in the sky.
+  if (season === 'summer') {
+    g.fillStyle = '#ffd25a';
+    g.beginPath();
+    g.arc(w * 0.78, h * 0.18, w * 0.11, 0, Math.PI * 2);
+    g.fill();
+    g.strokeStyle = 'rgba(255,200,80,0.7)';
+    g.lineWidth = 3;
+    for (let k = 0; k < 10; k++) {
+      const a = (k / 10) * Math.PI * 2;
+      g.beginPath();
+      g.moveTo(w * 0.78 + Math.cos(a) * w * 0.14, h * 0.18 + Math.sin(a) * w * 0.14);
+      g.lineTo(w * 0.78 + Math.cos(a) * w * 0.18, h * 0.18 + Math.sin(a) * w * 0.18);
+      g.stroke();
+    }
+  }
+  if (season === 'spring') {
+    // a blossom branch and falling petals
+    g.strokeStyle = '#8a6a5a';
+    g.lineWidth = 5;
+    g.beginPath();
+    g.moveTo(w, h * 0.08);
+    g.quadraticCurveTo(w * 0.7, h * 0.12, w * 0.5, h * 0.06);
+    g.stroke();
+    for (let k = 0; k < 9; k++) {
+      g.fillStyle = k % 2 ? '#f7a8c0' : '#ffd0de';
+      g.beginPath();
+      g.arc(w * (0.55 + k * 0.05), h * (0.07 + (k % 3) * 0.02), w * 0.025, 0, Math.PI * 2);
+      g.fill();
+    }
+  }
+  const flakes = season === 'winter' ? 40 : season === 'spring' || season === 'autumn' ? 14 : 0;
+  for (let k = 0; k < flakes; k++) {
+    const x = r() * w;
+    const y = r() * h * 0.78;
+    if (season === 'winter') {
+      g.fillStyle = 'rgba(255,255,255,0.95)';
+      g.beginPath();
+      g.arc(x, y, 2 + r() * 2.5, 0, Math.PI * 2);
+      g.fill();
+    } else {
+      g.save();
+      g.translate(x, y);
+      g.rotate(r() * 6);
+      g.fillStyle = season === 'spring' ? (r() < 0.5 ? '#f7a8c0' : '#ffd0de') : r() < 0.5 ? '#d9772f' : '#b8552a';
+      g.beginPath();
+      g.ellipse(0, 0, season === 'spring' ? 4 : 7, season === 'spring' ? 2.5 : 3.5, 0, 0, Math.PI * 2);
+      g.fill();
+      g.restore();
+    }
+  }
+  // Ground.
+  g.fillStyle = look.ground;
   g.beginPath();
-  g.ellipse(w / 2, h * 0.86, w * 0.48, h * 0.08, 0, 0, Math.PI * 2);
+  g.moveTo(0, h * 0.74);
+  g.quadraticCurveTo(w * 0.5, h * 0.66, w, h * 0.74);
+  g.lineTo(w, h);
+  g.lineTo(0, h);
   g.fill();
-  const gap = { far: 0.33, closer: 0.18, together: 0.088 }[kind];
+  g.strokeStyle = look.edge;
+  g.lineWidth = 3;
+  g.beginPath();
+  g.moveTo(0, h * 0.74);
+  g.quadraticCurveTo(w * 0.5, h * 0.66, w, h * 0.74);
+  g.stroke();
+  if (season === 'winter') {
+    // little snow drifts
+    g.fillStyle = '#f3f7fb';
+    for (let k = 0; k < 4; k++) {
+      g.beginPath();
+      g.ellipse(w * (0.12 + k * 0.26), h * 0.8, w * 0.09, h * 0.025, 0, 0, Math.PI * 2);
+      g.fill();
+    }
+  }
+  if (season === 'autumn') {
+    for (let k = 0; k < 10; k++) {
+      g.fillStyle = k % 2 ? '#d9772f' : '#e7a03c';
+      g.beginPath();
+      g.ellipse(r() * w, h * (0.78 + r() * 0.18), 6, 3, r() * 3, 0, Math.PI * 2);
+      g.fill();
+    }
+  }
+  const gap = { far: 0.33, closer: 0.17, together: 0.088 }[dist];
   const size = w * 0.24;
-  const y = h * 0.42;
-  drawTulip(g, w * (0.5 - gap), y, size, BLUE, { outline: 'rgba(0,0,0,0.08)' });
-  drawTulip(g, w * (0.5 + gap), y, size, WHITE, { outline: 'rgba(0,0,0,0.12)' });
-  if (kind === 'together') {
+  const y = h * 0.47;
+  drawTulip(g, w * (0.5 - gap), y, size, BLUE, { outline: 'rgba(0,0,0,0.12)' });
+  drawTulip(g, w * (0.5 + gap), y, size, WHITE, { outline: 'rgba(0,0,0,0.18)' });
+  if (dist === 'together') {
     // a tiny heart where the petals touch
     g.fillStyle = '#e2a29d';
     g.beginPath();
@@ -295,7 +382,8 @@ export function drawRainbowWindow(g, w, h, order, palette) {
   g.stroke();
 }
 
-// Cipher wheel poster (Room 3).
+// Cipher wheel poster (Room 3). `shift` is how far the inner ring is turned:
+// the inner letter under each outer letter is that letter moved `shift` steps.
 export function drawCipherWheel(g, w, h, shift) {
   g.fillStyle = '#fbf1de';
   g.fillRect(0, 0, w, h);
@@ -313,6 +401,13 @@ export function drawCipherWheel(g, w, h, shift) {
   g.fillStyle = '#fbf1de';
   g.beginPath();
   g.arc(cx, cy, R * 0.44, 0, Math.PI * 2);
+  g.fill();
+  // A pointer at the top so the pairing under it is easy to read.
+  g.fillStyle = '#e2a29d';
+  g.beginPath();
+  g.moveTo(cx - 10, cy - R - 6);
+  g.lineTo(cx + 10, cy - R - 6);
+  g.lineTo(cx, cy - R + 10);
   g.fill();
   g.textAlign = 'center';
   g.textBaseline = 'middle';
@@ -357,7 +452,7 @@ export function drawStarField(g, w, h, seed = 7) {
   }
 }
 
-// Chalkboard (Room 4) with the sudoku grid.
+// Chalkboard (Room 4) with the sudoku grid (any size; boxes from sudokuMath).
 export function drawChalkboard(g, w, h, puzzle) {
   g.fillStyle = '#2f4a3e';
   g.fillRect(0, 0, w, h);
@@ -365,18 +460,21 @@ export function drawChalkboard(g, w, h, puzzle) {
     g.fillStyle = `rgba(255,255,255,${Math.random() * 0.03})`;
     g.fillRect(Math.random() * w, Math.random() * h, 3, 1);
   }
-  const size = h * 0.78;
-  const x0 = w * 0.08;
+  const n = puzzle.n;
+  const { br, bc } = shape(n);
+  const size = h * 0.84;
+  const x0 = w * 0.06;
   const y0 = (h - size) / 2;
-  const cs = size / 4;
+  const cs = size / n;
   g.strokeStyle = 'rgba(244,241,230,0.85)';
   g.lineCap = 'round';
-  for (let i = 0; i <= 4; i++) {
-    g.lineWidth = i % 2 === 0 ? 5 : 2;
+  for (let i = 0; i <= n; i++) {
+    g.lineWidth = i % bc === 0 ? 5 : 1.5;
     g.beginPath();
     g.moveTo(x0 + i * cs, y0);
     g.lineTo(x0 + i * cs + 1, y0 + size);
     g.stroke();
+    g.lineWidth = i % br === 0 ? 5 : 1.5;
     g.beginPath();
     g.moveTo(x0, y0 + i * cs);
     g.lineTo(x0 + size, y0 + i * cs - 1);
@@ -384,21 +482,21 @@ export function drawChalkboard(g, w, h, puzzle) {
   }
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < n * n; i++) {
     const v = puzzle.grid[i];
     if (!v) continue;
     const given = puzzle.isGiven(i);
     g.fillStyle = given ? '#ffe9b0' : '#f4f1e6';
     g.font = `${given ? 'bold ' : ''}${cs * 0.62}px ${HAND_FONT}`;
-    g.fillText(String(v), x0 + (i % 4) * cs + cs / 2, y0 + Math.floor(i / 4) * cs + cs / 2 + 2);
+    g.fillText(String(v), x0 + (i % n) * cs + cs / 2, y0 + Math.floor(i / n) * cs + cs / 2 + 2);
   }
   g.fillStyle = 'rgba(244,241,230,0.85)';
-  g.font = `${h * 0.08}px ${HAND_FONT}`;
+  g.font = `${h * 0.075}px ${HAND_FONT}`;
   g.textAlign = 'left';
   const [first, ...rest] = WORLD_TEXT.chalkboardRule;
-  g.fillText(first, w * 0.66, h * 0.25);
-  g.font = `${h * 0.055}px ${HAND_FONT}`;
-  rest.forEach((line, k) => g.fillText(line, w * 0.62, h * (0.4 + k * 0.1)));
+  g.fillText(first, w * 0.64, h * 0.22);
+  g.font = `${h * 0.052}px ${HAND_FONT}`;
+  rest.forEach((line, k) => g.fillText(line, w * 0.62, h * (0.36 + k * 0.09)));
   // a doodle cat
   g.strokeStyle = 'rgba(244,241,230,0.6)';
   g.lineWidth = 3;

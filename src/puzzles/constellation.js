@@ -1,17 +1,19 @@
 import { Puzzle } from './base.js';
-import { CONSTELLATION_STARS } from '../config.js';
+import { CONSTELLATION_LABELS, CONSTELLATION_DECOYS } from '../config.js';
 
-// Room 5, puzzle B. Connect the numbered stars into a heart.
-// Star positions in a unit box (0..1), star 0 is the bottom tip of the heart,
-// then up the left side, over the top and down the right.
-export function heartStars(count = CONSTELLATION_STARS) {
+// Room 5, puzzle B. Twelve stars of a heart are labelled with the months'
+// first letters (J F M A M J J A S O N D) and a few loose stars carry letters
+// too. Letters repeat, so she has to follow the shape: each month's star sits
+// next to the one before it. Wrong picks just fade.
+//
+// Star positions are in a unit box (0..1). Star 0 is the bottom tip of the
+// heart, then up the left side, over the top and down the right.
+export function heartStars(count = CONSTELLATION_LABELS.length) {
   const at = (t) => {
     const x = 16 * Math.sin(t) ** 3;
     const y = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
     return { x: 0.5 + x / 38, y: 0.5 - (y + 3) / 36 };
   };
-  // Walk the curve from the bottom tip (t = PI) up the left side, and place
-  // the stars at equal distances along it so the heart reads clearly.
   const N = 720;
   const samples = [];
   let total = 0;
@@ -30,17 +32,24 @@ export function heartStars(count = CONSTELLATION_STARS) {
   return pts;
 }
 
+// Loose lettered stars that are not part of the heart (fixed, so the sky is
+// the same every time). Kept away from the heart's outline.
+export function decoyStars() {
+  return CONSTELLATION_DECOYS.map(([x, y, label]) => ({ x, y, label }));
+}
+
 export class ConstellationPuzzle extends Puzzle {
   constructor() {
     super('r5b', 4, 'B');
-    this.count = CONSTELLATION_STARS;
+    this.labels = CONSTELLATION_LABELS.slice();
+    this.count = this.labels.length;
     this.progress = 0; // how many stars have been connected
   }
   newGame() {
     this.progress = 0;
     this.solved = false;
   }
-  // Returns 'ok', 'wrong' or 'done'.
+  // index: a heart star (0..count-1) or -1 for a loose star. 'ok' | 'wrong' | 'done'.
   pick(index) {
     if (this.solved) return 'done';
     if (index !== this.progress) {

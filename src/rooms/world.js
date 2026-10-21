@@ -18,5 +18,5 @@ export function buildWorld(ctx) {
   hallColors.forEach((wall, i) => buildHallway(ctx, i, { wall }));
   for (let i = 0; i < 5; i++) ctx.cats.addDoor(i, [0, ROOMS[i].zN + 0.65], [0, ROOMS[i + 1].zS - 0.65]);
   // Batch the static scenery of every room into a few draw calls.
-  for (let i = 0; i < ctx.rooms.length; i++) mergeStatic(ctx.roomGroup(i));
+  if (!ctx.game.noMerge) for (let i = 0; i < ctx.rooms.length; i++) mergeStatic(ctx.roomGroup(i));
 }

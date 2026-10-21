@@ -1,7 +1,7 @@
 // localStorage persistence, wrapped so that a blocked or full storage never
 // breaks the game. Also handles the export/import backup code.
 
-export const SAVE_KEY = 'sundayNight.save.v1';
+export const SAVE_KEY = 'sundayNight.save.v2';
 export const SETTINGS_KEY = 'sundayNight.settings.v1';
 
 let storage = null;

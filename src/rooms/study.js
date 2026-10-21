@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { COLORS, UI, CATS, HIDING_SPOTS } from '../config.js';
 import { mat, mesh, group, rbox, box, cyl, sphere, plane, torus } from '../engine/materials.js';
-import { fabric, rug, nightSky, canvasTexture, paperTexture, makeCanvas } from '../engine/textures.js';
+import { fabric, rug, nightSky, canvasTexture, makeCanvas } from '../engine/textures.js';
 import {
   woodMat,
   tableLamp,
@@ -15,7 +15,6 @@ import {
   bookshelf,
   pottedPlant,
   windowFrame,
-  notePaper,
   armchair,
   table,
   chair,
@@ -31,6 +30,7 @@ import { drawChalkboard } from './art.js';
 import { sudokuOverlay } from '../ui/overlays.js';
 import { ROOMS } from '../engine/layout.js';
 import { PROMPTS, TOASTS } from '../config.js';
+import { placeNote } from './notes.js';
 import { fill } from '../engine/text.js';
 
 const C = COLORS;
@@ -74,11 +74,8 @@ export function buildStudy(ctx) {
   dbooks.position.set(dx + 0.2, 0.775, cz + 0.1);
   dbooks.rotation.y = Math.PI / 2;
   g.add(dbooks);
-  const note4 = notePaper('', { w: 0.15, h: 0.19, tex: paperTexture('...', { size: 30, lines: true }) });
-  note4.position.set(dx - 0.15, 0.776, cz - 0.15);
-  note4.rotation.y = -1.2;
-  g.add(note4);
-  ctx.interact.add(note4, { zones: [ROOM], prompt: PROMPTS.readNote, onUse: () => ctx.showNote(3) });
+  // The note stands on the desk, facing the room, right where the cats meet.
+  placeNote(ctx, ROOM, 3, { pos: [dx - 0.2, 0.776, cz - 0.18], rotY: -Math.PI / 2 + 0.15, mode: 'stand' });
   const dmug = mug(C.sage, { steam: true });
   dmug.position.set(dx - 0.1, 0.775, cz + 0.32);
   g.add(dmug);
@@ -255,10 +252,14 @@ export function buildStudy(ctx) {
       pose: 'sit',
       route: [new THREE.Vector3(boxX + 0.8, 0, boxZ + 0.6), hub],
     },
+    // Tucked behind the pink armchair, tail curled out on the floor beside it.
+    { id: 'armchair', pos: new THREE.Vector3(-2.68, 0, cz + 2.06), heading: -0.6, pose: 'sit', route: [new THREE.Vector3(-1.7, 0, cz + 1.0), hub] },
+    // In the corner behind the big plant: ears between the leaves.
+    { id: 'plant', pos: new THREE.Vector3(-3.95, 0, R.zS - 0.25), heading: 2.2, pose: 'sit', route: [new THREE.Vector3(-3.0, 0, R.zS - 1.1), hub] },
   ];
   ctx.cats.hideSpots = hideSpots;
   // Interactable volumes over each spot (invisible), plus the real objects.
-  const spotObjects = [drape, curtains[0], nook, cbox];
+  const spotObjects = [drape, curtains[0], nook, cbox, a1, tallPlant];
   const searchSpot = (i) => {
     if (pzA.isSolved()) return;
     const cat = pzA.catAt(i);
@@ -271,7 +272,10 @@ export function buildStudy(ctx) {
       ctx.hud.toast(fill(TOASTS.alreadyFound, { NAME: CATS[cat].name }));
     } else {
       ctx.audio.soft();
+      pzA.search(i);
       ctx.hud.toast(UI.emptySpot[Math.floor(Math.random() * UI.emptySpot.length)]);
+      // They heard that. The cats still hiding sneak to new spots (out of sight).
+      ctx.cats.rehide();
     }
   };
   spotObjects.forEach((obj, i) => {

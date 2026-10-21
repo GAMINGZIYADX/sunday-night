@@ -1,11 +1,13 @@
 import { el, button, TULIP_SVG } from './dom.js';
 import { card } from './manager.js';
 import { drawTulipField, drawStarField } from '../rooms/art.js';
-import { heartStars } from '../puzzles/constellation.js';
+import { heartStars, decoyStars } from '../puzzles/constellation.js';
+import { N as SN } from '../puzzles/sliding.js';
 import { PUZZLE_NAMES, CIPHER_ENCODED, COLORS, CLUES } from '../config.js';
 import { hex } from '../engine/textures.js';
 import { LABELS } from '../config.js';
 import { fill } from '../engine/text.js';
+import { shape } from '../puzzles/sudokuMath.js';
 
 // Shared: H inside an overlay shows the next hint for that puzzle.
 function hintKey(game, id, e) {
@@ -46,10 +48,11 @@ export function slidingOverlay(game, puzzle, { onSolvedClose } = {}) {
   const tiles = new Map();
   const makeTile = (v) => {
     const c = document.createElement('canvas');
-    c.width = c.height = 200;
-    const sx = ((v - 1) % 3) * 200;
-    const sy = Math.floor((v - 1) / 3) * 200;
-    c.getContext('2d').drawImage(art, sx, sy, 200, 200, 0, 0, 200, 200);
+    const ts = 600 / SN;
+    c.width = c.height = ts;
+    const sx = ((v - 1) % SN) * ts;
+    const sy = Math.floor((v - 1) / SN) * ts;
+    c.getContext('2d').drawImage(art, sx, sy, ts, ts, 0, 0, ts, ts);
     const t = el('div.slide-tile', [c, el('span.num.hidden', String(v))]);
     t.addEventListener('mousedown', (e) => {
       e.preventDefault();
@@ -61,7 +64,8 @@ export function slidingOverlay(game, puzzle, { onSolvedClose } = {}) {
     board.appendChild(t);
     return t;
   };
-  for (let v = 1; v <= 9; v++) tiles.set(v, makeTile(v));
+  const LAST = SN * SN;
+  for (let v = 1; v <= LAST; v++) tiles.set(v, makeTile(v));
   board.appendChild(peek);
   const msg = el('div.pz-msg');
   const gentle = button(
@@ -75,22 +79,22 @@ export function slidingOverlay(game, puzzle, { onSolvedClose } = {}) {
   );
 
   const layout = () => {
-    const cell = 100 / 3;
+    const cell = 100 / SN;
     puzzle.tiles.forEach((v, i) => {
       if (v === 0) return;
       const t = tiles.get(v);
-      t.style.left = `calc(${(i % 3) * cell}% + 6px)`;
-      t.style.top = `calc(${Math.floor(i / 3) * cell}% + 6px)`;
+      t.style.left = `calc(${(i % SN) * cell}% + 6px)`;
+      t.style.top = `calc(${Math.floor(i / SN) * cell}% + 6px)`;
       t.style.width = `calc(${cell}% - 8px)`;
       t.style.height = `calc(${cell}% - 8px)`;
       t.querySelector('.num').classList.toggle('hidden', !numbers);
     });
-    // Piece 9 is the missing corner: it only appears once solved.
-    const nine = tiles.get(9);
+    // The last piece is the missing corner: it only appears once solved.
+    const nine = tiles.get(LAST);
     nine.style.display = puzzle.isSolved() ? '' : 'none';
     if (puzzle.isSolved()) {
-      nine.style.left = `calc(${2 * cell}% + 6px)`;
-      nine.style.top = `calc(${2 * cell}% + 6px)`;
+      nine.style.left = `calc(${(SN - 1) * cell}% + 6px)`;
+      nine.style.top = `calc(${(SN - 1) * cell}% + 6px)`;
       nine.style.width = nine.style.height = `calc(${cell}% - 8px)`;
     }
     gentle.classList.toggle('hidden', (game.gs.data.hintTier.r1b ?? -1) < 2 || puzzle.isSolved());
@@ -118,7 +122,20 @@ export function slidingOverlay(game, puzzle, { onSolvedClose } = {}) {
       header(PUZZLE_NAMES.r1b),
       board,
       msg,
-      el('div.pz-tools', [peekBtn, numBtn, gentle, button(LABELS.hint, () => game.showHint('r1b'), 'small'), button(LABELS.close, close, 'small')]),
+      el('div.pz-tools', [
+        peekBtn,
+        numBtn,
+        gentle,
+        button(
+          LABELS.hint,
+          () => {
+            game.showHint('r1b');
+            layout(); // the third hint unlocks the gentle shuffle
+          },
+          'small',
+        ),
+        button(LABELS.close, close, 'small'),
+      ]),
       el('p.note-small', { style: { textAlign: 'center' } }, LABELS.slidingHelp),
     ],
     { onClose: close },
@@ -137,7 +154,10 @@ export function slidingOverlay(game, puzzle, { onSolvedClose } = {}) {
     name: 'sliding',
     onClose: off,
     onKey: (e) => {
-      if (hintKey(game, 'r1b', e)) return true;
+      if (hintKey(game, 'r1b', e)) {
+        layout();
+        return true;
+      }
       const dir = { ArrowUp: 'up', KeyW: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' }[
         e.code
       ];
@@ -161,10 +181,16 @@ export function sudokuOverlay(game, puzzle) {
   const cells = [];
   const msg = el('div.pz-msg', LABELS.sudokuStart);
   let wrong = new Set();
-  for (let i = 0; i < 16; i++) {
-    const r = Math.floor(i / 4);
-    const c = i % 4;
-    const cell = el(`div.cell${c === 2 ? '.bl' : ''}${r === 2 ? '.bt' : ''}`);
+  const n = puzzle.n;
+  const { br, bc } = shape(n);
+  const total = n * n;
+  grid.style.gridTemplateColumns = `repeat(${n}, 1fr)`;
+  grid.classList.add(`n${n}`);
+  for (let i = 0; i < total; i++) {
+    const r = Math.floor(i / n);
+    const c = i % n;
+    // Wider gaps mark the boxes.
+    const cell = el(`div.cell${c > 0 && c % bc === 0 ? '.bl' : ''}${r > 0 && r % br === 0 ? '.bt' : ''}`);
     cell.addEventListener('mousedown', () => {
       if (!puzzle.isGiven(i)) {
         sel = i;
@@ -203,7 +229,7 @@ export function sudokuOverlay(game, puzzle) {
   const close = () => game.modals.close(m);
   const pad = el(
     'div.numpad',
-    [1, 2, 3, 4].map((n) => button(String(n), () => put(n))),
+    Array.from({ length: n }, (_, k) => button(String(k + 1), () => put(k + 1))),
   );
   const c = card(
     null,
@@ -234,14 +260,14 @@ export function sudokuOverlay(game, puzzle) {
     onClose: off,
     onKey: (e) => {
       if (hintKey(game, 'r4b', e)) return true;
-      const n = { Digit1: 1, Digit2: 2, Digit3: 3, Digit4: 4, Numpad1: 1, Numpad2: 2, Numpad3: 3, Numpad4: 4 }[e.code];
-      if (n) put(n);
+      const d = /^(Digit|Numpad)(\d)$/.exec(e.code);
+      if (d && Number(d[2]) >= 1 && Number(d[2]) <= n) put(Number(d[2]));
       if (['Backspace', 'Delete', 'Digit0', 'Numpad0'].includes(e.code)) put(0);
-      const mv = { ArrowUp: -4, ArrowDown: 4, ArrowLeft: -1, ArrowRight: 1 }[e.code];
+      const mv = { ArrowUp: -n, ArrowDown: n, ArrowLeft: -1, ArrowRight: 1 }[e.code];
       if (mv) {
         let s = sel;
-        for (let k = 0; k < 16; k++) {
-          s = (s + mv + 16) % 16;
+        for (let k = 0; k < total; k++) {
+          s = (s + mv + total) % total;
           if (!puzzle.isGiven(s)) break;
         }
         sel = s;
@@ -344,7 +370,12 @@ export function constellationOverlay(game, puzzle) {
   bgc.width = W;
   bgc.height = H;
   drawStarField(bgc.getContext('2d'), W, H);
-  const stars = heartStars(puzzle.count).map((p) => ({ x: (p.x - 0.5) * W * 0.66 + W * 0.5, y: (p.y - 0.5) * H * 0.78 + H * 0.5 }));
+  const place = (p) => ({ x: (p.x - 0.5) * W * 0.66 + W * 0.5, y: (p.y - 0.5) * H * 0.78 + H * 0.5 });
+  const stars = heartStars(puzzle.count).map((p, i) => ({ ...place(p), label: puzzle.labels[i], index: i }));
+  // Loose lettered stars that belong to no month.
+  const loose = decoyStars().map((d, k) => ({ ...place(d), label: d.label, index: -1 - k }));
+  const all = stars.concat(loose);
+  game.gs.readClue('telescope');
   const flash = new Map(); // index -> time
   let done = puzzle.isSolved();
   let glow = 0;
@@ -368,8 +399,9 @@ export function constellationOverlay(game, puzzle) {
     g.stroke();
     g.shadowBlur = 0;
     // stars
-    stars.forEach((s, i) => {
-      const lit = i < n || done;
+    all.forEach((s) => {
+      const i = s.index;
+      const lit = i >= 0 && (i < n || done);
       const f = flash.get(i);
       const ft = f ? Math.max(0, 1 - (now - f) / 700) : 0;
       const r = lit ? 7 : 5.5;
@@ -384,32 +416,32 @@ export function constellationOverlay(game, puzzle) {
       g.beginPath();
       g.arc(s.x, s.y, r, 0, Math.PI * 2);
       g.fill();
-      g.fillStyle = lit ? 'rgba(255,240,200,0.9)' : 'rgba(230,236,255,0.8)';
-      g.font = 'bold 18px "Segoe UI", sans-serif';
+      g.fillStyle = lit ? 'rgba(255,240,200,0.95)' : 'rgba(230,236,255,0.85)';
+      g.font = 'bold 20px "Segoe UI", sans-serif';
       g.textAlign = 'center';
-      g.fillText(String(i + 1), s.x + (s.x < W / 2 ? -20 : 20), s.y - 12);
+      g.fillText(s.label, s.x + (s.x < W / 2 ? -20 : 20), s.y - 12);
     });
     if (done) glow = Math.min(1, glow + 0.02);
     raf = requestAnimationFrame(draw);
   };
   const wrap = el('div.sky-wrap', [canvas]);
-  const msg = el('div.pz-msg', LABELS.starsStart);
+  const msg = el('div.pz-msg', CLUES.telescope.text.replace('\n', ' '));
   canvas.addEventListener('mousedown', (e) => {
     if (done) return;
     const rect = canvas.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * W;
     const y = ((e.clientY - rect.top) / rect.height) * H;
-    let best = -1;
+    let best = null;
     let bd = 40;
-    stars.forEach((s, i) => {
+    all.forEach((s) => {
       const d = Math.hypot(s.x - x, s.y - y);
       if (d < bd) {
         bd = d;
-        best = i;
+        best = s.index;
       }
     });
-    if (best < 0) return;
-    if (best < puzzle.progress) return; // already connected: ignore kindly
+    if (best === null) return;
+    if (best >= 0 && best < puzzle.progress) return; // already connected: ignore kindly
     const res = puzzle.pick(best);
     if (res === 'wrong') {
       flash.set(best, performance.now());
@@ -446,6 +478,7 @@ export function constellationOverlay(game, puzzle) {
   draw();
   // For automated testing: star positions in client coordinates.
   canvas.dataset.stars = JSON.stringify(stars.map((s) => [s.x / W, s.y / H]));
+  canvas.dataset.loose = JSON.stringify(loose.map((s) => [s.x / W, s.y / H]));
   return m;
 }
 

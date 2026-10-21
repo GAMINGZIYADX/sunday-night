@@ -2,7 +2,7 @@ import { Emitter } from './emitter.js';
 import { createPuzzles, PUZZLE_IDS } from '../puzzles/index.js';
 import { LOCK_CODE, NOTES } from '../config.js';
 
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2; // 2: harder puzzles (old saves are ignored)
 export const ROOM_COUNT = 5;
 
 // The one source of truth for progress. Save/load, the journal and the HUD all

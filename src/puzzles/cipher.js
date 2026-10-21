@@ -1,18 +1,24 @@
 import { Puzzle } from './base.js';
-import { CIPHER_WORD, CIPHER_SHIFT, CIPHER_ENCODED } from '../config.js';
+import { CIPHER_WORD, CIPHER_SHIFT, CIPHER_SENTENCE, CIPHER_ENCODED } from '../config.js';
+import { caesarShift } from './cipherMath.js';
 
-// Room 3, puzzle A. Decode the card and spell the word on the fridge.
+// Room 3, puzzle A. A whole sentence was Caesar-shifted, and nothing says by
+// how much. She works the shift out (the one-letter word can only be I or A),
+// can try shifts on the turning wheel poster, and spells the last word on the
+// fridge.
 export class CipherPuzzle extends Puzzle {
   constructor() {
     super('r3a', 2, 'A');
     this.word = CIPHER_WORD.toUpperCase();
     this.letters = [];
+    this.wheel = 0; // how far the poster's inner ring is turned
   }
   get length() {
     return this.word.length;
   }
   newGame() {
     this.letters = [];
+    this.wheel = 0;
     this.solved = false;
   }
   addLetter(ch) {
@@ -37,6 +43,10 @@ export class CipherPuzzle extends Puzzle {
       .filter(Boolean);
     return this.changed();
   }
+  turnWheel(dir = 1) {
+    this.wheel = (((this.wheel + (dir < 0 ? -1 : 1)) % 26) + 26) % 26;
+    this.changed();
+  }
   get text() {
     return this.letters.join('');
   }
@@ -44,19 +54,24 @@ export class CipherPuzzle extends Puzzle {
     return this.text === this.word;
   }
   serialize() {
-    return { letters: this.letters.slice() };
+    return { letters: this.letters.slice(), wheel: this.wheel };
   }
   deserialize(s) {
     if (Array.isArray(s.letters)) this.letters = s.letters.filter((c) => /^[A-Z]$/.test(c)).slice(0, this.length);
+    this.wheel = (((s.wheel | 0) % 26) + 26) % 26;
   }
   forceSolve() {
     this.letters = this.word.split('');
     this.changed();
   }
   hintVars() {
-    const map = CIPHER_ENCODED.split('')
-      .map((c, i) => `${c} becomes ${this.word[i]}`)
-      .join(', ');
-    return { SHIFT: String(CIPHER_SHIFT), WORD: this.word, MAP: map.charAt(0).toUpperCase() + map.slice(1) };
+    const lone = CIPHER_ENCODED.split(/\s+/).find((w) => w.length === 1);
+    return {
+      SHIFT: String(CIPHER_SHIFT),
+      WORD: this.word,
+      SENTENCE: CIPHER_SENTENCE.toUpperCase(),
+      LONE: lone || CIPHER_ENCODED.charAt(0),
+      LONEPLAIN: caesarShift(lone || CIPHER_ENCODED.charAt(0), -CIPHER_SHIFT),
+    };
   }
 }

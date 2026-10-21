@@ -18,7 +18,6 @@ import {
   pottedPlant,
   cabinet,
   windowFrame,
-  notePaper,
   armchair,
   vaseWithTulips,
   candle,
@@ -34,7 +33,9 @@ import { Door } from './door.js';
 import { drawFramePicture } from './art.js';
 import { paintingCanvas, slidingOverlay } from '../ui/overlays.js';
 import { FRAME_SOLUTION } from '../puzzles/frames.js';
-import { PROMPTS, WORLD_TEXT } from '../config.js';
+import { N as SLIDE_N } from '../puzzles/sliding.js';
+import { PROMPTS } from '../config.js';
+import { placeNote } from './notes.js';
 
 const C = COLORS;
 
@@ -89,18 +90,15 @@ export function buildBedroom(ctx) {
   const m1 = mug(C.sage);
   m1.position.set(-0.24, 0.58, 3.3);
   g.add(m1);
-  // The heavy note (folded paper) and the clue card.
-  const note = notePaper('', { w: 0.15, h: 0.19, tex: paperTexture(WORLD_TEXT.noteCover, { size: 30, lines: false }) });
-  note.position.set(-0.36, 0.585, 3.08);
-  note.rotation.y = 0.35;
-  g.add(note);
-  ctx.interact.add(note, { zones: [ROOM], prompt: PROMPTS.readNote, onUse: () => ctx.showNote(0) });
-  const clueTex = paperTexture(CLUES.frames.text, { w: 256, h: 180, size: 24, lines: false, bg: '#fff6e6', center: true, stain: false });
-  const clue = group([mesh(plane(0.16, 0.11), mat(0xffffff, { map: clueTex, side: THREE.DoubleSide }), { cast: false })]);
-  clue.position.set(-0.6, 0.65, 3.12);
-  clue.rotation.set(-0.28, Math.PI + 0.25, 0);
+  // The heavy note, propped up on the nightstand facing the room, and the clue card.
+  placeNote(ctx, ROOM, 0, { pos: [-0.27, 0.58, 3.16], rotY: Math.PI + 0.2, mode: 'stand' });
+  const clueTex = paperTexture(CLUES.frames.text, { w: 320, h: 240, size: 22, lines: false, bg: '#fff6e6', center: true, stain: false });
+  // A small card standing on the nightstand, leaning on the lamp.
+  const clue = group([mesh(plane(0.17, 0.13), mat(0xffffff, { map: clueTex, side: THREE.DoubleSide }), { pos: [0, 0.065, 0], cast: false })], {
+    pos: [-0.56, 0.582, 3.13],
+  });
   clue.rotation.order = 'YXZ';
-  clue.rotation.set(-0.3, 0.25, 0);
+  clue.rotation.set(-0.3, Math.PI - 0.35, 0);
   g.add(clue);
   ctx.interact.add(clue, { zones: [ROOM], prompt: PROMPTS.framesClue, puzzle: 'r1a', onUse: () => ctx.showClue('frames') });
 
@@ -110,7 +108,7 @@ export function buildBedroom(ctx) {
   g.add(ns2);
   col.addCentered(-2.95, 3.22, 0.5, 0.46);
   const c1 = candle({ h: 0.12 });
-  c1.position.set(-3.0, 0.55, 3.25);
+  c1.position.set(-3.1, 0.55, 3.34);
   g.add(c1);
   const books = bookRow(0.25, { height: 0.2, depth: 0.15, lean: false });
   books.rotation.z = Math.PI / 2;
@@ -132,7 +130,7 @@ export function buildBedroom(ctx) {
   g.add(mesh(cyl(0.015, 0.015, 2.5, 8), mat(0xd8c4a0, { metal: 0.4, rough: 0.4 }), { pos: [-3.38, 2.57, -0.35], rot: [Math.PI / 2, 0, 0] }));
   // window-seat cushion + plant on the sill
   const sillPlant = pottedPlant({ size: 0.55, potColor: C.cream });
-  sillPlant.position.set(-3.32, 0.9, -0.85);
+  sillPlant.position.set(-3.32, 0.917, -0.85);
   g.add(sillPlant);
   // moonlight patch on the floor
   const moon = mesh(plane(1.2, 1.6), mat(0xbfd0ff, { basic: true, opacity: 0.06, depthWrite: false }), {
@@ -152,17 +150,17 @@ export function buildBedroom(ctx) {
   v1.position.set(-2.4, 0.82, -3.25);
   g.add(v1);
   const j1 = jar(0xf2c4c0, 0.12);
-  j1.position.set(-1.5, 0.82, -3.3);
+  j1.position.set(-1.65, 0.82, -3.3);
   g.add(j1);
   const c2 = candle({ h: 0.08, color: C.blush });
-  c2.position.set(-1.28, 0.82, -3.2);
+  c2.position.set(-1.45, 0.82, -3.18);
   g.add(c2);
 
-  // ---------------------------------------------- puzzle A: the three frames
+  // ---------------------------------------------- puzzle A: the five frames
   const frames = {};
   const pz = gs.puzzles.r1a;
-  const slots = [-2.55, -1.95, -1.35];
-  const frameY = 1.62;
+  const slots = [-3.0, -2.5, -2.0, -1.5, -1.0];
+  const frameY = 1.66;
   let selected = -1;
   const frameAnim = new Map();
   for (const kind of FRAME_SOLUTION) {
@@ -170,7 +168,7 @@ export function buildBedroom(ctx) {
     c.width = 256;
     c.height = 320;
     drawFramePicture(c.getContext('2d'), 256, 320, kind);
-    const f = pictureFrame(0.42, 0.52, canvasTexture(c), { frame: C.woodLight });
+    const f = pictureFrame(0.4, 0.5, canvasTexture(c), { frame: C.woodLight });
     f.userData.kind = kind;
     f.userData.tilt = rr(-0.08, 0.08);
     g.add(f);
@@ -199,7 +197,7 @@ export function buildBedroom(ctx) {
     });
   }
   // small hooks + string above each slot
-  for (const x of slots) g.add(mesh(sphere(0.012, 6, 4), mat(C.gold, { metal: 0.6 }), { pos: [x, frameY + 0.36, -3.49], cast: false }));
+  for (const x of slots) g.add(mesh(sphere(0.012, 6, 4), mat(C.gold, { metal: 0.6 }), { pos: [x, frameY + 0.3, -3.49], cast: false }));
   function layoutFrames(instant) {
     pz.order.forEach((kind, i) => {
       const f = frames[kind];
@@ -239,37 +237,31 @@ export function buildBedroom(ctx) {
   g.add(ghost);
   g.add(mesh(sphere(0.012, 6, 4), mat(C.gold, { metal: 0.6 }), { pos: [-3.485, 2.03, -2.4], cast: false }));
   const pieces = group();
+  const NP = SLIDE_N;
+  const TS = 0.2;
   const tileGeo = (v) => {
-    const geo = new THREE.PlaneGeometry(0.27, 0.27);
+    const geo = new THREE.PlaneGeometry(TS, TS);
     const uv = geo.attributes.uv;
-    const c = (v - 1) % 3;
-    const r = Math.floor((v - 1) / 3);
-    for (let i = 0; i < uv.count; i++) uv.setXY(i, (c + uv.getX(i)) / 3, 1 - (r + 1 - uv.getY(i)) / 3);
+    const c = (v - 1) % NP;
+    const r = Math.floor((v - 1) / NP);
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, (c + uv.getX(i)) / NP, 1 - (r + 1 - uv.getY(i)) / NP);
     return geo;
   };
   const pieceMat = mat(0xffffff, { map: art, rough: 0.7 });
   const backing = mat(C.woodDark);
-  const spots = [
-    [-2.95, -2.0],
-    [-3.2, -2.35],
-    [-2.75, -2.55],
-    [-3.05, -2.8],
-    [-2.6, -2.15],
-    [-3.25, -1.85],
-    [-2.85, -3.0],
-    [-2.5, -2.75],
-    [-3.15, -2.6],
-  ];
-  for (let v = 1; v <= 9; v++) {
-    const [x, z] = spots[v - 1];
+  // Sixteen pieces scattered on the floor by the window, a few overlapping.
+  for (let v = 1; v <= NP * NP; v++) {
+    const a = v * 2.39996;
+    const rad = 0.12 + Math.sqrt(v / (NP * NP)) * 0.5;
+    const x = -2.85 + Math.cos(a) * rad * 0.55;
+    const z = -2.3 + Math.sin(a) * rad * 0.9;
     const tile = group(
       [
-        mesh(tileGeo(v), pieceMat, { rot: [-Math.PI / 2, 0, 0], pos: [0, 0.022, 0], cast: false }),
-        mesh(box(0.27, 0.02, 0.27), backing, { pos: [0, 0.01, 0] }),
+        mesh(tileGeo(v), pieceMat, { rot: [-Math.PI / 2, 0, 0], pos: [0, 0.019, 0], cast: false }),
+        mesh(box(TS, 0.016, TS), backing, { pos: [0, 0.008, 0] }),
       ],
-      { pos: [x, 0, z], rot: [0, rr(-0.8, 0.8), 0] },
+      { pos: [x, (v % 4 === 0 ? 0.017 : 0) + 0.001, z], rot: [0, rr(-0.9, 0.9), 0] },
     );
-    if (v === 9) tile.position.y = 0.022; // one piece lies on another
     pieces.add(tile);
   }
   // The empty frame leaning against the wall.
@@ -476,8 +468,8 @@ export function buildBedroom(ctx) {
       ],
       fog: { color: 0x2b2130, near: 9, far: 26 },
     },
-    anchors: { r1a: new THREE.Vector3(-1.95, 1.5, -3.3), r1b: new THREE.Vector3(-2.9, 0.4, -2.4) },
-    keySpawn: (id) => (id === 'r1a' ? new THREE.Vector3(-1.95, 1.2, -2.95) : new THREE.Vector3(-2.75, 0.9, -2.4)),
+    anchors: { r1a: new THREE.Vector3(-2.0, 1.5, -3.3), r1b: new THREE.Vector3(-2.9, 0.4, -2.4) },
+    keySpawn: (id) => (id === 'r1a' ? new THREE.Vector3(-2.0, 1.2, -2.95) : new THREE.Vector3(-2.75, 0.9, -2.4)),
     applyState() {
       selected = -1;
       layoutFrames(true);

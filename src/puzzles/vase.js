@@ -1,8 +1,9 @@
 import { Puzzle } from './base.js';
-import { VASE_SLOTS, VASE_PREFILLED } from '../config.js';
+import { VASE_SLOTS, VASE_GIVEN } from '../config.js';
 
 // Room 2, puzzle A. Growing runs of alternating colours:
 // 1 B, 1 W, 2 B, 2 W, 3 B, 3 W ...
+// Only a few vases are planted; she has to work out the rule and fill the rest.
 export function tulipRule(length) {
   const out = [];
   let run = 1;
@@ -18,14 +19,15 @@ export class VasePuzzle extends Puzzle {
   constructor() {
     super('r2a', 1, 'A');
     this.solution = tulipRule(VASE_SLOTS);
-    this.slots = this.solution.map((c, i) => (i < VASE_PREFILLED ? c : null));
+    this.given = new Set(VASE_GIVEN);
+    this.slots = this.solution.map((c, i) => (this.given.has(i) ? c : null));
   }
   newGame() {
-    this.slots = this.solution.map((c, i) => (i < VASE_PREFILLED ? c : null));
+    this.slots = this.solution.map((c, i) => (this.given.has(i) ? c : null));
     this.solved = false;
   }
   isFixed(i) {
-    return i < VASE_PREFILLED;
+    return this.given.has(i);
   }
   // color: 'B', 'W' or null to empty the slot.
   place(i, color) {
@@ -46,5 +48,9 @@ export class VasePuzzle extends Puzzle {
   forceSolve() {
     this.slots = this.solution.slice();
     this.changed();
+  }
+  hintVars() {
+    const name = (c) => (c === 'B' ? 'blue' : 'white');
+    return { ANSWER: this.solution.map(name).join(', ') };
   }
 }

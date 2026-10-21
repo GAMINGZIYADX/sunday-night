@@ -49,7 +49,7 @@ export const NOTES = [
 // Where each note sits (shown in the journal).
 export const NOTE_PLACES = [
   'Bedroom, on the nightstand',
-  'Living room, under the vase',
+  'Living room, under the vase on the mantel',
   'Kitchen, on the fridge',
   'Study, on the desk',
   'Garden, on the bench',
@@ -99,37 +99,57 @@ export const ROOM_TITLES = ['Strangers', 'Tulips', 'Sunday', 'The Cats', 'The La
 // door of room 1 gives LOCK_CODE[0], room 2 gives LOCK_CODE[1], and so on.
 export const LOCK_CODE = '2007';
 
-// Kitchen cipher. The card shows the word shifted forward by CIPHER_SHIFT.
-// CIPHER_ENCODED is worked out for you, so only change the word and the shift.
+// Kitchen cipher. The pinned card shows CIPHER_SENTENCE with every letter
+// moved CIPHER_SHIFT steps forward, and nothing on it says how far. The fridge
+// strip wants CIPHER_WORD, which must be a word of the sentence (the last one
+// reads best). CIPHER_ENCODED is worked out for you.
+// Tip: keep a one-letter word ("I" or "A") in the sentence; it is the way in.
+export const CIPHER_SENTENCE = 'I WAIT FOR SUNDAY';
 export const CIPHER_WORD = 'SUNDAY';
 export const CIPHER_SHIFT = 3;
-export const CIPHER_ENCODED = caesarEncode(CIPHER_WORD, CIPHER_SHIFT); // 'VXQGDB'
+export const CIPHER_ENCODED = caesarEncode(CIPHER_SENTENCE, CIPHER_SHIFT); // 'L ZDLW IRU VXQGDB'
 
-// Kitchen oven dials (0-9 each). The recipe card text below must match.
-export const DIAL_SOLUTION = [6, 5, 3];
+// Kitchen oven dials (0-9 each). The recipe card text below must match; if you
+// change it, also change dialRuleHolds() in src/puzzles/dials.js (the unit
+// tests check the riddle has exactly one answer, and that it is this one).
+export const DIAL_SOLUTION = [4, 9, 5, 2];
 export const DIAL_RECIPE =
-  'Set the three oven dials so that they add up to 14.\nThe first dial is double the last.\nThe middle is one less than the first.';
+  'Four dials, and no two show the same number.\nThe first is the last one doubled.\nThe third is odd.\nThe second is the biggest of them all.\nTogether they make 20.';
 
 // Living room vase stand: a growing run of alternating colours.
 // 1 blue, 1 white, 2 blue, 2 white, 3 blue, 3 white...
-export const VASE_SLOTS = 9;
-export const VASE_PREFILLED = 6;
+// VASE_GIVEN are the vases (0-based) already planted; she fills the rest.
+// The rug shows the first RUG_SHOWN tulips of the pattern.
+export const VASE_SLOTS = 12;
+export const VASE_GIVEN = [0, 1, 4];
+export const RUG_SHOWN = 4;
 
 // Living room books, left to right, as shown on the stained-glass window.
 export const BOOK_ORDER = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet', 'pink'];
 
-// Study chalkboard sudoku (4x4, digits 1-4, 0 = empty). Must have one solution
-// (the unit tests check this).
+// Study chalkboard sudoku (6x6, digits 1-6, boxes of 2 rows x 3 columns,
+// 0 = empty). Must have exactly one solution (the unit tests check this).
 // prettier-ignore
 export const SUDOKU_GIVENS = [
-  0, 0, 4, 3,
-  4, 0, 0, 0,
-  1, 0, 0, 0,
-  0, 2, 0, 4,
+  0, 0, 0, 0, 0, 2,
+  0, 0, 0, 0, 1, 0,
+  0, 5, 6, 0, 0, 0,
+  0, 0, 0, 0, 3, 0,
+  4, 0, 0, 6, 0, 0,
+  0, 2, 0, 0, 0, 0,
 ];
 
-// Telescope constellation: number of stars in the heart.
-export const CONSTELLATION_STARS = 12;
+// Telescope constellation: the heart's stars, in drawing order from the
+// bottom tip (one per month), and a few loose lettered stars to mislead
+// ([x, y, letter] in a 0..1 box).
+export const CONSTELLATION_LABELS = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'];
+export const CONSTELLATION_DECOYS = [
+  [0.5, 0.46, 'J'],
+  [0.07, 0.88, 'A'],
+  [0.93, 0.9, 'M'],
+  [0.5, 0.05, 'S'],
+  [0.96, 0.7, 'J'],
+];
 
 // Study hide-and-seek spots.
 export const HIDING_SPOTS = [
@@ -137,16 +157,22 @@ export const HIDING_SPOTS = [
   { id: 'curtain', label: 'behind the curtain' },
   { id: 'cushions', label: 'in the cushion corner' },
   { id: 'box', label: 'in the cardboard box' },
+  { id: 'armchair', label: 'behind the pink armchair' },
+  { id: 'plant', label: 'behind the big plant' },
 ];
 
 // -----------------------------------------------------------------------------
 //  Clue cards (short printed cards next to puzzles; kept in the journal)
 // -----------------------------------------------------------------------------
 export const CLUES = {
-  frames: { title: 'A note by the lamp', text: 'We started far away, then closer, then together.' },
+  frames: {
+    title: 'A note by the lamp',
+    text: 'We started far away, then closer, then together.\nThe year turned once around us, from one snow to the next.',
+  },
   vase: { title: 'A faded note', text: 'Each time, a little more.' },
   cipherCard: { title: 'A pinned card', text: CIPHER_ENCODED },
-  cipherWheel: { title: 'The wheel poster', text: 'A → D\nB → E\nC → F\n...and so on, every letter three steps along.' },
+  cipherWheel: { title: 'The wheel poster', text: 'Two rings of letters. Turn the inner one to move every letter by the same number of steps.' },
+  telescope: { title: 'A card on the telescope', text: 'A year of us.\nOne star for every month.' },
   recipe: { title: 'Recipe card', text: DIAL_RECIPE },
   gate: { title: 'A note on the gate', text: 'Remember what each room gave you.' },
 };
@@ -157,43 +183,43 @@ export const CLUES = {
 // -----------------------------------------------------------------------------
 export const HINTS = {
   r1a: [
-    'The little note by the nightstand lamp tells a story in three steps.',
-    'Look at the gap between the two tulips in each frame. Read the wall from left to right, like the note.',
-    'Left: tulips far apart. Middle: a little closer. Right: side by side, touching. Click one frame, then another, to swap them.',
+    'The little card by the nightstand lamp tells the story. Look closely at two things in every frame.',
+    'The gap between the tulips leaves ties, and so do the seasons. Use both: the year runs winter, spring, summer, autumn, and back to winter.',
+    'Left to right: snowy and far apart, spring blossom and far apart, summer sun and closer, autumn leaves and closer, snowy and together. Click one frame, then another, to swap them.',
   ],
   r1b: [
-    'The tulip painting fell off the wall in pieces. It is on the floor by the window.',
-    'Use Peek to see the whole picture. Finish the top row first, then the left column, then the last four.',
-    'Turn on Numbers in the puzzle. Put 1, 2, 3 in the top row, then 4 and 7 down the left, then slide the last ones round in a circle. If it feels tangled, press Gentle shuffle for an easier start.',
+    'The tulip painting fell off the wall in sixteen pieces. They are on the floor by the window.',
+    'Use Peek to see the whole picture, and Numbers to see where each piece belongs. Finish the top row, then the second row, and only then the last two rows together.',
+    'Place 1 and 2, then slide 3 and 4 in as a pair (4 above 3 first, then turn them in). Do the same for each row. The last two rows: fix the left column a pair at a time, then cycle the final pieces. Gentle shuffle gives an easier start.',
   ],
   r2a: [
-    'The rug in front of the sofa shows how the tulips began.',
-    'Count the colours in runs: one blue, one white, then two blue, two white. The faded note says each time, a little more.',
-    'After two whites come three blues. The last three slots are blue, blue, blue.',
+    'The rug in front of the sofa shows how the tulips began. The faded note says each time, a little more.',
+    'Count the colours in runs: one blue, one white, then two blue, two white. Keep the rule going and the planted vases will agree with you.',
+    'All twelve, left to right: {ANSWER}.',
   ],
   r2b: [
-    'The coloured window above the bookshelf knows the right order.',
-    'It is a rainbow, read from left to right, with one extra colour at the end.',
-    'Red, orange, yellow, green, blue, indigo, violet, pink. Click one book, then another, to swap them.',
+    'The coloured window above the bookshelf knows the right order. But the shelf is tight: a book only moves by turning with its two neighbours.',
+    'Click a book to turn it with the ones either side (right-click turns the other way). One turn moves a book two places; two turns of the same three swap two books around the third.',
+    'Red, orange, yellow, green, blue, indigo, violet, pink. Work from the left: bring red to the first place by turning triples it sits in, then never touch it again. Then orange, and so on. The last few fall in with a turn or two.',
   ],
   r3a: [
-    'The card pinned by the wheel poster is a secret word. The poster shows how its letters were moved.',
-    'Every letter was moved {SHIFT} steps forward in the alphabet. Move each one {SHIFT} steps back, then spell it with the fridge magnets.',
-    '{MAP}. The word is {WORD}. Click the magnets in order, or click the strip to type it.',
+    'The pinned card is a sentence where every letter was moved the same number of steps. Nothing says how many. The wheel poster turns to try them.',
+    'Look at the one-letter word: in English it can only be I or A. That tells you the step.',
+    '{LONE} is {LONEPLAIN}, so every letter moved {SHIFT} steps forward. Moving them back reads: {SENTENCE}. The fridge wants the last word, {WORD}.',
   ],
   r3b: [
-    'The recipe card on the wall has the rules for the three oven dials.',
-    'Start with the last dial. The first is double it, the middle is one less than the first. Try small numbers until they add up.',
+    'The recipe card on the wall is a little riddle for the four oven dials.',
+    'The first dial is the last one doubled, so try the last dial small: 1, 2, 3 or 4. The second must be bigger than all the others.',
     'Set the dials to {DIALS}. Click a dial to turn it up, right-click to turn it down.',
   ],
   r4a: [
-    'Tchobin and Zizo are hiding somewhere in the study. Stand still and listen.',
-    'The meows get louder when you are close, and come from one side. Look for a tail tip or a pair of ears peeking out.',
+    'Tchobin and Zizo are hiding somewhere in the study. They hear you looking in the wrong place and sneak somewhere new, so do not guess. Stand still and listen.',
+    'Turn slowly until the meow sounds straight ahead, and look low: a tail tip or a pair of ears gives them away.',
     '{SPOTS}',
   ],
   r4b: [
-    'The chalkboard holds a tiny sudoku. Every row, column and 2×2 box needs 1, 2, 3 and 4 exactly once.',
-    'Look for a row, column or box that is missing just one or two numbers. Fill those first, then look again.',
+    'The chalkboard holds a 6×6 sudoku. Every row, column and box (two rows by three columns) needs 1 to 6 exactly once.',
+    'Look for a number that can only go in one place inside a box, or a cell that can only hold one number. Each answer opens up the next.',
     '{SUDOKU}',
   ],
   r5a: [
@@ -202,9 +228,9 @@ export const HINTS = {
     'Enter the digits in room order: {CODE}.',
   ],
   r5b: [
-    'The telescope is pointed at a constellation hiding among the stars.',
-    'The bright stars are numbered. Connect them from 1 upwards, in order.',
-    'Star 1 is the bottom point of the heart. Go up the left side and round to 12. A wrong star just fades, try the next number.',
+    'The card on the telescope says a year of us. The lettered stars are the months, by their first letters.',
+    'January, February, March... Letters repeat, and some stars are not part of it. Each month sits right next to the one before it, so follow the shape.',
+    'Start at the J at the bottom point of the heart, next to the F. Go up the left side: J F M A M J, over the top: J A S O N D. Wrong stars just fade.',
   ],
 };
 
@@ -280,21 +306,19 @@ export const PROMPTS = {
   // living room
   vaseClue: 'Read the faded note',
   rug: 'Look at the rug pattern',
-  bookPick: 'Pick up this book',
-  bookPutBack: 'Put it back',
-  bookSwap: 'Swap the books',
+  bookTurn: 'Turn these three books (right-click: the other way)',
   glass: 'Look at the coloured window',
   vaseFixed: 'Already planted',
   vaseChange: 'Change this tulip',
   vaseEmpty: 'Plant a tulip here',
   basket: 'A basket of tulips',
   // kitchen
-  dial: 'Turn dial {N} (now {V})',
+  dial: 'Turn dial {N} (now {V}) · right-click turns back',
   recipe: 'Read the recipe card',
   magnet: 'Put {CH} on the strip',
   strip: 'Type the word on the strip',
   eraser: 'Take the last letter off',
-  wheel: 'Look at the wheel poster',
+  wheel: 'Turn the wheel (now A → {TO}) · right-click turns back',
   card: 'Read the pinned card',
   // study
   chalkboard: 'Solve the chalkboard puzzle',
@@ -311,9 +335,9 @@ export const PROMPTS = {
 export const TOASTS = {
   memoryWaiting: 'It is waiting for this door to open.',
   stripFull: 'The strip is full. Use the little eraser magnet to take a letter off.',
-  rug: 'Blue, white, blue, blue, white, white... and then?',
+  rug: 'Blue, white, blue, blue... and then?',
   glass: 'Red, orange, yellow, green, blue, indigo, violet... and pink.',
-  vaseFixed: 'These first six were planted already. The last three are up to you.',
+  vaseFixed: 'This one was planted already. Work out the rest from the rug and the planted vases.',
   basket: 'Blue and white tulips. Choose an empty vase on the stand to plant one.',
   alreadyFound: '{NAME} was already found here.',
   keyFound: '{TYPE} key found.',
@@ -406,7 +430,7 @@ export const LABELS = {
   lockHelp: 'Use the arrows, or type the digits and press Enter.',
   lockOpened: 'Click. The lock opens.',
   // telescope
-  starsStart: 'Connect the numbered stars in order.',
+  starsStart: 'Connect the months in order.',
   starsDone: 'A heart, hiding in the sky.',
   // vase
   slot: 'Slot {N}',
@@ -433,7 +457,7 @@ export const WORLD_TEXT = {
   noteCoverShort: 'for you',
   recipeTitle: 'Sunday cake',
   stickyNotes: ['milk', 'tulips', 'Sunday'],
-  chalkboardRule: ['1 2 3 4', 'once in every', 'row, column', 'and box'],
+  chalkboardRule: ['1 to 6', 'once in every', 'row, column', 'and box', '(2 rows × 3)'],
   wheelCaption: 'outside → inside',
 };
 

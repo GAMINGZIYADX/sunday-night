@@ -27,8 +27,8 @@ try {
   await page.keyboard.press('Digit3');
   await page.keyboard.up('Shift');
   await page.waitForTimeout(500);
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('sundayNight.save.v1') || 'null'));
-  check(!!saved && saved.version === 1, 'saving works under file://');
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('sundayNight.save.v2') || 'null'));
+  check(!!saved && saved.version === 2, 'saving works under file://');
   check(saved && saved.player.z > 0, 'Shift+3 did not teleport (debug keys are absent)');
   const shot = await page.screenshot();
   // Not a black screen: count bright-ish pixels in the PNG by decoding with a canvas.

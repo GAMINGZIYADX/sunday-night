@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COLORS, CIPHER_ENCODED, CIPHER_SHIFT, DIAL_RECIPE } from '../config.js';
+import { COLORS, CIPHER_ENCODED, DIAL_RECIPE } from '../config.js';
 import { mat, mesh, group, rbox, box, cyl, sphere, plane, torus } from '../engine/materials.js';
 import { fabric, rug, nightSky, canvasTexture, paperTexture, magnetTexture, rr, ROUND_FONT, makeCanvas } from '../engine/textures.js';
 import {
@@ -26,6 +26,7 @@ import { drawCipherWheel } from './art.js';
 import { cipherOverlay } from '../ui/overlays.js';
 import { ROOMS } from '../engine/layout.js';
 import { PROMPTS, TOASTS, WORLD_TEXT } from '../config.js';
+import { placeNote } from './notes.js';
 import { fill } from '../engine/text.js';
 
 const C = COLORS;
@@ -92,7 +93,8 @@ export function buildKitchen(ctx) {
   g.add(stove);
   const pzB = gs.puzzles.r3b;
   const dials = [];
-  for (let i = 0; i < 3; i++) {
+  const DIALS = pzB.count;
+  for (let i = 0; i < DIALS; i++) {
     const face = makeCanvas(128, 128);
     const tex = canvasTexture(face);
     const knob = group([
@@ -105,7 +107,7 @@ export function buildKitchen(ctx) {
       cast: false,
     });
     const pivot = group([knob]);
-    const holder = group([pivot, faceMesh], { pos: [cx - 0.375, 0.8, fz - 0.24 + i * 0.24] });
+    const holder = group([pivot, faceMesh], { pos: [cx - 0.375, 0.8, fz + (i - (DIALS - 1) / 2) * 0.18] });
     // the number ring sits on a plate behind the knob
     const ringC = makeCanvas(256, 256);
     const rc = ringC.getContext('2d');
@@ -121,7 +123,7 @@ export function buildKitchen(ctx) {
       const a = -Math.PI / 2 + (n / 10) * Math.PI * 2;
       rc.fillText(String(n), 128 + Math.cos(a) * 98, 128 + Math.sin(a) * 98);
     }
-    const ring = mesh(plane(0.17, 0.17), mat(0xffffff, { map: canvasTexture(ringC), transparent: true }), {
+    const ring = mesh(plane(0.16, 0.16), mat(0xffffff, { map: canvasTexture(ringC), transparent: true }), {
       pos: [0.012, 0, 0],
       rot: [0, -Math.PI / 2, 0],
       cast: false,
@@ -157,13 +159,13 @@ export function buildKitchen(ctx) {
   }
   pzB.onChange(() => drawDials());
   // Recipe card on the backsplash.
-  const recipeTex = paperTexture(DIAL_RECIPE, { w: 320, h: 300, size: 21, title: WORLD_TEXT.recipeTitle, bg: '#fff7ea', lines: true });
+  const recipeTex = paperTexture(DIAL_RECIPE, { w: 340, h: 400, size: 21, title: WORLD_TEXT.recipeTitle, bg: '#fff7ea', lines: true });
   const recipe = group(
     [
-      mesh(plane(0.36, 0.34), mat(0xffffff, { map: recipeTex }), { cast: false }),
-      mesh(sphere(0.012, 6, 4), mat(0xe57373), { pos: [0, 0.15, 0.01], cast: false }),
+      mesh(plane(0.34, 0.4), mat(0xffffff, { map: recipeTex }), { cast: false }),
+      mesh(sphere(0.012, 6, 4), mat(0xe57373), { pos: [0, 0.18, 0.01], cast: false }),
     ],
-    { pos: [R.x1 - 0.02, 1.35, fz + 0.6], rot: [0, -Math.PI / 2, 0.04] },
+    { pos: [R.x1 - 0.02, 1.38, fz + 0.62], rot: [0, -Math.PI / 2, 0.04] },
   );
   g.add(recipe);
   ctx.interact.add(recipe, { zones: [ROOM], puzzle: 'r3b', prompt: PROMPTS.recipe, onUse: () => ctx.showClue('recipe') });
@@ -314,7 +316,10 @@ export function buildKitchen(ctx) {
     }
     stripTex.needsUpdate = true;
   }
-  pzA.onChange(() => drawStrip());
+  pzA.onChange(() => {
+    drawStrip();
+    drawWheel();
+  });
   // Eraser magnet: takes the last letter off.
   const eraserC = makeCanvas(96, 96);
   const ex = eraserC.getContext('2d');
@@ -341,36 +346,39 @@ export function buildKitchen(ctx) {
       ctx.audio.slide();
     },
   });
-  // The heavy note, held by a magnet on the lower door.
-  const note3 = group(
-    [
-      mesh(plane(0.16, 0.2), mat(0xffffff, { map: paperTexture(WORLD_TEXT.noteCoverShort, { size: 32, lines: true }) }), {
-        rot: [0, Math.PI / 2, 0.06],
-        cast: false,
-      }),
-      mesh(cyl(0.018, 0.018, 0.012, 12), mat(0x64b5f6), { pos: [0.006, 0.085, 0], rot: [0, 0, Math.PI / 2], cast: false }),
-    ],
-    { pos: [frontX + 0.006, 0.55, fridgeZ + 0.12] },
-  );
-  g.add(note3);
-  ctx.interact.add(note3, { zones: [ROOM], prompt: PROMPTS.readNote, onUse: () => ctx.showNote(2) });
+  // The heavy note, held by a magnet on the fridge door.
+  placeNote(ctx, ROOM, 2, { pos: [frontX + 0.004, 0.6, fridgeZ + 0.06], rotY: Math.PI / 2, mode: 'wall', w: 0.2, h: 0.26 });
+  g.add(mesh(cyl(0.02, 0.02, 0.012, 12), mat(0x64b5f6), { pos: [frontX + 0.012, 0.72, fridgeZ + 0.06], rot: [0, 0, Math.PI / 2], cast: false }));
 
   // ----------------------------------------- cipher poster + pinned card
+  // The wheel poster turns: click to move the inner ring one step, right-click back.
   const wheelC = makeCanvas(400, 480);
-  drawCipherWheel(wheelC.getContext('2d'), 400, 480, CIPHER_SHIFT);
+  const wheelTex = canvasTexture(wheelC);
+  const drawWheel = () => {
+    drawCipherWheel(wheelC.getContext('2d'), 400, 480, pzA.wheel);
+    wheelTex.needsUpdate = true;
+  };
   const poster = group(
     [
-      mesh(plane(0.5, 0.6), mat(0xffffff, { map: canvasTexture(wheelC) }), { cast: false }),
+      mesh(plane(0.5, 0.6), mat(0xffffff, { map: wheelTex }), { cast: false }),
       mesh(rbox(0.54, 0.64, 0.02, 0.008), woodMat('light'), { pos: [0, 0, -0.012] }),
     ],
     { pos: [R.x0 + 0.03, 1.6, fridgeZ + 1.05], rot: [0, Math.PI / 2, 0] },
   );
   g.add(poster);
-  ctx.interact.add(poster, { zones: [ROOM], puzzle: 'r3a', prompt: PROMPTS.wheel, onUse: () => ctx.showClue('cipherWheel') });
+  ctx.interact.add(poster, {
+    zones: [ROOM],
+    puzzle: 'r3a',
+    prompt: () => fill(PROMPTS.wheel, { TO: String.fromCharCode(65 + pzA.wheel) }),
+    onUse: (alt) => {
+      pzA.turnWheel(alt ? -1 : 1);
+      ctx.audio.click();
+    },
+  });
   const cardTex = paperTexture(CIPHER_ENCODED, {
-    w: 384,
-    h: 192,
-    size: 64,
+    w: 512,
+    h: 224,
+    size: 52,
     font: '"Courier New", ui-monospace, monospace',
     lines: false,
     bg: '#fffaf0',
@@ -379,10 +387,10 @@ export function buildKitchen(ctx) {
   });
   const ccard = group(
     [
-      mesh(plane(0.4, 0.2), mat(0xffffff, { map: cardTex }), { cast: false }),
-      mesh(sphere(0.012, 6, 4), mat(0xe57373), { pos: [-0.17, 0.08, 0.01], cast: false }),
+      mesh(plane(0.46, 0.2), mat(0xffffff, { map: cardTex }), { cast: false }),
+      mesh(sphere(0.012, 6, 4), mat(0xe57373), { pos: [-0.21, 0.08, 0.01], cast: false }),
     ],
-    { pos: [R.x0 + 0.03, 1.6, fridgeZ + 1.55], rot: [0, Math.PI / 2, -0.05] },
+    { pos: [R.x0 + 0.03, 1.62, fridgeZ + 1.66], rot: [0, Math.PI / 2, -0.04] },
   );
   g.add(ccard);
   ctx.interact.add(ccard, { zones: [ROOM], puzzle: 'r3a', prompt: PROMPTS.card, onUse: () => ctx.showClue('cipherCard', true) });
@@ -489,6 +497,7 @@ export function buildKitchen(ctx) {
         : { pos: new THREE.Vector3(cx - 0.9, 0.9, fz), from: new THREE.Vector3(cx - 0.3, 0.4, fz) },
     applyState() {
       drawStrip();
+      drawWheel();
       drawDials();
       dials.forEach((d) => (d.angle = d.target));
     },

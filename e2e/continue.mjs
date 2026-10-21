@@ -69,7 +69,7 @@ try {
   await page.getByRole('button', { name: 'Reset save' }).click();
   await page.getByRole('button', { name: 'Yes' }).click();
   await page.waitForTimeout(500);
-  check((await ev(() => localStorage.getItem('sundayNight.save.v1'))) === null, 'reset save erases storage');
+  check((await ev(() => localStorage.getItem('sundayNight.save.v2'))) === null, 'reset save erases storage');
   check((await page.getByRole('button', { name: 'Continue' }).count()) === 0, 'menu no longer offers Continue');
   check(problems.length === 0, 'no console errors or warnings' + (problems.length ? ':\n' + problems.join('\n') : ''));
 } catch (e) {

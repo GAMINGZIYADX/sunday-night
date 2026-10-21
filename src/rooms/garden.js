@@ -2,12 +2,13 @@ import * as THREE from 'three';
 import { COLORS, CLUES } from '../config.js';
 import { mat, mesh, group, rbox, box, cyl, sphere, plane, cone, torus } from '../engine/materials.js';
 import { brick, grass, paperTexture, canvasTexture, makeCanvas, rr, rand } from '../engine/textures.js';
-import { woodMat, stringLights, glowSprite, stone, bush, tulipGeometries, notePaper, pottedPlant, foldedThrow, mug } from '../engine/props.js';
+import { woodMat, stringLights, glowSprite, stone, bush, tulipGeometries, pottedPlant, foldedThrow, mug } from '../engine/props.js';
 import { buildWall } from './shell.js';
 import { Door } from './door.js';
 import { lockOverlay, constellationOverlay } from '../ui/overlays.js';
 import { ROOMS, WALL_T, DOOR_W, DOOR_H } from '../engine/layout.js';
 import { PROMPTS } from '../config.js';
+import { placeNote } from './notes.js';
 
 const C = COLORS;
 const WALL_H = 2.5;
@@ -309,11 +310,8 @@ export function buildGarden(ctx) {
   bench.add(bt);
   g.add(bench);
   col.addCentered(bx, bz, 0.6, 1.6);
-  const note5 = notePaper('', { w: 0.15, h: 0.19, tex: paperTexture('...', { size: 30 }) });
-  note5.position.set(bx + 0.05, 0.475, bz + 0.25);
-  note5.rotation.y = 0.4;
-  g.add(note5);
-  ctx.interact.add(note5, { zones: [ROOM], prompt: PROMPTS.readNote, onUse: () => ctx.showNote(4) });
+  // The note stands on the bench seat, leaning on the backrest.
+  placeNote(ctx, ROOM, 4, { pos: [bx - 0.02, 0.472, bz + 0.3], rotY: Math.PI / 2, mode: 'stand' });
   const bm = mug(C.cream, { steam: true });
   bm.position.set(bx, 0.47, bz - 0.4);
   g.add(bm);

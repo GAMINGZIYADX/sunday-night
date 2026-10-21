@@ -46,7 +46,8 @@ describe('save / load', () => {
     const g = new GameState();
     expect(g.load(null)).toBe(false);
     expect(g.load({ version: 999 })).toBe(false);
-    expect(g.load({ version: 1, doors: [true, true, true, true, true] })).toBe(true);
+    expect(g.load({ version: 1 })).toBe(false); // saves from the first version are not loaded
+    expect(g.load({ version: 2, doors: [true, true, true, true, true] })).toBe(true);
     expect(g.isDoorOpen(0)).toBe(false); // no keys, so the door cannot be open
   });
 

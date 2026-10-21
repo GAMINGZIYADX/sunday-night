@@ -253,10 +253,30 @@ export class CatDirector {
     }
   }
 
+  // After a wrong guess the puzzle has moved the unfound cats: follow them
+  // there, but only once the player is not looking at them.
+  rehide() {
+    if (this.mode !== 'hide' || !this.hideSpots) return;
+    const p = this.ctx.gs.puzzles.r4a;
+    for (const cat of this.cats) {
+      if (p.found[cat.id]) continue;
+      const spot = this.hideSpots[p.spots[cat.id]];
+      cat.pending = () => {
+        cat.model.root.position.copy(spot.pos);
+        cat.model.root.rotation.y = spot.heading;
+        cat.model.setPose(spot.pose || 'sleep');
+        cat.model.pose.sit = cat.model.target.sit;
+        cat.model.pose.sleep = cat.model.target.sleep;
+        cat.meowT = 2 + Math.random() * 3;
+      };
+    }
+  }
+
   // The study tells us a hiding spot was searched. `route` leads out of the spot.
   found(catId, route = []) {
     const cat = this.cats.find((c) => c.id === catId);
     cat.hidden = false;
+    cat.pending = null; // cancel any sneak that was still waiting
     this.ctx.audio.meow(cat.pitch, cat.model.root.position.clone().setY(0.4));
     cat.model.hop();
     this.ctx.particles.burst(cat.model.root.position.clone().setY(0.45), {

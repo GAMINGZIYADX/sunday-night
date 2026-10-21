@@ -14,7 +14,6 @@ import {
   bookshelf,
   pottedPlant,
   windowFrame,
-  notePaper,
   armchair,
   sofa,
   vaseWithTulips,
@@ -33,7 +32,8 @@ import { drawPatternRug, drawRainbowWindow } from './art.js';
 import { vasePicker } from '../ui/overlays.js';
 import { tulipRule } from '../puzzles/vase.js';
 import { ROOMS } from '../engine/layout.js';
-import { PROMPTS, TOASTS } from '../config.js';
+import { PROMPTS, TOASTS, RUG_SHOWN, VASE_SLOTS } from '../config.js';
+import { placeNote } from './notes.js';
 
 const C = COLORS;
 export const BOOK_PALETTE = {
@@ -91,11 +91,8 @@ export function buildLiving(ctx) {
   const bigVase = vaseWithTulips({ colors: ['B', 'W', 'B', 'W', 'B', 'W', 'B'], vaseColor: C.cream, h: 0.28 });
   bigVase.position.set(fx - 0.3, 1.28, fz - 0.55);
   g.add(bigVase);
-  const note2 = notePaper('', { w: 0.13, h: 0.16, tex: paperTexture('...', { size: 30, lines: false }) });
-  note2.position.set(fx - 0.22, 1.282, fz - 0.42);
-  note2.rotation.y = 0.5;
-  g.add(note2);
-  ctx.interact.add(note2, { zones: [ROOM], prompt: PROMPTS.slideNote, onUse: () => ctx.showNote(1) });
+  // The note is tucked under the big vase and sticks out over the mantel's edge.
+  placeNote(ctx, ROOM, 1, { pos: [fx - 0.47, 1.281, fz - 0.55], rotY: -Math.PI / 2 + 0.12, mode: 'flat' });
   for (const z of [0.2, 0.36]) {
     const c = candle({ h: 0.1 + z * 0.2 });
     c.position.set(fx - 0.3, 1.28, fz + z);
@@ -158,7 +155,7 @@ export function buildLiving(ctx) {
   cc.position.set(tableX + 0.28, 0.42, tableZ - 0.15);
   g.add(cc);
   // The pattern rug.
-  const seq = tulipRule(9).slice(0, 6);
+  const seq = tulipRule(RUG_SHOWN);
   const rugTex = rug(0x8a5f6a, C.cream, C.blush, (x, w, h) => drawPatternRug(x, w, h, seq), [768, 420]);
   const prug = rugMesh(rugTex, 2.7, 1.5);
   const rugG = group([prug], { pos: [2.15, 0, fz], rot: [0, -Math.PI / 2, 0] });
@@ -222,7 +219,6 @@ export function buildLiving(ctx) {
   const bookY = 2 * gap + 0.035;
   const bookSlots = BOOK_ORDER.map((_, i) => fz + 0.56 - i * 0.16); // left to right as she faces the wall
   const books = {};
-  let selB = -1;
   const bookAnim = new Map();
   for (const name of BOOK_ORDER) {
     const h = 0.3 + rr(-0.02, 0.02);
@@ -237,28 +233,17 @@ export function buildLiving(ctx) {
       zones: [ROOM],
       puzzle: 'r2b',
       enabled: () => !pzB.isSolved(),
-      prompt: () => (selB === -1 ? PROMPTS.bookPick : pzB.order[selB] === name ? PROMPTS.bookPutBack : PROMPTS.bookSwap),
-      onUse: () => {
-        const i = pzB.order.indexOf(name);
-        if (selB === -1) {
-          selB = i;
-          ctx.audio.click();
-        } else if (selB === i) {
-          selB = -1;
-          ctx.audio.soft();
-        } else {
-          const a = selB;
-          selB = -1;
-          ctx.audio.slide();
-          pzB.swap(a, i);
-        }
+      prompt: PROMPTS.bookTurn,
+      onUse: (alt) => {
+        pzB.turn(pzB.order.indexOf(name), alt ? -1 : 1);
+        ctx.audio.slide();
         layoutBooks(false);
       },
     });
   }
   function layoutBooks(instant) {
     pzB.order.forEach((name, i) => {
-      const target = new THREE.Vector3(shelfX + (i === selB ? 0.05 : 0.02), bookY + (i === selB ? 0.07 : 0), bookSlots[i]);
+      const target = new THREE.Vector3(shelfX + 0.02, bookY, bookSlots[i]);
       const b = books[name];
       if (instant) {
         b.position.copy(target);
@@ -296,11 +281,12 @@ export function buildLiving(ctx) {
   // ------------------------------------------- puzzle A: the vase stand
   const pzA = gs.puzzles.r2a;
   const standZ = R.zN + 0.22;
-  const standX0 = -3.35;
-  const slotX = (i) => standX0 + i * 0.29;
+  const standX0 = -3.5;
+  const SP = 0.235;
+  const slotX = (i) => standX0 + i * SP;
   const stand = group([], { pos: [0, 0, standZ] });
-  const standW = 0.29 * 9 + 0.2;
-  const sx = slotX(4);
+  const standW = SP * VASE_SLOTS + 0.16;
+  const sx = (slotX(0) + slotX(VASE_SLOTS - 1)) / 2;
   stand.add(mesh(rbox(standW, 0.05, 0.34, 0.02), woodMat('light'), { pos: [sx, 0.72, 0] }));
   stand.add(mesh(rbox(standW, 0.04, 0.3, 0.02), woodMat('light'), { pos: [sx, 0.22, 0] }));
   for (const x of [sx - standW / 2 + 0.06, sx + standW / 2 - 0.06])
@@ -308,7 +294,7 @@ export function buildLiving(ctx) {
   g.add(stand);
   col.add(sx - standW / 2, standZ - 0.2, sx + standW / 2, standZ + 0.2);
   const slots = [];
-  for (let i = 0; i < 9; i++) {
+  for (let i = 0; i < VASE_SLOTS; i++) {
     const v = new THREE.LatheGeometry(
       [
         [0, 0],
@@ -320,7 +306,7 @@ export function buildLiving(ctx) {
       ].map(([x, y]) => new THREE.Vector2(x, y)),
       12,
     );
-    const vm = mat(i < 6 ? C.cream : 0xf6efe2, { rough: 0.3 });
+    const vm = mat(pzA.isFixed(i) ? C.cream : 0xf6efe2, { rough: 0.3 });
     const vase = mesh(v, vm);
     const tB = tulip('B', { scale: 1.05 });
     const tW = tulip('W', { scale: 1.05 });
@@ -358,10 +344,14 @@ export function buildLiving(ctx) {
   pzA.onChange(() => layoutVases());
   const bask = basket({ r: 0.22, h: 0.2 });
   bask.position.set(-3.85, 0, R.zN + 0.85);
-  for (let i = 0; i < 10; i++) {
-    const t = tulip(i % 2 ? 'B' : 'W', { scale: 0.9 });
-    t.position.set(rr(-0.1, 0.1), 0.02, rr(-0.1, 0.1));
-    t.rotation.set(rr(-0.5, 0.5), rr(0, 6), rr(-0.5, 0.5));
+  // A bouquet standing in the basket: stems inside, heads above the rim.
+  for (let i = 0; i < 11; i++) {
+    const t = tulip(i % 2 ? 'B' : 'W', { scale: 0.85 + (i % 3) * 0.06 });
+    const a = (i / 11) * Math.PI * 2;
+    const rad = i === 0 ? 0 : 0.05 + (i % 2) * 0.05;
+    t.position.set(Math.cos(a) * rad, 0.015, Math.sin(a) * rad);
+    // lean gently outwards
+    t.rotation.set(Math.sin(a) * rad * 2.2, 0, -Math.cos(a) * rad * 2.2);
     bask.add(t);
   }
   g.add(bask);
@@ -405,17 +395,27 @@ export function buildLiving(ctx) {
     const rig = ctx.rooms[ROOM]?.rig;
     if (rig) rig.points[0].flicker = 0.85 + Math.sin(t * 8.3) * 0.1 + Math.sin(t * 13.1) * 0.06;
     for (const [name, a] of bookAnim) {
-      a.t = Math.min(1, a.t + dt / 0.35);
+      a.t = Math.min(1, a.t + dt / 0.4);
       const e = a.t * a.t * (3 - 2 * a.t);
       books[name].position.lerpVectors(a.from, a.to, e);
-      books[name].position.x += Math.sin(e * Math.PI) * 0.18;
+      // Books moving more than one place hop out over the others.
+      const far = Math.abs(a.to.z - a.from.z) > 0.2;
+      books[name].position.x += Math.sin(e * Math.PI) * (far ? 0.2 : 0.07);
       if (a.t >= 1) bookAnim.delete(name);
     }
+    // Show which three books a click will turn: they lift a little.
+    const hov = ctx.interact.hover;
+    const hi = hov && !pzB.isSolved() ? BOOK_ORDER.find((n) => hov.object === books[n]) : null;
+    const center = hi ? pzB.centerFor(pzB.order.indexOf(hi)) : -10;
+    pzB.order.forEach((n, i) => {
+      if (bookAnim.has(n)) return;
+      const lift = Math.abs(i - center) <= 1 ? 0.025 : 0;
+      books[n].position.y += (bookY + lift - books[n].position.y) * Math.min(1, dt * 12);
+    });
     if (pzA.isSolved()) slots.forEach((s, i) => (s.position.y = 0.745 + Math.max(0, Math.sin(t * 3 - i * 0.6)) * 0.01));
   });
   pzB.onChange((p, just) => {
     if (just) {
-      selB = -1;
       layoutBooks(false);
     }
   });
@@ -435,7 +435,6 @@ export function buildLiving(ctx) {
     anchors: { r2a: new THREE.Vector3(slotX(4), 0.85, standZ), r2b: new THREE.Vector3(shelfX, 1.2, fz) },
     keySpawn: (id) => (id === 'r2a' ? new THREE.Vector3(slotX(7), 1.2, standZ + 0.4) : new THREE.Vector3(shelfX + 0.5, 1.4, fz)),
     applyState() {
-      selB = -1;
       layoutBooks(true);
       layoutVases();
     },

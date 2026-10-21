@@ -3,7 +3,7 @@
 // with its keys, the player walks through each doorway, reaches the ending and
 // reads the letter. Fails on any console error or warning.
 import { launch, fileUrl, openGame, startNew } from './lib.mjs';
-import { neighbours, SOLVED_TILES } from '../src/puzzles/sliding.js';
+import { neighbours, SOLVED_TILES, N as SN } from '../src/puzzles/sliding.js';
 
 const SHOTS = process.argv[2] || null;
 const log = (...a) => console.log('  ·', ...a);
@@ -66,36 +66,80 @@ async function openDoorAndWalk(room, zN) {
   log(`door ${room} opened, walked into zone ${z}`);
 }
 
-// BFS solver for the sliding puzzle; returns the indices to click in order.
+// IDA* solver for the sliding puzzle (Manhattan distance); returns the tile
+// values to click, in order.
 function solveSliding(start) {
-  const key = (t) => t.join('');
-  const goal = key(SOLVED_TILES);
-  const prev = new Map([[key(start), null]]);
-  let frontier = [start];
+  const goalPos = new Map(SOLVED_TILES.map((v, i) => [v, i]));
+  const h = (t) => {
+    let d = 0;
+    t.forEach((v, i) => {
+      if (!v) return;
+      const g = goalPos.get(v);
+      d += Math.abs((i % SN) - (g % SN)) + Math.abs(Math.floor(i / SN) - Math.floor(g / SN));
+    });
+    return d;
+  };
+  const t = start.slice();
+  const path = [];
+  let bound = h(t);
+  const search = (gap, g, prev) => {
+    const hh = h(t);
+    if (hh === 0) return true;
+    const f = g + hh;
+    if (f > bound) return f;
+    let min = Infinity;
+    for (const n of neighbours(gap)) {
+      if (n === prev) continue;
+      const v = t[n];
+      t[gap] = v;
+      t[n] = 0;
+      path.push(v);
+      const r = search(n, g + 1, gap);
+      if (r === true) return true;
+      if (r < min) min = r;
+      path.pop();
+      t[n] = v;
+      t[gap] = 0;
+    }
+    return min;
+  };
+  for (;;) {
+    const r = search(t.indexOf(0), 0, -1);
+    if (r === true) return path;
+    if (r === Infinity) return null;
+    bound = r;
+  }
+}
+
+// Breadth-first search over book orders reachable by turns: [center, dir][].
+function solveBooks(order, goal) {
+  const key = (o) => o.join(',');
+  const prev = new Map([[key(order), null]]);
+  let frontier = [order];
   while (frontier.length) {
     const next = [];
-    for (const t of frontier) {
-      if (key(t) === goal) {
+    for (const o of frontier) {
+      if (key(o) === key(goal)) {
         const moves = [];
-        let k = goal;
+        let k = key(o);
         while (prev.get(k)) {
-          const [pk, moved] = prev.get(k);
-          moves.unshift(moved);
+          const [pk, mv] = prev.get(k);
+          moves.unshift(mv);
           k = pk;
         }
         return moves;
       }
-      const g = t.indexOf(0);
-      for (const n of neighbours(g)) {
-        const c = t.slice();
-        c[g] = c[n];
-        c[n] = 0;
-        const k = key(c);
-        if (!prev.has(k)) {
-          prev.set(k, [key(t), t[n]]);
-          next.push(c);
+      for (let c = 1; c <= o.length - 2; c++)
+        for (const dir of [1, -1]) {
+          const q = o.slice();
+          const t3 = q.slice(c - 1, c + 2);
+          q.splice(c - 1, 3, ...(dir > 0 ? [t3[2], t3[0], t3[1]] : [t3[1], t3[2], t3[0]]));
+          const k = key(q);
+          if (!prev.has(k)) {
+            prev.set(k, [key(o), [c, dir]]);
+            next.push(q);
+          }
         }
-      }
     }
     frontier = next;
   }
@@ -109,26 +153,41 @@ try {
 
   // ------------------------------------------------------------- Room 1
   log('room 1: frames (A) then painting (B)');
-  await readNote([-0.4, 2.45], [-0.36, 0.59, 3.08]);
-  const slots = [-2.55, -1.95, -1.35];
-  const goal = ['far', 'closer', 'together'];
-  for (let i = 0; i < 3; i++) {
+  await readNote([-0.5, 2.4], [-0.27, 0.69, 3.2]);
+  const slots = [-3.0, -2.5, -2.0, -1.5, -1.0];
+  const goal = ['winter-far', 'spring-far', 'summer-closer', 'autumn-closer', 'winter-together'];
+  for (let i = 0; i < goal.length; i++) {
     const order = await ev(() => window.__game.gs.puzzles.r1a.order.slice());
     const j = order.indexOf(goal[i]);
     if (j === i) continue;
-    await lookUse([-1.95, -1.9], [slots[j], 1.62, -3.47], { expect: 'Pick up' });
+    await lookUse([-2.0, -1.7], [slots[j], 1.66, -3.47], { expect: 'Pick up' });
     await page.waitForTimeout(400);
-    await lookUse(null, [slots[i], 1.62, -3.47], { expect: 'Swap' });
+    await lookUse(null, [slots[i], 1.66, -3.47], { expect: 'Swap' });
     await page.waitForTimeout(700);
   }
   if (!(await ev(() => window.__game.gs.puzzles.r1a.isSolved()))) fail('frames not solved');
-  await lookUse([-2.0, -1.5], [-2.9, 0.05, -2.4], { expect: 'painting' });
+  await lookUse([-2.0, -1.5], [-2.85, 0.03, -2.3], { expect: 'painting' });
   if ((await modal()) !== 'sliding') fail('sliding overlay did not open');
   await page.getByRole('button', { name: 'Numbers' }).click();
   await shot('p01-sliding');
+  // A real move first, then the hint path to the gentle shuffle (as a stuck
+  // player would), then finish with a solver.
+  const firstMove = await ev(() => {
+    const p = window.__game.gs.puzzles.r1b;
+    const g = p.gap;
+    const n = [g - 1, g + 1, g - 4, g + 4].find((i) => i >= 0 && i < 16 && p.canMove(i));
+    return p.tiles[n];
+  });
+  await page
+    .locator('.slide-tile')
+    .nth(firstMove - 1)
+    .dispatchEvent('mousedown');
+  if ((await ev(() => window.__game.gs.puzzles.r1b.moves)) !== 1) fail('sliding move did not register');
+  for (let k = 0; k < 3; k++) await page.getByRole('button', { name: 'Hint (H)' }).click();
+  await page.getByRole('button', { name: 'Gentle shuffle' }).click();
   const tiles = await ev(() => window.__game.gs.puzzles.r1b.tiles.slice());
   const moves = solveSliding(tiles);
-  log(`sliding: ${moves.length} moves`);
+  log(`sliding (4x4, after gentle shuffle): ${moves.length} moves`);
   for (const v of moves)
     await page
       .locator('.slide-tile')
@@ -140,31 +199,37 @@ try {
 
   // ------------------------------------------------------------- Room 2
   log('room 2: books (B) then vases (A)');
-  await readNote([2.9, -9.9], [3.98, 1.28, -9.92]);
+  await readNote([2.9, -9.9], [3.73, 1.29, -10.05]);
   const order2 = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet', 'pink'];
   const bookZ = (i) => -9.5 + 0.56 - i * 0.16;
-  for (let i = 0; i < 8; i++) {
-    const order = await ev(() => window.__game.gs.puzzles.r2b.order.slice());
-    const j = order.indexOf(order2[i]);
-    if (j === i) continue;
-    await lookUse([-2.7, -9.5], [-4.01, 1.13, bookZ(j)], { expect: 'Pick up' });
-    await page.waitForTimeout(450);
-    await lookUse(null, [-4.01, 1.13, bookZ(i)], { expect: 'Swap' });
-    await page.waitForTimeout(700);
+  const startOrder = await ev(() => window.__game.gs.puzzles.r2b.order.slice());
+  const turns = solveBooks(startOrder, order2);
+  log(`books: ${turns.length} turns needed`);
+  for (const [c, dir] of turns) {
+    await lookUse([-2.7, -9.5], [-4.01, 1.13, bookZ(c)], { expect: 'Turn', alt: dir < 0 });
+    await page.waitForTimeout(550);
   }
   if (!(await ev(() => window.__game.gs.puzzles.r2b.isSolved()))) fail('books not solved');
   await shot('p02-books');
-  for (const i of [6, 7, 8]) {
-    await lookUse([-2.0, -12.3], [-3.35 + i * 0.29, 0.82, -13.28], { expect: 'Plant' });
+  const vase = await ev(() => {
+    const p = window.__game.gs.puzzles.r2a;
+    return { sol: p.solution.slice(), fixed: p.slots.map((c, i) => p.isFixed(i)) };
+  });
+  let firstOpen = true;
+  for (let i = 0; i < vase.sol.length; i++) {
+    if (vase.fixed[i]) continue;
+    const at = [-3.5 + i * 0.235, 0.82, -13.28];
+    await lookUse([-2.2, -12.2], at, { expect: 'Plant' });
     if ((await modal()) !== 'vase') fail('vase picker did not open');
-    if (i === 6) await shot('p03-vase');
-    // Try a wrong colour first on slot 7, then fix it.
-    if (i === 6) {
-      await page.getByRole('button', { name: 'White' }).click();
+    if (firstOpen) {
+      // A wrong colour first, then change it.
+      await shot('p03-vase');
+      await page.getByRole('button', { name: vase.sol[i] === 'B' ? 'White' : 'Blue' }).click();
       await waitFor(() => !window.__game.modal());
-      await lookUse(null, [-3.35 + i * 0.29, 0.82, -13.28], { expect: 'Change' });
+      await lookUse(null, at, { expect: 'Change' });
+      firstOpen = false;
     }
-    await page.getByRole('button', { name: 'Blue' }).click();
+    await page.getByRole('button', { name: vase.sol[i] === 'B' ? 'Blue' : 'White' }).click();
     await waitFor(() => !window.__game.modal());
   }
   if (!(await ev(() => window.__game.gs.puzzles.r2a.isSolved()))) fail('vases not solved');
@@ -172,7 +237,10 @@ try {
 
   // ------------------------------------------------------------- Room 3
   log('room 3: fridge word (A) then dials (B)');
-  await readNote([-1.9, -21.0], [-2.77, 0.55, -21.13]);
+  await readNote([-1.9, -21.0], [-2.776, 0.6, -21.19]);
+  // Turn the wheel poster to the right step, as she would to decode the card.
+  for (let k = 0; k < 3; k++) await lookUse([-1.8, -20.2], [-3.47, 1.6, -20.2], { expect: 'Turn the wheel' });
+  if ((await ev(() => window.__game.gs.puzzles.r3a.wheel)) !== 3) fail('wheel did not turn');
   const word = await ev(() => window.__game.gs.puzzles.r3a.word);
   // Put a wrong letter first and take it off with the eraser magnet.
   const magnet = (ch) => {
@@ -184,10 +252,15 @@ try {
   for (const ch of word) await lookUse(null, magnet(ch), { expect: `Put ${ch}` });
   if (!(await ev(() => window.__game.gs.puzzles.r3a.isSolved()))) fail('cipher not solved');
   await shot('p04-fridge');
-  const turns = [6, 5, 3];
-  for (let d = 0; d < 3; d++) {
-    for (let k = 0; k < turns[d]; k++)
-      await lookUse(d === 0 && k === 0 ? [1.9, -19.0] : null, [2.79, 0.8, -19.24 + d * 0.24], { expect: `dial ${d + 1}` });
+  const target = [4, 9, 5, 2];
+  if ((await ev(() => window.__game.gs.puzzles.r3b.values.length)) !== 4) fail('expected four dials');
+  for (let d = 0; d < 4; d++) {
+    // Up by clicking, or down with right-click when that is shorter (9 = one step down).
+    const up = target[d];
+    const down = (10 - target[d]) % 10;
+    const alt = down < up;
+    for (let k = 0; k < (alt ? down : up); k++)
+      await lookUse(d === 0 && k === 0 ? [1.9, -19.0] : null, [2.785, 0.8, -19.0 + (d - 1.5) * 0.18], { expect: `dial ${d + 1}`, alt });
   }
   if (!(await ev(() => window.__game.gs.puzzles.r3b.isSolved()))) fail('dials not solved');
   await openDoorAndWalk(2, -22.5);
@@ -197,17 +270,18 @@ try {
   await lookUse([-2.2, -26.1], [-2.2, 1.5, -24.55], { expect: 'chalkboard' });
   if ((await modal()) !== 'sudoku') fail('sudoku did not open');
   const sud = await ev(() => ({ grid: window.__game.gs.puzzles.r4b.grid.slice(), sol: window.__game.gs.puzzles.r4b.solution.slice() }));
+  if (sud.grid.length !== 36) fail('expected a 6x6 sudoku');
   // One wrong entry first, checked, then corrected.
   const firstEmpty = sud.grid.indexOf(0);
   await page.locator('.sudoku .cell').nth(firstEmpty).dispatchEvent('mousedown');
   await page
     .locator('.numpad .btn')
-    .nth(sud.sol[firstEmpty] % 4)
+    .nth(sud.sol[firstEmpty] % 6)
     .click();
   await page.getByRole('button', { name: 'Check' }).click();
   if (!(await page.locator('.sudoku .cell.wrong').count())) fail('sudoku check did not mark the wrong cell');
   await shot('p05-sudoku');
-  for (let i = 0; i < 16; i++) {
+  for (let i = 0; i < 36; i++) {
     if (sud.grid[i]) continue;
     await page.locator('.sudoku .cell').nth(i).dispatchEvent('mousedown');
     await page
@@ -217,11 +291,13 @@ try {
   }
   await waitFor(() => window.__game.gs.puzzles.r4b.isSolved());
   await waitFor(() => !window.__game.modal(), null, 20000);
-  await readNote([2.6, -28.4], [3.69, 0.78, -28.65]);
+  await readNote([2.6, -28.4], [3.64, 0.88, -28.68]);
   // Hide and seek: wait until both cats have slipped into their spots.
-  await ev(() => window.__game.lookAt(0, 1.5, -20));
+  await ev(() => {
+    window.__game.teleport(0.2, -28.3);
+    window.__game.lookAt(0.2, 2.8, -28.35); // look up at the ceiling: no hiding spot in view
+  });
   await waitFor(() => window.__game.game.cats.cats.every((c) => c.state === 'hidden'));
-  const spots = await ev(() => ({ ...window.__game.gs.puzzles.r4a.spots }));
   const spotView = [
     [
       [2.4, -28.2],
@@ -239,14 +315,34 @@ try {
       [-2.4, -31.0],
       [-3.35, 0.3, -31.65],
     ],
+    [
+      [-1.3, -26.2],
+      [-2.3, 0.45, -26.95],
+    ],
+    [
+      [-2.7, -25.7],
+      [-3.7, 0.35, -24.95],
+    ],
   ];
-  const taken = new Set(Object.values(spots));
-  const empty = [0, 1, 2, 3].find((i) => !taken.has(i));
+  const before = await ev(() => ({ ...window.__game.gs.puzzles.r4a.spots }));
+  const taken = new Set(Object.values(before));
+  const empty = [0, 1, 2, 3, 4, 5].find((i) => !taken.has(i));
   await lookUse(...spotView[empty], { expect: 'Look' });
   if (await ev(() => Object.values(window.__game.gs.puzzles.r4a.found).some(Boolean))) fail('empty spot found a cat');
+  const after = await ev(() => ({ ...window.__game.gs.puzzles.r4a.spots }));
+  if (after.tchobin === before.tchobin && after.zizo === before.zizo) fail('cats did not sneak away after a wrong guess');
+  if (Object.values(after).includes(empty)) fail('a cat moved into the spot just searched');
+  log(`wrong guess: cats moved ${JSON.stringify(before)} -> ${JSON.stringify(after)}`);
   await shot('p06-study-empty-spot');
+  // They only sneak while out of sight: look away, then wait for the move.
+  await ev(() => {
+    window.__game.teleport(0.2, -28.3);
+    window.__game.lookAt(0.2, 2.8, -28.35); // look up at the ceiling: no hiding spot in view
+  });
+  await waitFor(() => window.__game.game.cats.cats.every((c) => !c.pending));
   for (const cat of ['tchobin', 'zizo']) {
-    await lookUse(...spotView[spots[cat]]);
+    const spot = await ev((c) => window.__game.gs.puzzles.r4a.spots[c], cat);
+    await lookUse(...spotView[spot]);
     await page.waitForTimeout(300);
   }
   if (!(await ev(() => window.__game.gs.puzzles.r4a.isSolved()))) fail('hide and seek not solved');
@@ -258,12 +354,13 @@ try {
 
   // ------------------------------------------------------------- Room 5
   log('room 5: gate lock (A) then telescope (B)');
-  await readNote([-2.5, -39.6], [-3.55, 0.48, -39.65]);
+  await readNote([-2.5, -39.6], [-3.62, 0.58, -39.6]);
   const digits = await ev(() => window.__game.gs.collectedDigits());
   if (digits.some((d) => d === null)) fail('missing memory digits: ' + digits);
   log(`journal digits: ${digits.join('')}`);
   await page.keyboard.press('Tab');
   await waitFor(() => window.__game.modal() === 'journal');
+  await page.waitForTimeout(600);
   await shot('p08-journal');
   await page.keyboard.press('Tab');
   await waitFor(() => !window.__game.modal());
@@ -280,12 +377,14 @@ try {
   await lookUse([2.4, -41.5], [3.4, 1.1, -42.1], { expect: 'telescope' });
   if ((await modal()) !== 'constellation') fail('telescope overlay did not open');
   const stars = JSON.parse(await page.locator('.sky-wrap canvas').getAttribute('data-stars'));
+  const loose = JSON.parse(await page.locator('.sky-wrap canvas').getAttribute('data-loose'));
   const box = await page.locator('.sky-wrap canvas').boundingBox();
-  const clickStar = (i) => page.mouse.click(box.x + stars[i][0] * box.width, box.y + stars[i][1] * box.height);
-  await clickStar(5); // wrong first: should just fade
+  const clickAt = ([x, y]) => page.mouse.click(box.x + x * box.width, box.y + y * box.height);
+  await clickAt(stars[5]); // the other J: should just fade
+  await clickAt(loose[0]); // a loose J that belongs to no month
   if ((await ev(() => window.__game.gs.puzzles.r5b.progress)) !== 0) fail('wrong star counted');
   for (let i = 0; i < stars.length; i++) {
-    await clickStar(i);
+    await clickAt(stars[i]);
     if (i === 7) await shot('p10-constellation');
   }
   await waitFor(() => window.__game.gs.puzzles.r5b.isSolved());
@@ -324,7 +423,7 @@ try {
   if (!(await ev(() => window.__game.gs.data.finished))) fail('finished flag not set');
   if ((await ev(() => window.__game.gs.solvedCount())) !== 10) fail('not all puzzles solved');
   await page.waitForTimeout(1500);
-  const saved = await ev(() => JSON.parse(localStorage.getItem('sundayNight.save.v1')));
+  const saved = await ev(() => JSON.parse(localStorage.getItem('sundayNight.save.v2')));
   if (!saved?.finished) fail('finished state not saved');
   log('ending reached, letter read, finished state saved');
 

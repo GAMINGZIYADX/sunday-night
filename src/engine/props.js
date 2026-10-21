@@ -126,6 +126,7 @@ export function vaseWithTulips({ colors = ['B', 'W', 'B', 'W', 'B'], vaseColor =
     t.rotation.set(Math.sin(a) * 0.25, 0, -Math.cos(a) * 0.25);
     g.add(t);
   });
+  g.userData.prop = 'vaseWithTulips';
   return g;
 }
 
@@ -160,6 +161,7 @@ export function pottedPlant({ potColor = C.blushDeep, size = 1, leaves = 9, leaf
     g.add(pivot);
   }
   g.scale.setScalar(size);
+  g.userData.prop = 'pottedPlant';
   return g;
 }
 
@@ -214,6 +216,7 @@ export function bookRow(width, { height = 0.24, depth = 0.18, colors = BOOK_COLO
       x += 0.075;
     }
   }
+  g.userData.prop = 'bookRow';
   return g;
 }
 
@@ -249,6 +252,7 @@ export function tableLamp({ shade = C.cream, base = C.blushDeep, h = 0.45 } = {}
   glow.position.set(0, h - 0.05, 0);
   g.add(glow);
   g.userData.lightPos = new THREE.Vector3(0, h - 0.06, 0);
+  g.userData.prop = 'tableLamp';
   return g;
 }
 
@@ -267,6 +271,7 @@ export function floorLamp({ shade = C.cream, h = 1.55 } = {}) {
   glow.position.set(0, h, 0);
   g.add(glow);
   g.userData.lightPos = new THREE.Vector3(0, h - 0.05, 0);
+  g.userData.prop = 'floorLamp';
   return g;
 }
 
@@ -323,6 +328,7 @@ export function candle({ h = 0.1, color = C.cream } = {}) {
   g.add(glow);
   g.userData.flame = flame;
   g.userData.glow = glow;
+  g.userData.prop = 'candle';
   return g;
 }
 
@@ -420,6 +426,7 @@ export function mug(color = C.blush, { steam = false } = {}) {
       g.add(s);
     }
   }
+  g.userData.prop = 'mug';
   return g;
 }
 
@@ -429,17 +436,21 @@ export function teapot(color = C.sage) {
   g.add(mesh(sphere(0.015, 8, 6), mat(C.cream), { pos: [0, 0.172, 0] }));
   g.add(mesh(cyl(0.012, 0.02, 0.1, 8), mat(color, { rough: 0.35 }), { pos: [0.1, 0.09, 0], rot: [0, 0, -0.9] }));
   g.add(mesh(torus(0.04, 0.009, 6, 12, Math.PI), mat(color, { rough: 0.35 }), { pos: [-0.085, 0.085, 0], rot: [0, 0, Math.PI / 2] }));
+  g.userData.prop = 'teapot';
   return g;
 }
 
 export function plate(color = C.cream, r = 0.1) {
-  return mesh(cyl(r, r * 0.8, 0.015, 20), mat(color, { rough: 0.3 }), { pos: [0, 0.008, 0] });
+  const g = group([mesh(cyl(r, r * 0.8, 0.015, 20), mat(color, { rough: 0.3 }), { pos: [0, 0.008, 0] })]);
+  g.userData.prop = 'plate';
+  return g;
 }
 
 export function jar(color = 0xe8c48a, h = 0.16) {
   const g = group([mesh(cyl(0.05, 0.05, h, 14), mat(0xdfeef0, { rough: 0.1, opacity: 0.55 }), { pos: [0, h / 2, 0] })]);
   g.add(mesh(cyl(0.045, 0.045, h * 0.7, 12), mat(color, { rough: 0.8 }), { pos: [0, h * 0.36, 0] }));
   g.add(mesh(cyl(0.052, 0.052, 0.025, 14), mat(C.blushDeep), { pos: [0, h + 0.01, 0] }));
+  g.userData.prop = 'jar';
   return g;
 }
 
@@ -546,6 +557,7 @@ export function basket({ r = 0.2, h = 0.18 } = {}) {
   g.add(mesh(cyl(r * 0.85, r * 0.85, 0.01, 18), mat(0x9c7648), { pos: [0, 0.006, 0] }));
   g.add(mesh(torus(r, 0.012, 6, 24), mat(0xb08a5a), { pos: [0, h, 0], rot: [Math.PI / 2, 0, 0] }));
   g.add(mesh(torus(r * 0.9, 0.012, 6, 20, Math.PI), mat(0xb08a5a), { pos: [0, h, 0] }));
+  g.userData.prop = 'basket';
   return g;
 }
 
@@ -570,6 +582,7 @@ export function cardboardBox({ w = 0.55, h = 0.4, d = 0.45, open = true } = {}) 
   }
   // a strip of tape
   g.add(mesh(box(0.08, h * 0.6, 0.004), mat(0xe8d6b8), { pos: [0, h * 0.65, d / 2 + 0.002], cast: false }));
+  g.userData.prop = 'cardboardBox';
   return g;
 }
 
@@ -607,6 +620,7 @@ export function notePaper(text, { w = 0.16, h = 0.2, flat = true, color = '#fbf3
     m.position.y = h / 2;
   }
   g.userData.paper = m;
+  g.userData.prop = 'notePaper';
   return g;
 }
 

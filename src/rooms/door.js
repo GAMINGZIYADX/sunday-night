@@ -3,7 +3,7 @@ import { ROOMS, DOOR_W, DOOR_H, WALL_T } from '../engine/layout.js';
 import { COLORS, UI } from '../config.js';
 import { mat, mesh, group, rbox, box, sphere, cyl, torus } from '../engine/materials.js';
 import { keyMesh } from '../engine/keyfx.js';
-import { tulip, glowSprite, woodMat } from '../engine/props.js';
+import { tulip, glowSprite, woodMat, hitArea } from '../engine/props.js';
 import { labelTexture } from '../engine/textures.js';
 import { PROMPTS, TOASTS } from '../config.js';
 import { fill } from '../engine/text.js';
@@ -111,6 +111,10 @@ export class Door {
       this.leaf.add(mesh(cyl(0.012, 0.012, h - 0.2, 6), iron, { pos: [x, h / 2, 0] }));
       this.leaf.add(mesh(sphere(0.022, 8, 6), iron, { pos: [x, h - 0.02, 0] }));
     }
+    // The bars leave gaps: an invisible panel makes the whole gate clickable.
+    const hit = hitArea(w, h - 0.1, 0.07);
+    hit.position.set(0, h / 2, 0);
+    this.leaf.add(hit);
     // A wooden backing board behind the keyholes.
     this.leaf.add(mesh(rbox(0.22, 0.4, 0.04, 0.015), wood, { pos: [w / 2 - 0.16, 1.0, 0.01] }));
     this.leaf.add(mesh(rbox(0.22, 0.12, 0.04, 0.015), wood, { pos: [w / 2 - 0.16, 0.88, 0.01] }));

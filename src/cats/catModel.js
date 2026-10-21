@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mat, mesh, group, sphere, cone, capsule, torus, box } from '../engine/materials.js';
 import { paint } from '../engine/textures.js';
+import { TailTube } from './tail.js';
 
 // Low-poly cats with a tiny procedural rig: breathing, blinking, ear twitches,
 // tail sway, walking, sitting, curling up, looking at the player and hopping.
@@ -126,14 +127,14 @@ export class CatModel {
     // Hips pivot (sitting tilts the whole torso around here).
     this.hips = group([], { pos: [0, 0.17, -0.1] });
     this.offset.add(this.hips);
-    const torsoGeo = new THREE.SphereGeometry(1, 16, 12).rotateX(Math.PI / 2);
+    const torsoGeo = new THREE.SphereGeometry(1, 24, 18).rotateX(Math.PI / 2);
     this.torso = mesh(torsoGeo, furMat, { scale: [0.105, 0.1, 0.2], pos: [0, 0.01, 0.1] });
     this.hips.add(this.torso);
-    this.chest = mesh(sphere(0.095, 14, 10), kind === 'zizo' ? light : furMat, { pos: [0, 0.015, 0.22], scale: [1, 1.05, 0.9] });
+    this.chest = mesh(sphere(0.095, 20, 14), kind === 'zizo' ? light : furMat, { pos: [0, 0.015, 0.22], scale: [1, 1.05, 0.9] });
     this.hips.add(this.chest);
     this.haunches = [];
     for (const sx of [-1, 1]) {
-      const h = mesh(sphere(0.07, 12, 8), solid, { pos: [sx * 0.05, -0.01, -0.02], scale: [0.8, 1, 1.1] });
+      const h = mesh(sphere(0.07, 16, 12), solid, { pos: [sx * 0.05, -0.01, -0.02], scale: [0.8, 1, 1.1] });
       this.hips.add(h);
       this.haunches.push(h);
     }
@@ -146,7 +147,7 @@ export class CatModel {
     this.neck.add(mesh(sphere(0.012, 8, 6), mat(0xf2c14e, { metal: 0.7, rough: 0.3 }), { pos: [0, -0.07, 0.05] }));
     this.head = group([], { pos: [0, 0.05, 0.04] });
     this.neck.add(this.head);
-    const headGeo = new THREE.SphereGeometry(0.085, 16, 12);
+    const headGeo = new THREE.SphereGeometry(0.085, 24, 18);
     this.head.add(mesh(headGeo, headMat, { scale: [1.12, 0.95, 1.0] }));
     this.head.add(mesh(sphere(0.04, 12, 8), mat(L.muzzle, { rough: 0.95 }), { pos: [0, -0.03, 0.065], scale: [1.25, 0.8, 0.8] }));
     if (kind === 'zizo') this.head.add(mesh(sphere(0.05, 12, 8), mat(L.muzzle, { rough: 0.95 }), { pos: [0, -0.05, 0.04], scale: [1.1, 0.7, 0.9] }));
@@ -199,21 +200,11 @@ export class CatModel {
     this.frontLegs.forEach((l) => this.hips.add(l));
     this.backLegs.forEach((l) => this.hips.add(l));
 
-    // Tail: a chain of spheres placed along a curve every frame.
-    this.tail = [];
-    const N = 20;
-    this.tailMats = [];
-    for (let i = 0; i < N; i++) {
-      const isTip = L.tip && i >= N - 4;
-      const color = isTip ? L.tip : L.tailRings[Math.floor(i / 3) % 2];
-      const r = 0.025 - (i / N) * 0.009;
-      // Own materials so the tail alone can glow when it makes the heart.
-      const tm = mat(color, { rough: 0.95, emissive: 0xffb8c8, ei: 0, unique: true });
-      this.tailMats.push(tm);
-      const s = mesh(sphere(r, 8, 6), tm);
-      this.root.add(s);
-      this.tail.push(s);
-    }
+    // Tail: one smooth tapered tube that follows a curve every frame.
+    this.tailTube = new TailTube(L, kind === 'zizo' ? { base: 0.029, tip: 0.012 } : { base: 0.031, tip: 0.013 });
+    this.root.add(this.tailTube.mesh);
+    this.tailMats = [this.tailTube.material];
+    this.tailPoints = Array.from({ length: 12 }, () => new THREE.Vector3());
 
     // State.
     this.t = Math.random() * 10;
@@ -345,10 +336,10 @@ export class CatModel {
   }
 
   _updateTail(dt, s, l, w) {
-    const N = this.tail.length;
+    const N = this.tailPoints.length;
     const t = this.t;
     // Tail root: the back of the torso, following the hip pitch.
-    const rel = new THREE.Vector3(0, 0.045, -0.115).applyAxisAngle(new THREE.Vector3(1, 0, 0), this.hips.rotation.x);
+    const rel = new THREE.Vector3(0, 0.04, -0.08).applyAxisAngle(new THREE.Vector3(1, 0, 0), this.hips.rotation.x);
     const base = new THREE.Vector3(0, this.hips.position.y + rel.y + this.offset.position.y, this.hips.position.z + rel.z);
     const swayK = Math.sin(t * 1.3) * 0.02;
     const sitCurve = this._sitCurve || (this._sitCurve = new THREE.CatmullRomCurve3([0, 1, 2, 3, 4].map(() => new THREE.Vector3())));
@@ -393,11 +384,9 @@ export class CatModel {
       this._tailGlow = glow;
       for (const m of this.tailMats) m.emissiveIntensity = glow;
     }
-    // Place the spheres; they plump up a little so the long heart curve stays smooth.
-    const plump = 1 + 0.55 * Math.min(1, Math.max(0, this.tailHeart));
-    for (let i = 0; i < N; i++) {
-      this.tail[i].position.copy(pts[i]);
-      this.tail[i].scale.setScalar(plump);
-    }
+    // Shape the tube; it plumps up a little while it makes the heart.
+    const plump = 1 + 0.35 * Math.min(1, Math.max(0, this.tailHeart));
+    for (let i = 0; i < N; i++) this.tailPoints[i].copy(pts[i]);
+    this.tailTube.update(this.tailPoints, plump);
   }
 }

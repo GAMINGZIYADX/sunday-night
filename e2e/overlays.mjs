@@ -51,7 +51,7 @@ const useAt = async (at, target) => {
   );
 };
 await ev(() => window.__game.unlockThrough(1));
-await useAt([-2.0, -12.3], [-3.35 + 6 * 0.29, 0.82, -13.28]);
+await useAt([-2.2, -12.2], [-3.5 + 3 * 0.235, 0.82, -13.28]);
 await snap('vase');
 await ev(() => window.__game.closeModals());
 await ev(() => window.__game.unlockThrough(2));

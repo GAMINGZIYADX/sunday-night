@@ -1,17 +1,20 @@
 import { Puzzle, shuffled } from './base.js';
 
-// Room 1, puzzle A. Three frames: far -> closer -> together.
-export const FRAME_SOLUTION = ['far', 'closer', 'together'];
+// Room 1, puzzle A. Five frames. Each shows the two tulips at some distance
+// and in some season. Distance alone has ties (two "far", two "closer"), and
+// so do the seasons (two winters): only both clues together give one order.
+export const FRAME_SOLUTION = ['winter-far', 'spring-far', 'summer-closer', 'autumn-closer', 'winter-together'];
 
 export class FramesPuzzle extends Puzzle {
   constructor() {
     super('r1a', 0, 'A');
-    this.order = ['together', 'far', 'closer'];
+    this.order = ['autumn-closer', 'winter-together', 'spring-far', 'winter-far', 'summer-closer'];
   }
   newGame(rng) {
     let o;
+    // A real scramble: at most one frame already in its place.
     do o = shuffled(FRAME_SOLUTION, rng);
-    while (o.every((v, i) => v === FRAME_SOLUTION[i]));
+    while (o.filter((v, i) => v === FRAME_SOLUTION[i]).length > 1);
     this.order = o;
     this.solved = false;
   }
@@ -27,7 +30,8 @@ export class FramesPuzzle extends Puzzle {
     return { order: this.order.slice() };
   }
   deserialize(s) {
-    if (Array.isArray(s.order) && s.order.length === 3 && FRAME_SOLUTION.every((f) => s.order.includes(f))) this.order = s.order.slice();
+    if (Array.isArray(s.order) && s.order.length === FRAME_SOLUTION.length && FRAME_SOLUTION.every((f) => s.order.includes(f)))
+      this.order = s.order.slice();
   }
   forceSolve() {
     this.order = FRAME_SOLUTION.slice();
