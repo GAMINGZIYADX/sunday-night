@@ -78,3 +78,27 @@ export function isValidComplete(grid) {
   if (grid.some((v) => v < 1 || v > n)) return false;
   return grid.every((v, i) => canPlace(grid, i, v));
 }
+
+// A new-looking sudoku with exactly the same logic: relabel the digits, swap
+// rows inside a band and whole bands, swap columns inside a stack and whole
+// stacks. Every such shuffle keeps one solution and the same difficulty.
+export function shuffleSudoku(grid, rng = Math.random) {
+  const { n, br, bc } = shape(sizeOf(grid));
+  const perm = (k) => {
+    const a = Array.from({ length: k }, (_, i) => i);
+    for (let i = k - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+  // rows: bands of br rows; columns: stacks of bc columns
+  const bandOrder = perm(n / br);
+  const rows = bandOrder.flatMap((b) => perm(br).map((r) => b * br + r));
+  const stackOrder = perm(n / bc);
+  const cols = stackOrder.flatMap((s) => perm(bc).map((c) => s * bc + c));
+  const digits = [0, ...perm(n).map((d) => d + 1)];
+  const out = new Array(n * n);
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) out[r * n + c] = digits[grid[rows[r] * n + cols[c]]];
+  return out;
+}

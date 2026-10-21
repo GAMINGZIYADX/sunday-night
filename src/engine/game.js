@@ -332,6 +332,9 @@ export class Game {
 
   // ------------------------------------------------------------------ hints
   showHint(id) {
+    // In the hedge maze, a hint is a firefly trail towards the middle.
+    const maze = this.rooms[4]?.maze;
+    if (!id && this.zone === 4 && maze?.inMaze(this.camera.position) && maze.showTrail()) return;
     if (!id) {
       const hovered = this.interact.hover?.puzzle;
       id = hovered && !this.gs.puzzles[hovered].isSolved() ? hovered : this._nearestPuzzle();

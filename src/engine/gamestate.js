@@ -1,6 +1,6 @@
 import { Emitter } from './emitter.js';
 import { createPuzzles, PUZZLE_IDS } from '../puzzles/index.js';
-import { LOCK_CODE, NOTES, FINDS } from '../config.js';
+import { LOCK_CODE, NOTES, FINDS, CLUES, RANDOMIZE } from '../config.js';
 
 export const SAVE_VERSION = 2; // 2: harder puzzles (old saves are ignored)
 export const ROOM_COUNT = 5;
@@ -44,11 +44,21 @@ export class GameState extends Emitter {
       notes: [],
       clues: [],
       finds: [],
+      maze: { best: 0, done: false },
       hintTier: {},
       finished: false,
       playTime: 0,
     };
     for (const id of PUZZLE_IDS) this.puzzles[id].newGame(rng);
+    // The hedge maze is built from this number (the same number, the same maze).
+    this.data.mazeSeed = RANDOMIZE ? Math.floor(rng() * 2 ** 31) : 20070;
+    this.syncText();
+  }
+
+  // Clue cards read the current puzzles' versions (the randomiser changes them).
+  syncText() {
+    CLUES.cipherCard.text = this.puzzles.r3a.encoded;
+    CLUES.recipe.text = this.puzzles.r3b.recipe;
   }
 
   puzzleIdFor(room, kind) {
@@ -182,6 +192,10 @@ export class GameState extends Emitter {
     for (const id of PUZZLE_IDS) if (obj.puzzles && obj.puzzles[id]) this.puzzles[id].setState(obj.puzzles[id]);
     // Doors can only be open if their keys exist (repairs hand-edited saves).
     d.doors = d.doors.map((open, r) => open && this.hasKey(r, 'gold') && this.hasKey(r, 'silver'));
+    // The hedge maze layout (saves from before the maze keep the new one).
+    if (Number.isInteger(obj.mazeSeed) && obj.mazeSeed >= 0) d.mazeSeed = obj.mazeSeed;
+    if (obj.maze && typeof obj.maze === 'object') d.maze = { best: num(obj.maze.best, 0), done: !!obj.maze.done };
+    this.syncText();
     this.emit('loaded', {});
     return true;
   }

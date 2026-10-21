@@ -10,6 +10,7 @@ import { lockOverlay, constellationOverlay } from '../ui/overlays.js';
 import { ROOMS, WALL_T, DOOR_W, DOOR_H } from '../engine/layout.js';
 import { PROMPTS } from '../config.js';
 import { placeNote } from './notes.js';
+import { buildMaze } from './maze.js';
 
 const C = COLORS;
 const WALL_H = 2.5;
@@ -152,9 +153,27 @@ export function buildGarden(ctx) {
   const brickMat = mat(0xffffff, { map: brick(0xa9786a, [1, 1]), rough: 0.95 });
   const topMat = mat(0xc9b8a8, { rough: 0.9 });
   const gate = { a: -DOOR_W / 2, b: DOOR_W / 2, top: DOOR_H };
+  // A gap in the east wall leads into the hedge maze (rooms/maze.js).
+  const MAZE_Z = -41.3; // the centre of the maze's entrance row
+  const mazeGap = { a: MAZE_Z - DOOR_W / 2, b: MAZE_Z + DOOR_W / 2, top: DOOR_H };
   buildWall(g, { side: 'N', line: R.zN, a: R.x0, b: R.x1, holes: [gate], upper: brickMat, rail: false, height: WALL_H, occluders: ctx.occluders });
   buildWall(g, { side: 'W', line: R.x0, a: R.zN, b: R.zS, upper: brickMat, rail: false, height: WALL_H, occluders: ctx.occluders });
-  buildWall(g, { side: 'E', line: R.x1, a: R.zN, b: R.zS, upper: brickMat, rail: false, height: WALL_H, occluders: ctx.occluders });
+  buildWall(g, { side: 'E', line: R.x1, a: R.zN, b: R.zS, holes: [mazeGap], upper: brickMat, rail: false, height: WALL_H, occluders: ctx.occluders });
+  // its maze-side face
+  buildWall(g, {
+    side: 'W',
+    line: R.x1 + WALL_T,
+    a: R.zN,
+    b: R.zS,
+    holes: [mazeGap],
+    upper: brickMat,
+    rail: false,
+    height: WALL_H,
+    occluders: ctx.occluders,
+  });
+  // the top of the gap, and its sides
+  g.add(mesh(box(WALL_T, WALL_H - DOOR_H, DOOR_W), brickMat, { pos: [R.x1 + WALL_T / 2, (WALL_H + DOOR_H) / 2, MAZE_Z], cast: false }));
+  for (const z of [mazeGap.a, mazeGap.b]) g.add(mesh(box(WALL_T, DOOR_H, 0.01), brickMat, { pos: [R.x1 + WALL_T / 2, DOOR_H / 2, z], cast: false }));
   // wall caps
   g.add(mesh(box(R.w + 0.3, 0.1, 0.3), topMat, { pos: [0, WALL_H + 0.05, R.zN - 0.1] }));
   g.add(mesh(box(0.3, 0.1, R.d + 0.3), topMat, { pos: [R.x0 - 0.1, WALL_H + 0.05, cz] }));
@@ -164,7 +183,8 @@ export function buildGarden(ctx) {
   col.add(R.x0, R.zN - WALL_T, -DOOR_W / 2, R.zN, 'wall');
   col.add(DOOR_W / 2, R.zN - WALL_T, R.x1, R.zN, 'wall');
   col.add(R.x0 - WALL_T, R.zN - 0.3, R.x0, R.zS + 0.3, 'wall');
-  col.add(R.x1, R.zN - 0.3, R.x1 + WALL_T, R.zS + 0.3, 'wall');
+  col.add(R.x1, R.zN - 0.3, R.x1 + WALL_T, mazeGap.a, 'wall');
+  col.add(R.x1, mazeGap.b, R.x1 + WALL_T, R.zS + 0.3, 'wall');
   // gate posts
   for (const sx of [-1, 1]) {
     g.add(
@@ -252,13 +272,18 @@ export function buildGarden(ctx) {
   // bushes along the walls
   for (let z = R.zS - 1; z > R.zN + 0.5; z -= 1.5) {
     for (const x of [R.x0 + 0.45, R.x1 - 0.45]) {
+      if (x > 0 && Math.abs(z - MAZE_Z) < 1.3) continue; // keep the way into the maze clear
       const b = bush({ r: 0.55, color: 0x46684a });
       b.position.set(x, 0, z + rr(-0.2, 0.2));
       g.add(b);
     }
   }
   col.add(R.x0, R.zN, R.x0 + 0.75, R.zS, 'bush');
-  col.add(R.x1 - 0.75, R.zN, R.x1, R.zS, 'bush');
+  col.add(R.x1 - 0.75, R.zN, R.x1, mazeGap.a - 0.15, 'bush');
+  col.add(R.x1 - 0.75, mazeGap.b + 0.15, R.x1, R.zS, 'bush');
+
+  // ------------------------------------------------------ the hedge maze
+  const maze = buildMaze(ctx, { room: ROOM, x0: R.x1 + WALL_T, zTop: -34.7, cols: 11, rows: 9, cell: 1.2, entranceRow: 5 });
   // lanterns along the path
   const lanterns = [];
   [
@@ -449,8 +474,11 @@ export function buildGarden(ctx) {
     },
     anchors: { r5a: new THREE.Vector3(DOOR_W / 2 + 0.15, 1.25, R.zN + 0.1), r5b: new THREE.Vector3(tx, 1.2, tz) },
     keySpawn: (id) => (id === 'r5a' ? new THREE.Vector3(0.9, 1.3, R.zN + 0.7) : new THREE.Vector3(tx - 0.4, 1.4, tz + 0.3)),
+    maze,
     applyState() {
       drawLock();
+      maze.rebuild(gs.data.mazeSeed);
+      maze.resetJar();
     },
   };
 }

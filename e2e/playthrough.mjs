@@ -24,10 +24,17 @@ const modal = () => ev(() => window.__game.modal());
 // Teleport (optional), look at a point, check there is something to use, use it.
 async function lookUse(at, target, { alt = false, expect = null } = {}) {
   if (at) await ev(([x, z]) => window.__game.teleport(x, z), at);
-  const prompt = await ev(([x, y, z]) => {
-    const h = window.__game.lookAt(x, y, z);
-    return h ? (typeof h.prompt === 'function' ? h.prompt() : h.prompt) : null;
-  }, target);
+  // Things that are still animating (a frame being swapped, a book turning)
+  // cannot be used yet: give them a moment on slow software rendering.
+  let prompt = null;
+  for (let tries = 0; tries < 8; tries++) {
+    prompt = await ev(([x, y, z]) => {
+      const h = window.__game.lookAt(x, y, z);
+      return h ? (typeof h.prompt === 'function' ? h.prompt() : h.prompt) : null;
+    }, target);
+    if (prompt && (!expect || prompt.includes(expect))) break;
+    await page.waitForTimeout(400);
+  }
   if (!prompt) fail(`nothing to use at ${JSON.stringify(target)} from ${JSON.stringify(at)}`);
   if (expect && !prompt.includes(expect)) fail(`expected "${expect}" but saw "${prompt}" at ${JSON.stringify(target)}`);
   await ev((alt) => window.__game.use(alt), alt);
@@ -241,9 +248,14 @@ try {
   // ------------------------------------------------------------- Room 3
   log('room 3: fridge word (A) then dials (B)');
   await readNote([-1.9, -21.0], [-2.776, 0.6, -21.19]);
-  // Turn the wheel poster to the right step, as she would to decode the card.
-  for (let k = 0; k < 3; k++) await lookUse([-1.8, -20.2], [-3.47, 1.6, -20.2], { expect: 'Turn the wheel' });
-  if ((await ev(() => window.__game.gs.puzzles.r3a.wheel)) !== 3) fail('wheel did not turn');
+  // Turn the wheel poster to this game's step (the shorter way round), as she
+  // would to decode the card.
+  const shift = await ev(() => window.__game.gs.puzzles.r3a.shift);
+  const back = shift > 13;
+  for (let k = 0; k < (back ? 26 - shift : shift); k++)
+    await lookUse(k === 0 ? [-1.8, -20.2] : null, [-3.47, 1.6, -20.2], { expect: 'Turn the wheel', alt: back });
+  if ((await ev(() => window.__game.gs.puzzles.r3a.wheel)) !== shift) fail('wheel did not turn');
+  log(`cipher: shift ${shift}, word ${await ev(() => window.__game.gs.puzzles.r3a.word)}`);
   const word = await ev(() => window.__game.gs.puzzles.r3a.word);
   // Put a wrong letter first and take it off with the eraser magnet.
   const magnet = (ch) => {
@@ -255,7 +267,8 @@ try {
   for (const ch of word) await lookUse(null, magnet(ch), { expect: `Put ${ch}` });
   if (!(await ev(() => window.__game.gs.puzzles.r3a.isSolved()))) fail('cipher not solved');
   await shot('p04-fridge');
-  const target = [4, 9, 5, 2];
+  const target = await ev(() => window.__game.gs.puzzles.r3b.solution.slice());
+  log(`dials: riddle ${await ev(() => window.__game.gs.puzzles.r3b.riddle)} -> ${target.join('')}`);
   if ((await ev(() => window.__game.gs.puzzles.r3b.values.length)) !== 4) fail('expected four dials');
   for (let d = 0; d < 4; d++) {
     // Up by clicking, or down with right-click when that is shorter (9 = one step down).

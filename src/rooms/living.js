@@ -31,10 +31,10 @@ import { buildRoomShell } from './shell.js';
 import { Door } from './door.js';
 import { drawPatternRug, drawRainbowWindow } from './art.js';
 import { vasePicker } from '../ui/overlays.js';
-import { tulipRule } from '../puzzles/vase.js';
 import { ROOMS } from '../engine/layout.js';
 import { PROMPTS, TOASTS, RUG_SHOWN, VASE_SLOTS } from '../config.js';
 import { placeNote } from './notes.js';
+import { fill } from '../engine/text.js';
 import { lampSwitch, liftableCushion, toyMouse } from './cozy.js';
 
 const C = COLORS;
@@ -202,17 +202,27 @@ export function buildLiving(ctx) {
   const cc = candle({ h: 0.07, color: C.blush });
   cc.position.set(tableX + 0.28, 0.42, tableZ - 0.15);
   g.add(cc);
-  // The pattern rug.
-  const seq = tulipRule(RUG_SHOWN);
-  const rugTex = rug(0x8a5f6a, C.cream, C.blush, (x, w, h) => drawPatternRug(x, w, h, seq), [768, 420]);
-  const prug = rugMesh(rugTex, 2.7, 1.5);
+  // The pattern rug: woven with the start of this game's vase pattern.
+  const rugFor = (seq) => rug(0x8a5f6a, C.cream, C.blush, (x, w, h) => drawPatternRug(x, w, h, seq), [768, 420]);
+  let rugSeq = gs.puzzles.r2a.solution.slice(0, RUG_SHOWN).join('');
+  const prug = rugMesh(rugFor(rugSeq.split('')), 2.7, 1.5);
+  prug.material = prug.material.clone(); // its picture changes per game
+  const redrawRug = () => {
+    const seq = gs.puzzles.r2a.solution.slice(0, RUG_SHOWN).join('');
+    if (seq === rugSeq) return;
+    rugSeq = seq;
+    prug.material.map.dispose();
+    prug.material.map = rugFor(seq.split(''));
+    prug.material.needsUpdate = true;
+    ctx.interact.invalidate(prug.material);
+  };
   const rugG = group([prug], { pos: [2.15, 0, fz], rot: [0, -Math.PI / 2, 0] });
   g.add(rugG);
   const rugItem = ctx.interact.add(rugG, {
     zones: [ROOM],
     puzzle: 'r2a',
     prompt: PROMPTS.rug,
-    onUse: () => ctx.hud.toast(TOASTS.rug),
+    onUse: () => ctx.hud.toast(fill(TOASTS.rug, { SEQ: gs.puzzles.r2a.startWords(RUG_SHOWN) })),
   });
   rugItem.highlight = false;
 
@@ -343,6 +353,8 @@ export function buildLiving(ctx) {
     stand.add(mesh(rbox(0.06, 0.72, 0.3, 0.02), woodMat('light'), { pos: [x, 0.36, 0] }));
   g.add(stand);
   col.add(sx - standW / 2, standZ - 0.2, sx + standW / 2, standZ + 0.2);
+  const plantedVase = mat(C.cream, { rough: 0.3 });
+  const emptyVase = mat(0xf6efe2, { rough: 0.3 });
   const slots = [];
   for (let i = 0; i < VASE_SLOTS; i++) {
     const v = new THREE.LatheGeometry(
@@ -356,8 +368,7 @@ export function buildLiving(ctx) {
       ].map(([x, y]) => new THREE.Vector2(x, y)),
       12,
     );
-    const vm = mat(pzA.isFixed(i) ? C.cream : 0xf6efe2, { rough: 0.3 });
-    const vase = mesh(v, vm);
+    const vase = mesh(v, pzA.isFixed(i) ? plantedVase : emptyVase);
     const tB = tulip('B', { scale: 1.05 });
     const tW = tulip('W', { scale: 1.05 });
     tB.position.y = tW.position.y = 0.06;
@@ -366,7 +377,7 @@ export function buildLiving(ctx) {
       cast: false,
     });
     const slot = group([vase, tB, tW, label], { pos: [slotX(i), 0.745, standZ] });
-    slot.userData = { tB, tW };
+    slot.userData = { tB, tW, vase };
     g.add(slot);
     slots.push(slot);
     ctx.interact.add(slot, {
@@ -389,6 +400,9 @@ export function buildLiving(ctx) {
       const c = pzA.slots[i];
       s.userData.tB.visible = c === 'B';
       s.userData.tW.visible = c === 'W';
+      // Planted-from-the-start vases are a warmer cream (they change per game).
+      const m = pzA.isFixed(i) ? plantedVase : emptyVase;
+      if (s.userData.vase.material !== m && s.userData.vase.material !== s.userData.vase.userData.hiMat) s.userData.vase.material = m;
     });
   }
   pzA.onChange(() => layoutVases());
@@ -489,6 +503,7 @@ export function buildLiving(ctx) {
     applyState() {
       layoutBooks(true);
       layoutVases();
+      redrawRug();
     },
   };
 }

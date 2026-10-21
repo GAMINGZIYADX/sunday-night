@@ -307,6 +307,12 @@ export function journal(game) {
           gs.data.clues.length ? clues : null,
           el('h3', `${LABELS.finds}  ${gs.data.finds.length}/${FINDS.length}`),
           finds,
+          gs.data.maze?.done
+            ? el(
+                'p.note-small',
+                fill(LABELS.mazeBest, { BEST: `${Math.floor(gs.data.maze.best / 60)}:${String(gs.data.maze.best % 60).padStart(2, '0')}` }),
+              )
+            : null,
         ]),
         el('section', [el('h3', `${LABELS.puzzles}  ${gs.solvedCount()}/10`), plist]),
       ]),

@@ -95,6 +95,12 @@ export const ROOM_TITLES = ['Strangers', 'Tulips', 'Sunday', 'The Cats', 'The La
 //  Puzzle answers and codes
 // -----------------------------------------------------------------------------
 
+// The randomiser: every new game picks new versions of several puzzles (the
+// kitchen sentence and its shift, the dial riddle, the vase pattern, a
+// reshuffled sudoku, the decoy stars) and a new hedge maze. Set to false to
+// always play the first version of each (the ones written first below).
+export const RANDOMIZE = true;
+
 // Final gate lock. One digit is collected per opened door, in room order:
 // door of room 1 gives LOCK_CODE[0], room 2 gives LOCK_CODE[1], and so on.
 export const LOCK_CODE = '2007';
@@ -108,6 +114,15 @@ export const CIPHER_SENTENCE = 'I WAIT FOR SUNDAY';
 export const CIPHER_WORD = 'SUNDAY';
 export const CIPHER_SHIFT = 3;
 export const CIPHER_ENCODED = caesarEncode(CIPHER_SENTENCE, CIPHER_SHIFT); // 'L ZDLW IRU VXQGDB'
+// More sentences for the randomiser: [sentence, word]. The first is the one
+// above. Each needs a one-letter word (I or A); the shift is picked at random.
+export const CIPHER_SENTENCES = [
+  [CIPHER_SENTENCE, CIPHER_WORD],
+  ['A CAT SLEPT ON MY BOOK', 'BOOK'],
+  ['I SAVED YOU THE WARM SEAT', 'SEAT'],
+  ['TWO CATS AND A BLUE TULIP', 'TULIP'],
+  ['I MADE TEA FOR US', 'TEA'],
+];
 
 // Kitchen oven dials (0-9 each). The recipe card text below must match; if you
 // change it, also change dialRuleHolds() in src/puzzles/dials.js (the unit
@@ -115,6 +130,35 @@ export const CIPHER_ENCODED = caesarEncode(CIPHER_SENTENCE, CIPHER_SHIFT); // 'L
 export const DIAL_SOLUTION = [4, 9, 5, 2];
 export const DIAL_RECIPE =
   'Four dials, and no two show the same number.\nThe first is the last one doubled.\nThe third is odd.\nThe second is the biggest of them all.\nTogether they make 20.';
+// More riddles for the randomiser. Each id has a matching rule in
+// src/puzzles/dials.js (the tests check every riddle has exactly one answer).
+// `hint` is the middle hint for that riddle.
+export const DIAL_RIDDLES = [
+  {
+    id: 'double',
+    text: DIAL_RECIPE,
+    solution: DIAL_SOLUTION,
+    hint: 'The first dial is the last one doubled, so try the last dial small: 1, 2, 3 or 4. The second must be bigger than all the others.',
+  },
+  {
+    id: 'triple',
+    text: 'Four dials, and no two show the same number. None of them is 0.\nThe second is three times the third.\nThe first and the last make 9.\nThe last is the biggest of them all.\nTogether they make 17.',
+    solution: [1, 6, 2, 8],
+    hint: 'The second is three times the third, so the pair can only be 3 and 1, 6 and 2, or 9 and 3. Then the first and last share what is left of 17.',
+  },
+  {
+    id: 'odd',
+    text: 'Four dials, every one of them odd, and no two the same.\nThe last one is 1.\nThe first two add up to the same as the last two.\nThe first is bigger than the second, and the third is bigger than the first.\nTogether they make 16.',
+    solution: [5, 3, 7, 1],
+    hint: 'If the halves are equal and everything makes 16, each pair makes 8. The last is 1, so the third is 7. Which two odd numbers make 8?',
+  },
+  {
+    id: 'doubleSecond',
+    text: 'Four dials, and no two show the same number.\nThe first is the second one doubled.\nThe third is three more than the second.\nThe first and the third together make ten more than the last.\nThe last is not 0.',
+    solution: [8, 4, 7, 5],
+    hint: 'Everything follows from the second dial. Try 1, 2, 3, 4: the first is double it, the third three more, and the last must come out between 1 and 9.',
+  },
+];
 
 // Living room vase stand: a growing run of alternating colours.
 // 1 blue, 1 white, 2 blue, 2 white, 3 blue, 3 white...
@@ -123,6 +167,15 @@ export const DIAL_RECIPE =
 export const VASE_SLOTS = 12;
 export const VASE_GIVEN = [0, 1, 4];
 export const RUG_SHOWN = 4;
+// More patterns for the randomiser. rule 'pairs': 1, 1, 2, 2, 3, 3 ... of each
+// colour in turn; rule 'growing': 1, 2, 3, 4 ... (each run one longer, colours
+// alternating). start: the first colour. given: the vases already planted.
+export const VASE_VARIANTS = [
+  { rule: 'pairs', start: 'B', given: VASE_GIVEN },
+  { rule: 'pairs', start: 'W', given: [0, 1, 7] },
+  { rule: 'growing', start: 'B', given: [0, 6, 10] },
+  { rule: 'growing', start: 'W', given: [0, 5, 11] },
+];
 
 // Living room books, left to right, as shown on the stained-glass window.
 export const BOOK_ORDER = ['red', 'orange', 'yellow', 'green', 'blue', 'indigo', 'violet', 'pink'];
@@ -194,7 +247,7 @@ export const HINTS = {
   ],
   r2a: [
     'The rug in front of the sofa shows how the tulips began. The faded note says each time, a little more.',
-    'Count the colours in runs: one blue, one white, then two blue, two white. Keep the rule going and the planted vases will agree with you.',
+    'Count the colours in runs: {RULE}. Keep the rule going and the planted vases will agree with you.',
     'All twelve, left to right: {ANSWER}.',
   ],
   r2b: [
@@ -209,7 +262,7 @@ export const HINTS = {
   ],
   r3b: [
     'The recipe card on the wall is a little riddle for the four oven dials.',
-    'The first dial is the last one doubled, so try the last dial small: 1, 2, 3 or 4. The second must be bigger than all the others.',
+    '{RIDDLEHINT}',
     'Set the dials to {DIALS}. Click a dial to turn it up, right-click to turn it down.',
   ],
   r4a: [
@@ -282,6 +335,7 @@ export const UI = {
   theEnd: 'The End',
   playAgain: 'Play again',
   keepWandering: 'Keep wandering',
+  mazeSign: 'The hedge maze\n→',
   graphicsRestart: 'The game restarts to change the graphics, right where you are now. Your progress is saved.',
   graphicsOffer:
     'This device is finding the full graphics hard work. Switch to light graphics? It looks a little simpler and runs much smoother. The game restarts right where you are.',
@@ -353,6 +407,10 @@ export const PROMPTS = {
   cookieJar: 'Peek in the cookie jar',
   bookOpen: 'Open the little book',
   bookClose: 'Close the book',
+  // the hedge maze
+  mazeSign: 'Read the sign',
+  jar: 'Open the jar of fireflies',
+  jarOpened: 'The fireflies are out',
   envelopeAgain: 'Read the letter again',
 };
 
@@ -360,7 +418,7 @@ export const PROMPTS = {
 export const TOASTS = {
   memoryWaiting: 'It is waiting for this door to open.',
   stripFull: 'The strip is full. Use the little eraser magnet to take a letter off.',
-  rug: 'Blue, white, blue, blue... and then?',
+  rug: '{SEQ}... and then?',
   glass: 'Red, orange, yellow, green, blue, indigo, violet... and pink.',
   vaseFixed: 'This one was planted already. Work out the rest from the rug and the planted vases.',
   basket: 'Blue and white tulips. Choose an empty vase on the stand to plant one.',
@@ -379,6 +437,12 @@ export const TOASTS = {
   found: 'A little find: {NAME} ({N}/{TOTAL})',
   allFound: 'Every little find is found. The journal keeps them all.',
   nothingMore: 'Nothing else in here.',
+  mazeSign: 'A hedge maze. Something is waiting in the middle.',
+  mazeSignBest: 'A hedge maze. Your best time to the middle: {BEST}.',
+  mazeFirst: 'You found the middle of the maze in {TIME}.',
+  mazeBest: 'The middle again, in {TIME}: a new best time.',
+  mazeAgain: 'The middle again, in {TIME} (best {BEST}).',
+  mazeHint: 'The fireflies show you the way, just for a moment.',
 };
 
 // Words on buttons, menus and puzzle screens.
@@ -428,6 +492,7 @@ export const LABELS = {
   digitsNote: 'One digit for every door you open, in room order.',
   notes: 'Notes',
   finds: 'Little finds',
+  mazeBest: 'Hedge maze: you found the middle. Best time {BEST}.',
   notFound: 'not found yet',
   clues: 'Clues',
   puzzles: 'Puzzles',

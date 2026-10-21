@@ -17,8 +17,12 @@ try {
   await ev(() => {
     const g = window.__game;
     g.gs.puzzles.r2b.forceSolve(); // silver key in room 2
-    g.gs.puzzles.r2a.place(6, 'B'); // one vase placed (partial)
-    g.gs.puzzles.r2a.place(7, 'W'); // a wrong one too
+    // Two vases that are not planted in this game's pattern: one placed, one wrong.
+    const p = g.gs.puzzles.r2a;
+    const free = p.slots.map((_, i) => i).filter((i) => !p.isFixed(i));
+    window.__freeVases = free.slice(0, 2);
+    p.place(free[0], 'B');
+    p.place(free[1], 'W');
     g.game.ctx.showNote(1);
     g.closeModals();
     g.teleport(1.6, -7.2, 0.8, -0.1);
@@ -28,6 +32,7 @@ try {
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => window.__game.modal() === 'pause');
   const before = await ev(() => window.__game.gs.serialize());
+  const freeVases = await ev(() => window.__freeVases);
   await page.reload();
   await page.waitForSelector('.start-hint');
   await page.click('.start-hint');
@@ -40,7 +45,7 @@ try {
   const strip = (s) => ({ ...s, playTime: 0 });
   check(JSON.stringify(strip(after)) === JSON.stringify(strip(before)), 'whole game state identical after reload');
   check(after.doors[0] === true, 'door 1 still open');
-  check(after.puzzles.r2a.slots[6] === 'B' && after.puzzles.r2a.slots[7] === 'W', 'partial vase progress kept');
+  check(after.puzzles.r2a.slots[freeVases[0]] === 'B' && after.puzzles.r2a.slots[freeVases[1]] === 'W', 'partial vase progress kept');
   check(after.notes.includes(1), 'note 2 kept in journal');
   const pos = await ev(() => window.__game.pos());
   check(Math.abs(pos.x - 1.6) < 0.05 && Math.abs(pos.z + 7.2) < 0.05, `player position restored (${pos.x.toFixed(2)}, ${pos.z.toFixed(2)})`);

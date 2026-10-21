@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COLORS, CIPHER_ENCODED, DIAL_RECIPE } from '../config.js';
+import { COLORS } from '../config.js';
 import { mat, mesh, group, rbox, box, cyl, sphere, plane, torus } from '../engine/materials.js';
 import { fabric, rug, nightSky, canvasTexture, paperTexture, magnetTexture, rr, ROUND_FONT, makeCanvas } from '../engine/textures.js';
 import {
@@ -162,14 +162,28 @@ export function buildKitchen(ctx) {
   }
   pzB.onChange(() => drawDials());
   // Recipe card on the backsplash.
-  const recipeTex = paperTexture(DIAL_RECIPE, { w: 340, h: 400, size: 21, title: WORLD_TEXT.recipeTitle, bg: '#fff7ea', lines: true });
-  const recipe = group(
-    [
-      mesh(plane(0.34, 0.4), mat(0xffffff, { map: recipeTex }), { cast: false }),
-      mesh(sphere(0.012, 6, 4), mat(0xe57373), { pos: [0, 0.18, 0.01], cast: false }),
-    ],
-    { pos: [R.x1 - 0.02, 1.38, fz + 0.62], rot: [0, -Math.PI / 2, 0.04] },
+  // Printed cards whose words change per game (the randomiser): redrawn in applyState.
+  const reprint = (cardMesh, make) => {
+    let shown = null;
+    return (text) => {
+      if (text === shown) return;
+      shown = text;
+      const old = cardMesh.material.map;
+      cardMesh.material.map = make(text);
+      cardMesh.material.needsUpdate = true;
+      if (old) old.dispose();
+      ctx.interact.invalidate(cardMesh.material);
+    };
+  };
+  const recipeCard = mesh(plane(0.34, 0.4), mat(0xffffff, { unique: true }), { cast: false });
+  const drawRecipe = reprint(recipeCard, (text) =>
+    paperTexture(text, { w: 340, h: 400, size: 21, title: WORLD_TEXT.recipeTitle, bg: '#fff7ea', lines: true }),
   );
+  drawRecipe(pzB.recipe);
+  const recipe = group([recipeCard, mesh(sphere(0.012, 6, 4), mat(0xe57373), { pos: [0, 0.18, 0.01], cast: false })], {
+    pos: [R.x1 - 0.02, 1.38, fz + 0.62],
+    rot: [0, -Math.PI / 2, 0.04],
+  });
   g.add(recipe);
   ctx.interact.add(recipe, { zones: [ROOM], puzzle: 'r3b', prompt: PROMPTS.recipe, onUse: () => ctx.showClue('recipe') });
   // Sink + window.
@@ -382,23 +396,24 @@ export function buildKitchen(ctx) {
       ctx.audio.click();
     },
   });
-  const cardTex = paperTexture(CIPHER_ENCODED, {
-    w: 512,
-    h: 224,
-    size: 52,
-    font: '"Courier New", ui-monospace, monospace',
-    lines: false,
-    bg: '#fffaf0',
-    center: true,
-    stain: false,
-  });
-  const ccard = group(
-    [
-      mesh(plane(0.46, 0.2), mat(0xffffff, { map: cardTex }), { cast: false }),
-      mesh(sphere(0.012, 6, 4), mat(0xe57373), { pos: [-0.21, 0.08, 0.01], cast: false }),
-    ],
-    { pos: [R.x0 + 0.03, 1.62, fridgeZ + 1.66], rot: [0, Math.PI / 2, -0.04] },
+  const cipherCard = mesh(plane(0.46, 0.2), mat(0xffffff, { unique: true }), { cast: false });
+  const drawCipherCard = reprint(cipherCard, (text) =>
+    paperTexture(text, {
+      w: 512,
+      h: 224,
+      size: text.length > 20 ? 40 : 52,
+      font: '"Courier New", ui-monospace, monospace',
+      lines: false,
+      bg: '#fffaf0',
+      center: true,
+      stain: false,
+    }),
   );
+  drawCipherCard(pzA.encoded);
+  const ccard = group([cipherCard, mesh(sphere(0.012, 6, 4), mat(0xe57373), { pos: [-0.21, 0.08, 0.01], cast: false })], {
+    pos: [R.x0 + 0.03, 1.62, fridgeZ + 1.66],
+    rot: [0, Math.PI / 2, -0.04],
+  });
   g.add(ccard);
   ctx.interact.add(ccard, { zones: [ROOM], puzzle: 'r3a', prompt: PROMPTS.card, onUse: () => ctx.showClue('cipherCard', true) });
 
@@ -503,6 +518,8 @@ export function buildKitchen(ctx) {
         ? new THREE.Vector3(frontX + 0.45, 1.25, fridgeZ)
         : { pos: new THREE.Vector3(cx - 0.9, 0.9, fz), from: new THREE.Vector3(cx - 0.3, 0.4, fz) },
     applyState() {
+      drawRecipe(pzB.recipe);
+      drawCipherCard(pzA.encoded);
       drawStrip();
       drawWheel();
       drawDials();

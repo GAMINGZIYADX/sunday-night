@@ -1,5 +1,5 @@
 import { Puzzle } from './base.js';
-import { CONSTELLATION_LABELS, CONSTELLATION_DECOYS } from '../config.js';
+import { CONSTELLATION_LABELS, CONSTELLATION_DECOYS, RANDOMIZE } from '../config.js';
 
 // Room 5, puzzle B. Twelve stars of a heart are labelled with the months'
 // first letters (J F M A M J J A S O N D) and a few loose stars carry letters
@@ -32,10 +32,29 @@ export function heartStars(count = CONSTELLATION_LABELS.length) {
   return pts;
 }
 
-// Loose lettered stars that are not part of the heart (fixed, so the sky is
-// the same every time). Kept away from the heart's outline.
+// Loose lettered stars that are not part of the heart: the configured ones,
+// or (randomiser) a new scatter each game. Kept away from the heart's outline
+// and from each other, and inside the telescope's round view.
+export const DECOY_GAP = 0.09; // closest a loose star may be to a heart star
 export function decoyStars() {
   return CONSTELLATION_DECOYS.map(([x, y, label]) => ({ x, y, label }));
+}
+export function randomDecoys(rng = Math.random, count = CONSTELLATION_DECOYS.length) {
+  const heart = heartStars();
+  const letters = [...new Set(CONSTELLATION_LABELS)];
+  const out = [];
+  for (let tries = 0; out.length < count && tries < 5000; tries++) {
+    const x = 0.04 + rng() * 0.92;
+    const y = 0.04 + rng() * 0.92;
+    // the view is an ellipse over the canvas (see constellationOverlay)
+    const u = (x - 0.5) * 1.32;
+    const v = (y - 0.5) * 1.56;
+    if (u * u + v * v > 0.78) continue;
+    if (heart.some((h) => Math.hypot(h.x - x, h.y - y) < DECOY_GAP + 0.02)) continue;
+    if (out.some((d) => Math.hypot(d.x - x, d.y - y) < 0.13)) continue;
+    out.push({ x: +x.toFixed(3), y: +y.toFixed(3), label: letters[Math.floor(rng() * letters.length)] });
+  }
+  return out.length === count ? out : decoyStars();
 }
 
 export class ConstellationPuzzle extends Puzzle {
@@ -44,8 +63,10 @@ export class ConstellationPuzzle extends Puzzle {
     this.labels = CONSTELLATION_LABELS.slice();
     this.count = this.labels.length;
     this.progress = 0; // how many stars have been connected
+    this.decoys = decoyStars();
   }
-  newGame() {
+  newGame(rng = Math.random) {
+    this.decoys = RANDOMIZE ? randomDecoys(rng) : decoyStars();
     this.progress = 0;
     this.solved = false;
   }
@@ -63,10 +84,16 @@ export class ConstellationPuzzle extends Puzzle {
     return this.progress >= this.count;
   }
   serialize() {
-    return { progress: this.progress };
+    return { progress: this.progress, decoys: this.decoys.map((d) => ({ ...d })) };
   }
   deserialize(s) {
     this.progress = Math.max(0, Math.min(this.count, s.progress | 0));
+    const ok =
+      Array.isArray(s.decoys) &&
+      s.decoys.length > 0 &&
+      s.decoys.length <= 12 &&
+      s.decoys.every((d) => d && Number.isFinite(d.x) && Number.isFinite(d.y) && /^[A-Z]$/.test(d.label));
+    this.decoys = ok ? s.decoys.map(({ x, y, label }) => ({ x, y, label })) : decoyStars();
   }
   forceSolve() {
     this.progress = this.count;

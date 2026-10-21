@@ -1,9 +1,9 @@
 import { el, button, TULIP_SVG } from './dom.js';
 import { card } from './manager.js';
 import { drawTulipField, drawStarField } from '../rooms/art.js';
-import { heartStars, decoyStars } from '../puzzles/constellation.js';
+import { heartStars } from '../puzzles/constellation.js';
 import { N as SN } from '../puzzles/sliding.js';
-import { PUZZLE_NAMES, CIPHER_ENCODED, COLORS, CLUES } from '../config.js';
+import { PUZZLE_NAMES, COLORS, CLUES } from '../config.js';
 import { hex } from '../engine/textures.js';
 import { LABELS } from '../config.js';
 import { fill } from '../engine/text.js';
@@ -382,7 +382,7 @@ export function constellationOverlay(game, puzzle) {
   const place = (p) => ({ x: (p.x - 0.5) * W * 0.66 + W * 0.5, y: (p.y - 0.5) * H * 0.78 + H * 0.5 });
   const stars = heartStars(puzzle.count).map((p, i) => ({ ...place(p), label: puzzle.labels[i], index: i }));
   // Loose lettered stars that belong to no month.
-  const loose = decoyStars().map((d, k) => ({ ...place(d), label: d.label, index: -1 - k }));
+  const loose = puzzle.decoys.map((d, k) => ({ ...place(d), label: d.label, index: -1 - k }));
   const all = stars.concat(loose);
   game.gs.readClue('telescope');
   const flash = new Map(); // index -> time
@@ -558,7 +558,7 @@ export function cipherOverlay(game, puzzle) {
     enterkeyhint: 'done',
     value: puzzle.text,
   });
-  const msg = el('div.pz-msg', fill(LABELS.stripCard, { CODE: CIPHER_ENCODED }));
+  const msg = el('div.pz-msg', fill(LABELS.stripCard, { CODE: puzzle.encoded }));
   const submit = () => {
     if (puzzle.setText(input.value)) return;
     if (input.value.replace(/[^a-z]/gi, '').length < puzzle.length) msg.textContent = fill(LABELS.stripNeeds, { N: puzzle.length });

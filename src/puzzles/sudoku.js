@@ -1,18 +1,22 @@
 import { Puzzle } from './base.js';
-import { SUDOKU_GIVENS } from '../config.js';
-import { solve, sizeOf } from './sudokuMath.js';
+import { SUDOKU_GIVENS, RANDOMIZE } from '../config.js';
+import { solve, sizeOf, countSolutions, shuffleSudoku } from './sudokuMath.js';
 
 // Room 4, puzzle B. 6x6 sudoku on the chalkboard (digits 1-6, 2x3 boxes).
+// Each new game reshuffles the configured puzzle (same logic, new look).
 export class SudokuPuzzle extends Puzzle {
   constructor() {
     super('r4b', 3, 'B');
-    this.givens = SUDOKU_GIVENS.slice();
+    this.setGivens(SUDOKU_GIVENS);
+  }
+  setGivens(givens) {
+    this.givens = givens.slice();
     this.n = sizeOf(this.givens);
     this.solution = solve(this.givens);
     this.grid = this.givens.slice();
   }
-  newGame() {
-    this.grid = this.givens.slice();
+  newGame(rng = Math.random) {
+    this.setGivens(RANDOMIZE ? shuffleSudoku(SUDOKU_GIVENS, rng) : SUDOKU_GIVENS);
     this.solved = false;
   }
   isGiven(i) {
@@ -30,9 +34,19 @@ export class SudokuPuzzle extends Puzzle {
     return this.grid.every((v, i) => v === this.solution[i]);
   }
   serialize() {
-    return { grid: this.grid.slice() };
+    return { grid: this.grid.slice(), givens: this.givens.slice() };
   }
   deserialize(s) {
+    // The saved board, if it is a proper one-solution puzzle; saves from
+    // before the randomiser use the configured one.
+    const g = s.givens;
+    const ok =
+      Array.isArray(g) &&
+      g.length === SUDOKU_GIVENS.length &&
+      g.every((v) => Number.isInteger(v) && v >= 0 && v <= this.n) &&
+      g.filter(Boolean).length === SUDOKU_GIVENS.filter(Boolean).length &&
+      countSolutions(g, 2).count === 1;
+    this.setGivens(ok ? g : SUDOKU_GIVENS);
     if (Array.isArray(s.grid) && s.grid.length === this.grid.length)
       this.grid = s.grid.map((v, i) => (this.isGiven(i) ? this.givens[i] : v >= 1 && v <= this.n ? v | 0 : 0));
   }
