@@ -41,6 +41,7 @@ export function glowSprite(color = C.lamp, size = 0.5, opacity = 0.7) {
   );
   s.scale.setScalar(size);
   s.renderOrder = 5;
+  s.raycast = () => {}; // a glow is never what you click on
   return s;
 }
 
@@ -577,10 +578,13 @@ export function cabinet({ w = 0.6, h = 0.6, d = 0.45, color = C.cream, drawers =
   const m = typeof color === 'number' ? mat(color, { rough: 0.6 }) : color;
   g.add(mesh(rbox(w, h, d, 0.02), m, { pos: [0, h / 2, 0] }));
   const dh = (h - 0.06) / drawers;
+  g.userData.drawers = []; // bottom to top, so a drawer can be made to open
   for (let i = 0; i < drawers; i++) {
     const y = 0.03 + dh * i + dh / 2;
-    g.add(mesh(rbox(w - 0.06, dh - 0.03, 0.02, 0.008, 1), m, { pos: [0, y, d / 2 + 0.005] }));
-    g.add(mesh(sphere(0.016, 8, 6), mat(knob, { metal: 0.5, rough: 0.3 }), { pos: [0, y, d / 2 + 0.025] }));
+    const front = mesh(rbox(w - 0.06, dh - 0.03, 0.02, 0.008, 1), m, { pos: [0, y, d / 2 + 0.005] });
+    const kb = mesh(sphere(0.016, 8, 6), mat(knob, { metal: 0.5, rough: 0.3 }), { pos: [0, y, d / 2 + 0.025] });
+    g.add(front, kb);
+    g.userData.drawers.push({ front, knob: kb, y, dh, w, d });
   }
   return g;
 }

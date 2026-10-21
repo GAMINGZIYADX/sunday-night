@@ -335,6 +335,24 @@ export const PROMPTS = {
   lock: 'Try the 4-digit lock',
   gateNote: 'Read the note on the gate',
   envelope: 'Open the envelope',
+  // little things to fiddle with
+  lampOff: 'Switch the lamp off',
+  lampOn: 'Switch the lamp on',
+  musicBox: 'Wind up the music box',
+  musicBoxPlaying: 'Listen',
+  kettle: 'Put the kettle on',
+  kettleBusy: 'The kettle is on',
+  windowOpen: 'Open the window',
+  windowClose: 'Close the window',
+  fire: 'Poke the fire',
+  globe: 'Spin the globe',
+  drawerOpen: 'Open the drawer',
+  drawerClose: 'Close the drawer',
+  cushionLift: 'Lift the cushion',
+  cushionDown: 'Put the cushion back',
+  cookieJar: 'Peek in the cookie jar',
+  bookOpen: 'Open the little book',
+  bookClose: 'Close the book',
   envelopeAgain: 'Read the letter again',
 };
 
@@ -356,6 +374,11 @@ export const TOASTS = {
   soundOff: 'Sound off (M)',
   soundOn: 'Sound on',
   wandering: 'The garden is yours. Stay as long as you like.',
+  catFollow: '{NAME} has decided to follow you around for a while.',
+  catPurr: '{NAME} purrs.',
+  found: 'A little find: {NAME} ({N}/{TOTAL})',
+  allFound: 'Every little find is found. The journal keeps them all.',
+  nothingMore: 'Nothing else in here.',
 };
 
 // Words on buttons, menus and puzzle screens.
@@ -404,6 +427,7 @@ export const LABELS = {
   memoryTulips: 'Memory tulips',
   digitsNote: 'One digit for every door you open, in room order.',
   notes: 'Notes',
+  finds: 'Little finds',
   notFound: 'not found yet',
   clues: 'Clues',
   puzzles: 'Puzzles',
@@ -467,6 +491,17 @@ export const LABELS = {
   graphicsFull: 'Full',
   graphicsLight: 'Light',
 };
+
+// Little finds: small things hidden around the house (in a drawer, under a
+// cushion, in the cookie jar, in a book, and in the middle of the garden
+// maze). They are optional and kept in the journal.
+export const FINDS = [
+  { id: 'star', room: 0, name: 'a paper star', text: 'Folded very carefully from a page of a notebook. Someone kept it.' },
+  { id: 'mouse', room: 1, name: 'a toy mouse', text: "Tchobin's favourite toy. It has clearly been through a lot." },
+  { id: 'cookie', room: 2, name: 'a cookie shaped like a cat', text: 'The ears came out a little burnt. Still perfect.' },
+  { id: 'tulip', room: 3, name: 'a pressed tulip', text: 'Flattened between two pages, still a little blue.' },
+  { id: 'fireflies', room: 4, name: 'a jar of fireflies', text: 'Waiting in the middle of the hedge maze.' },
+];
 
 // On phones and tablets these replace the keyboard-and-mouse wording above.
 // Same names as above; for hints, the number is which of the three to replace.

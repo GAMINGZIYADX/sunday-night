@@ -25,6 +25,7 @@ import {
   bookRow,
   foldedThrow,
   clock,
+  hitArea,
 } from '../engine/props.js';
 import { buildRoomShell } from './shell.js';
 import { Door } from './door.js';
@@ -34,6 +35,7 @@ import { tulipRule } from '../puzzles/vase.js';
 import { ROOMS } from '../engine/layout.js';
 import { PROMPTS, TOASTS, RUG_SHOWN, VASE_SLOTS } from '../config.js';
 import { placeNote } from './notes.js';
+import { lampSwitch, liftableCushion, toyMouse } from './cozy.js';
 
 const C = COLORS;
 export const BOOK_PALETTE = {
@@ -74,18 +76,55 @@ export function buildLiving(ctx) {
     [0.19, 0.05],
   ])
     fp.add(mesh(cyl(0.05, 0.05, 0.6, 8), woodMat('dark'), { pos: [-0.25, y, 0], rot: [Math.PI / 2, 0, r] }));
-  const fireMat = mat(0xff9a40, { emissive: 0xff7a20, ei: 2.2, rough: 1 });
+  // Flames: orange outer tongues with smaller yellow hearts in front, soft
+  // enough to stay orange instead of glowing white.
+  const fireMat = mat(0xff8a30, { emissive: 0xff5a10, ei: 1.25, rough: 1 });
+  const coreMat = mat(0xffd27a, { emissive: 0xffb03a, ei: 1.1, rough: 1 });
+  const flameGeo = new THREE.ConeGeometry(0.07, 0.3, 7).translate(0, 0.15, 0);
+  const coreGeo = new THREE.ConeGeometry(0.04, 0.17, 7).translate(0, 0.085, 0);
   const flames = [];
   for (let i = 0; i < 5; i++) {
-    const f = mesh(new THREE.ConeGeometry(0.07, 0.3, 6), fireMat, { pos: [-0.25, 0.36, -0.24 + i * 0.12], cast: false });
-    f.userData.dynamic = true;
-    fp.add(f);
-    flames.push(f);
+    const z = -0.24 + i * 0.12;
+    for (const [geo, m, x, s] of [
+      [flameGeo, fireMat, -0.25, 1 - Math.abs(i - 2) * 0.14],
+      [coreGeo, coreMat, -0.2, 1 - Math.abs(i - 2) * 0.1],
+    ]) {
+      const f = mesh(geo, m, { pos: [x, 0.21, z], cast: false });
+      f.userData.dynamic = true;
+      f.userData.base = s;
+      fp.add(f);
+      flames.push(f);
+    }
   }
   const fireGlow = glowSprite(0xff9a50, 1.3, 0.75);
   fireGlow.position.set(-0.3, 0.4, 0);
   fp.add(fireGlow);
   g.add(fp);
+  // Poke the fire: sparks, crackles, and it burns brighter for a moment.
+  let fireBoost = 0;
+  const fireHit = hitArea(0.1, 0.7, 0.85);
+  fireHit.position.set(-0.5, 0.42, 0);
+  fp.add(fireHit);
+  ctx.interact.add(fireHit, {
+    zones: [ROOM],
+    prompt: PROMPTS.fire,
+    onUse: () => {
+      fireBoost = 1;
+      const at = new THREE.Vector3(fx - 0.3, 0.45, fz);
+      ctx.audio.crackle(at);
+      ctx.particles.burst(at, {
+        kind: 'sparkle',
+        count: 22,
+        color: [0xffb050, 0xff7a20, 0xffe0a0],
+        speed: 0.5,
+        size: 0.035,
+        gravity: -0.5,
+        up: 1.2,
+        spread: 0.5,
+        life: 1.3,
+      });
+    },
+  });
   col.add(fx - 0.62, fz - 0.98, fx, fz + 0.98);
   // Mantel things: a big vase with the note under it, candles, a clock.
   const bigVase = vaseWithTulips({ colors: ['B', 'W', 'B', 'W', 'B', 'W', 'B'], vaseColor: C.cream, h: 0.28 });
@@ -118,6 +157,7 @@ export function buildLiving(ctx) {
   sf.rotation.y = Math.PI / 2;
   g.add(sf);
   col.add(0.13, fz - 1.07, 1.07, fz + 1.07);
+  const sofaCushions = [];
   for (const [z, color, tex] of [
     [-0.6, C.cream, fabric(C.cream, { stripes: C.tulipBlue })],
     [0.55, C.sage, null],
@@ -126,7 +166,15 @@ export function buildLiving(ctx) {
     cu.position.set(0.42, 0.72, fz + z);
     cu.rotation.set(0, Math.PI / 2, -0.45);
     g.add(cu);
+    sofaCushions.push(cu);
   }
+  // Something has been lost under the striped cushion.
+  const mouse = toyMouse();
+  mouse.position.set(0.52, 0.535, fz - 0.6);
+  mouse.rotation.y = 2.2;
+  g.add(mouse);
+  // Lifted, the cushion is set aside along the sofa so the mouse shows.
+  liftableCushion(ctx, ROOM, sofaCushions[0], { find: 'mouse', findObject: mouse, lift: [0.08, 0.05, 0.3], tilt: 0.25 });
   const throwS = foldedThrow(0.55, 0.36, C.sage);
   throwS.position.set(0.75, 0.56, fz + 0.65);
   throwS.rotation.y = 0.3;
@@ -176,6 +224,7 @@ export function buildLiving(ctx) {
   const fl = floorLamp({ shade: C.cream });
   fl.position.set(3.75, 0, R.zN + 0.45);
   g.add(fl);
+  lampSwitch(ctx, ROOM, fl);
   col.addCentered(3.75, R.zN + 0.45, 0.36, 0.36);
 
   // ------------------------------------------------------------ the window
@@ -389,12 +438,14 @@ export function buildLiving(ctx) {
 
   ctx.addUpdate((dt, t) => {
     mantelLights.userData.twinkle(t);
+    fireBoost = Math.max(0, fireBoost - dt * 0.4);
     flames.forEach((f, i) => {
-      f.scale.set(1, 0.8 + Math.sin(t * (7 + i) + i * 2) * 0.25 + Math.sin(t * 13 + i) * 0.1, 1);
+      const k = f.userData.base * (1 + fireBoost * 0.35);
+      f.scale.set(k, (0.8 + Math.sin(t * (7 + i) + i * 2) * 0.25 + Math.sin(t * 13 + i) * 0.1) * k, k);
     });
-    fireGlow.material.opacity = 0.65 + Math.sin(t * 9) * 0.08 + Math.sin(t * 15.3) * 0.05;
+    fireGlow.material.opacity = 0.65 + Math.sin(t * 9) * 0.08 + Math.sin(t * 15.3) * 0.05 + fireBoost * 0.2;
     const rig = ctx.rooms[ROOM]?.rig;
-    if (rig) rig.points[0].flicker = 0.85 + Math.sin(t * 8.3) * 0.1 + Math.sin(t * 13.1) * 0.06;
+    if (rig) rig.points[0].flicker = (0.85 + Math.sin(t * 8.3) * 0.1 + Math.sin(t * 13.1) * 0.06) * (1 + fireBoost * 0.5);
     for (const [name, a] of bookAnim) {
       a.t = Math.min(1, a.t + dt / 0.4);
       const e = a.t * a.t * (3 - 2 * a.t);

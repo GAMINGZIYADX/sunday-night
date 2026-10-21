@@ -163,6 +163,7 @@ export class AudioEngine {
     const c = this.ctx;
     const src = c.createBufferSource();
     src.buffer = this.noiseBuf;
+    src.loop = dur > 0.6; // long bursts would run off the end of the noise
     const f = c.createBiquadFilter();
     f.type = type;
     f.frequency.setValueAtTime(freq, t);
@@ -509,5 +510,101 @@ export class AudioEngine {
     lfo.start(t);
     src.stop(t + 1.7);
     lfo.stop(t + 1.7);
+  }
+
+  // --------------------------------------------- the things to fiddle with
+  // The bedroom music box: a short, slow tune on tines. Returns its length.
+  musicBox(pos) {
+    if (!this.ctx) return 0;
+    const t = this.ctx.currentTime + 0.05;
+    const dest = pos ? this._spatial(pos, 1.0) : this._out('sfx', 0.6);
+    // A little original lullaby (MIDI notes, null = rest), in quarter beats.
+    const tune = [76, 79, 84, 83, 79, 76, null, 74, 76, 79, 77, 74, 72, null, 72, 76, 79, 84, 86, 84, 79, 76, 77, 74, 72];
+    const beat = 0.34;
+    tune.forEach((n, k) => {
+      if (n === null) return;
+      // The spring winds down: the last notes slow a little.
+      const slow = Math.max(0, k - 18) * 0.035;
+      this._tine(dest, t + k * beat + slow * k * 0.2, NOTE(n + 12), 0.75, 2.2);
+    });
+    return tune.length * beat + 1;
+  }
+
+  // Kettle: a rumble, then a whistle that rises in pitch.
+  kettle(pos, whistleAt = 2.2, length = 2.6) {
+    if (!this.ctx) return;
+    const c = this.ctx;
+    const t = c.currentTime;
+    const dest = pos ? this._spatial(pos, 1.2) : this._out('sfx');
+    this._noiseBurst(dest, t, whistleAt + 0.4, { type: 'lowpass', freq: 300, q: 0.7, gain: 0.08, attack: 1.2 });
+    const o = c.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(1500, t + whistleAt);
+    o.frequency.exponentialRampToValueAtTime(2300, t + whistleAt + length * 0.6);
+    const vib = c.createOscillator();
+    vib.frequency.value = 7;
+    const vg = c.createGain();
+    vg.gain.value = 18;
+    vib.connect(vg).connect(o.frequency);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t + whistleAt);
+    g.gain.exponentialRampToValueAtTime(0.05, t + whistleAt + 0.5);
+    g.gain.setValueAtTime(0.05, t + whistleAt + length - 0.5);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + whistleAt + length);
+    o.connect(g).connect(dest);
+    o.start(t + whistleAt);
+    vib.start(t + whistleAt);
+    o.stop(t + whistleAt + length + 0.1);
+    vib.stop(t + whistleAt + length + 0.1);
+    this._noiseBurst(dest, t + whistleAt, length, { type: 'highpass', freq: 3500, q: 0.4, gain: 0.025, attack: 0.4 });
+  }
+
+  // The fire, poked: a handful of crackles and a soft whoosh.
+  crackle(pos) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const dest = pos ? this._spatial(pos, 1.2) : this._out('sfx');
+    this._noiseBurst(dest, t, 0.6, { type: 'lowpass', freq: 600, q: 0.5, gain: 0.12, attack: 0.05, freqEnd: 250 });
+    for (let i = 0; i < 9; i++)
+      this._noiseBurst(dest, t + 0.05 + Math.random() * 1.2, 0.025 + Math.random() * 0.03, {
+        type: 'bandpass',
+        freq: 1500 + Math.random() * 2500,
+        q: 1.5,
+        gain: 0.08 + Math.random() * 0.08,
+      });
+  }
+
+  // An open window: crickets and a soft breeze, until it is closed.
+  outside(on, pos) {
+    if (!this.ctx) return;
+    clearInterval(this._outsideT);
+    if (this._breeze) {
+      const b = this._breeze;
+      b.g.gain.setTargetAtTime(0.0001, this.ctx.currentTime, 0.3);
+      setTimeout(() => b.src.stop(), 1500);
+      this._breeze = null;
+    }
+    if (!on) return;
+    const c = this.ctx;
+    const dest = pos ? this._spatial(pos, 1.5) : this._out('sfx');
+    const src = c.createBufferSource();
+    src.buffer = this.noiseBuf;
+    src.loop = true;
+    const f = c.createBiquadFilter();
+    f.type = 'lowpass';
+    f.frequency.value = 420;
+    const g = c.createGain();
+    g.gain.setValueAtTime(0.0001, c.currentTime);
+    g.gain.setTargetAtTime(0.05, c.currentTime, 0.6);
+    src.connect(f).connect(g).connect(dest);
+    src.start();
+    this._breeze = { src, g };
+    const chirp = () => {
+      const t = c.currentTime;
+      const n = 2 + Math.floor(Math.random() * 3);
+      const f0 = 4200 + Math.random() * 600;
+      for (let i = 0; i < n; i++) this._tone(dest, t + i * 0.07, f0, 0.045, { gain: 0.02, attack: 0.004 });
+    };
+    this._outsideT = setInterval(() => Math.random() < 0.7 && chirp(), 420);
   }
 }

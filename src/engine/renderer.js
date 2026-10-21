@@ -92,7 +92,8 @@ export class LightPool {
     if (!r) return;
     const f = this.fade;
     this.hemi.intensity = r.hemi.intensity * (0.55 + 0.45 * f);
-    r.points.forEach((p, i) => (this.points[i].intensity = p.intensity * f * (p.flicker ?? 1)));
+    // dim: a lamp in the room was switched off (see rooms/cozy.js).
+    r.points.forEach((p, i) => (this.points[i].intensity = p.intensity * f * (p.flicker ?? 1) * (p.dim ?? 1)));
     this.spot.intensity = r.spot.intensity * f;
   }
 

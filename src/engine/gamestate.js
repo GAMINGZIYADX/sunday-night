@@ -1,6 +1,6 @@
 import { Emitter } from './emitter.js';
 import { createPuzzles, PUZZLE_IDS } from '../puzzles/index.js';
-import { LOCK_CODE, NOTES } from '../config.js';
+import { LOCK_CODE, NOTES, FINDS } from '../config.js';
 
 export const SAVE_VERSION = 2; // 2: harder puzzles (old saves are ignored)
 export const ROOM_COUNT = 5;
@@ -13,6 +13,7 @@ export const ROOM_COUNT = 5;
 //   'digit'         { room, digit }          a memory-tulip digit was collected
 //   'note'          { index }                a note was read (first time)
 //   'clue'          { id }                   a clue card was read (first time)
+//   'find'          { id }                   a little find was found
 //   'room'          { room }                 the player entered another room
 //   'finished'      {}                       the letter was read
 //   'loaded'        {}                       state was replaced from a save
@@ -42,6 +43,7 @@ export class GameState extends Emitter {
       visited: [true, false, false, false, false],
       notes: [],
       clues: [],
+      finds: [],
       hintTier: {},
       finished: false,
       playTime: 0,
@@ -111,6 +113,18 @@ export class GameState extends Emitter {
     }
   }
 
+  // Little finds (optional collectibles). Returns true the first time.
+  addFind(id) {
+    if (this.data.finds.includes(id) || !FINDS.some((f) => f.id === id)) return false;
+    this.data.finds.push(id);
+    this.emit('find', { id });
+    this.emit('autosave', { reason: 'find' });
+    return true;
+  }
+  hasFind(id) {
+    return this.data.finds.includes(id);
+  }
+
   // Hints: returns the next tier text for a puzzle (stays on tier 3).
   nextHint(id) {
     const cur = this.data.hintTier[id] ?? -1;
@@ -161,6 +175,7 @@ export class GameState extends Emitter {
     if (Array.isArray(obj.visited)) d.visited = d.visited.map((_, i) => i === 0 || !!obj.visited[i]);
     if (Array.isArray(obj.notes)) d.notes = obj.notes.filter((n) => Number.isInteger(n) && n >= 0 && n < NOTES.length);
     if (Array.isArray(obj.clues)) d.clues = obj.clues.filter((c) => typeof c === 'string');
+    if (Array.isArray(obj.finds)) d.finds = obj.finds.filter((f, i, a) => FINDS.some((x) => x.id === f) && a.indexOf(f) === i);
     if (obj.hintTier && typeof obj.hintTier === 'object') d.hintTier = { ...obj.hintTier };
     d.finished = !!obj.finished;
     d.playTime = num(obj.playTime, 0);

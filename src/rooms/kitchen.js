@@ -23,6 +23,7 @@ import {
 import { buildRoomShell } from './shell.js';
 import { Door } from './door.js';
 import { drawCipherWheel } from './art.js';
+import { kettle, openableWindow, cookieJar, catCookie } from './cozy.js';
 import { cipherOverlay } from '../ui/overlays.js';
 import { ROOMS } from '../engine/layout.js';
 import { PROMPTS, TOASTS, WORLD_TEXT } from '../config.js';
@@ -91,6 +92,7 @@ export function buildKitchen(ctx) {
   const panel = mesh(rbox(0.04, 0.12, 0.76, 0.01), mat(0xe6ded0), { pos: [-0.33, 0.8, 0] });
   stove.add(panel);
   g.add(stove);
+  g.add(kettle(ctx, ROOM, { pos: [cx + 0.12, 0.92, fz + 0.18] }));
   const pzB = gs.puzzles.r3b;
   const dials = [];
   const DIALS = pzB.count;
@@ -183,6 +185,7 @@ export function buildKitchen(ctx) {
   wc.position.set(R.x1 - 0.1, 2.1, sinkZ);
   wc.rotation.y = -Math.PI / 2;
   g.add(wc);
+  openableWindow(ctx, ROOM, win, wc);
   // Counter things.
   const tp = teapot(C.sage);
   tp.position.set(cx - 0.05, 0.91, z1 + 0.5);
@@ -191,6 +194,8 @@ export function buildKitchen(ctx) {
     const j = jar([0xe8c48a, 0xf2c4c0, 0xc9e0b8][i], 0.14 + i * 0.03);
     j.position.set(R.x1 - 0.14, 0.91, z1 + 1.0 + i * 0.13);
     g.add(j);
+    // The first one is the cookie jar.
+    if (i === 0) cookieJar(ctx, ROOM, j, { find: 'cookie', findObject: catCookie() });
   }
   const pl = plate(C.cream, 0.11);
   pl.position.set(cx - 0.05, 0.91, z0 - 0.15);

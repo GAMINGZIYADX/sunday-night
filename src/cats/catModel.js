@@ -307,6 +307,11 @@ export class CatModel {
       eyeY = 0.15;
     }
     if (l > 0.6 || this.eyesClosed) eyeY = 0.1;
+    // A slow blink: cat for "I like you".
+    if (this.slowBlink > 0) {
+      this.slowBlink -= dt;
+      eyeY = 0.1;
+    }
     this.eyes.forEach((e) => (e.scale.y = eyeY));
 
     // Ear twitches.

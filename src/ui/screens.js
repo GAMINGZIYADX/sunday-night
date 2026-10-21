@@ -1,6 +1,6 @@
 import { el, button, TULIP_SVG } from './dom.js';
 import { card } from './manager.js';
-import { GAME_TITLE, UI, NOTES, NOTE_PLACES, PUZZLE_NAMES, ROOM_NAMES, CLUES } from '../config.js';
+import { GAME_TITLE, UI, NOTES, NOTE_PLACES, PUZZLE_NAMES, ROOM_NAMES, CLUES, FINDS } from '../config.js';
 import { PUZZLE_IDS } from '../puzzles/index.js';
 import { KEY_SVG } from './dom.js';
 import { exportCode, importCode } from '../engine/save.js';
@@ -283,6 +283,12 @@ export function journal(game) {
     if (gs.data.notes.includes(i)) notes.append(el('li', { onclick: () => showNote(game, i) }, `${i + 1}. ${NOTE_PLACES[i]}`));
     else notes.append(el('li.locked', `${i + 1}. ${LABELS.notFound}`));
   });
+  // Little finds: found ones with their story, the rest as question marks.
+  const finds = el('ul.finds-list');
+  for (const f of FINDS) {
+    if (gs.hasFind(f.id)) finds.append(el('li', [el('b', f.name.charAt(0).toUpperCase() + f.name.slice(1)), el('span', f.text)]));
+    else finds.append(el('li.locked', '?'));
+  }
   const clues = el('ul.notes-list');
   for (const id of gs.data.clues) if (CLUES[id]) clues.append(el('li', { onclick: () => showClue(game, id) }, CLUES[id].title));
   const c = card(
@@ -299,6 +305,8 @@ export function journal(game) {
           notes,
           gs.data.clues.length ? el('h3', LABELS.clues) : null,
           gs.data.clues.length ? clues : null,
+          el('h3', `${LABELS.finds}  ${gs.data.finds.length}/${FINDS.length}`),
+          finds,
         ]),
         el('section', [el('h3', `${LABELS.puzzles}  ${gs.solvedCount()}/10`), plist]),
       ]),

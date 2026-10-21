@@ -2,12 +2,14 @@ import * as THREE from 'three';
 import { CatModel } from './catModel.js';
 import { CATS } from '../config.js';
 import { zoneAt } from '../engine/layout.js';
-import { PROMPTS } from '../config.js';
+import { PROMPTS, TOASTS } from '../config.js';
 import { fill } from '../engine/text.js';
 
 // Both cats' behaviour. They wander a small waypoint graph (one hub per room
 // plus a few spots, joined through open doors), idle, sit, sleep, avoid the
-// player, react when clicked, hide in the study and pose for the ending.
+// player, react when clicked (a meow; pet again for a purr and a slow blink;
+// a third time and the cat follows you around for a while), hide in the
+// study and pose for the ending.
 //
 // Cats have no colliders, so they can never block the player or a puzzle;
 // waypoints are placed so straight lines between them avoid furniture.
@@ -354,16 +356,31 @@ export class CatDirector {
       return;
     }
     const pos = cat.model.root.position.clone().setY(0.35);
-    this.ctx.audio.meow(cat.pitch, pos);
-    cat.model.hop();
+    // Pets close together build up: meow, then purrs, then it follows you.
+    const now = this.ctx.game?.time ?? 0;
+    cat.pets = now - (cat.lastPet ?? -99) < 8 ? (cat.pets || 0) + 1 : 1;
+    cat.lastPet = now;
+    if (cat.pets === 1) {
+      this.ctx.audio.meow(cat.pitch, pos);
+      cat.model.hop();
+    } else {
+      this.ctx.audio.purr(pos);
+      cat.model.slowBlink = 1.4;
+      cat.model.earTwitch[cat.pets % 2] = 1;
+    }
     this.ctx.particles.burst(pos.clone().setY(0.5), {
       kind: cat.id === 'zizo' ? 'petal' : 'heart',
-      count: 7,
+      count: cat.pets === 1 ? 7 : 4,
       color: cat.id === 'zizo' ? [0x6f9be0, 0xffffff] : 0xff8fa3,
       speed: 0.55,
       size: 0.07,
       gravity: 0.12,
     });
+    if (cat.pets === 3 && this.mode === 'roam' && !(cat.follow > 0)) {
+      cat.follow = 40;
+      cat.followT = 1.2;
+      this.ctx.hud.toast(fill(TOASTS.catFollow, { NAME: cat.name }), { ms: 3200 });
+    }
     if (cat.state === 'idle' && cat.model.target.sleep > 0) cat.model.setPose('sit');
     cat.wait = Math.max(cat.wait, 3);
     cat.likeT = 3;
@@ -451,6 +468,12 @@ export class CatDirector {
         cat.state = 'idle';
         m.walk = 0;
         m.speed = 0;
+        if (cat.follow > 0) {
+          // Caught up: sit and watch, then trot after you again.
+          m.setPose('sit');
+          cat.wait = 1;
+          return;
+        }
         const r = Math.random();
         m.setPose(r < 0.45 ? 'sit' : r < 0.75 ? 'sleep' : 'stand');
         cat.wait = m.target.sleep ? 14 + Math.random() * 14 : 5 + Math.random() * 9;
@@ -465,6 +488,24 @@ export class CatDirector {
         cat.node = next;
         cat.zone = next.zone;
         cat.path.shift();
+      }
+      return;
+    }
+
+    // Following the player (after being petted three times).
+    if (cat.follow > 0) {
+      cat.follow -= dt;
+      cat.likeT = 1;
+      cat.followT -= dt;
+      if (cat.followT > 0) return;
+      cat.followT = 1.2;
+      if (Math.hypot(root.position.x - player.x, root.position.z - player.z) < 1.5) return;
+      const near = this.nearestNode(player.x, player.z, this.allowedZones());
+      const path = near && cat.node && near !== cat.node ? this._path(cat.node, near) : null;
+      if (path && path.length) {
+        cat.path = path;
+        cat.state = 'walk';
+        m.setPose('stand');
       }
       return;
     }
@@ -505,7 +546,7 @@ export class CatDirector {
     diff = Math.atan2(Math.sin(diff), Math.cos(diff));
     root.rotation.y += diff * Math.min(1, dt * 6);
     const facing = Math.cos(diff);
-    const speed = WALK_SPEED * Math.max(0, facing);
+    const speed = WALK_SPEED * (cat.follow > 0 ? 2 : 1) * Math.max(0, facing); // trots when following
     const step = Math.min(dist, speed * dt);
     root.position.x += (dx / dist) * step;
     root.position.z += (dz / dist) * step;

@@ -36,6 +36,7 @@ import { FRAME_SOLUTION } from '../puzzles/frames.js';
 import { N as SLIDE_N } from '../puzzles/sliding.js';
 import { PROMPTS } from '../config.js';
 import { placeNote } from './notes.js';
+import { lampSwitch, musicBox, openableDrawer, paperStar } from './cozy.js';
 
 const C = COLORS;
 
@@ -155,6 +156,11 @@ export function buildBedroom(ctx) {
   const c2 = candle({ h: 0.08, color: C.blush });
   c2.position.set(-1.45, 0.82, -3.18);
   g.add(c2);
+  // The top drawer opens (a paper star inside), and a music box plays.
+  const star = paperStar();
+  star.rotation.y = 0.4;
+  openableDrawer(ctx, ROOM, dresser, { find: 'star', findObject: star });
+  g.add(musicBox(ctx, ROOM, { pos: [-2.02, 0.82, -3.27] }));
 
   // ---------------------------------------------- puzzle A: the five frames
   const frames = {};
@@ -319,6 +325,7 @@ export function buildBedroom(ctx) {
   const fl = floorLamp({ shade: C.blush });
   fl.position.set(3.15, 0, 1.6);
   g.add(fl);
+  lampSwitch(ctx, ROOM, fl);
   col.addCentered(3.15, 1.6, 0.36, 0.36);
   const side = table({ w: 0.45, h: 0.5, round: true, wood: 'light' });
   side.position.set(1.8, 0, 3.1);

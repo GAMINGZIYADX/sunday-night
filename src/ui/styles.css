@@ -1721,3 +1721,26 @@ body.touch .seg-b {
   grid-column: 1 / -1;
   grid-template-columns: 1fr auto;
 }
+
+/* Journal: little finds */
+.finds-list {
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.finds-list li {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
+.finds-list li b {
+  color: var(--ink);
+  margin-right: 6px;
+}
+.finds-list li.locked {
+  display: inline-block;
+  opacity: 0.45;
+}

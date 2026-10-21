@@ -26,6 +26,7 @@ import {
 } from '../engine/props.js';
 import { buildRoomShell } from './shell.js';
 import { Door } from './door.js';
+import { lampSwitch, pressedFlowerBook, spinningGlobe, globeTexture } from './cozy.js';
 import { drawChalkboard } from './art.js';
 import { sudokuOverlay } from '../ui/overlays.js';
 import { ROOMS } from '../engine/layout.js';
@@ -61,15 +62,19 @@ export function buildStudy(ctx) {
   const dl = tableLamp({ shade: C.sage, base: C.cream, h: 0.42 });
   dl.position.set(dx + 0.12, 0.775, cz - 0.6);
   g.add(dl);
+  lampSwitch(ctx, ROOM, dl);
+  // A small book by the lamp, with something pressed inside.
+  g.add(pressedFlowerBook(ctx, ROOM, { pos: [dx - 0.13, 0.776, cz - 0.56], rotY: Math.PI / 2 - 0.15, find: 'tulip' }));
   const globe = group(
     [
-      mesh(sphere(0.1, 16, 12), mat(0x7fb0d8, { rough: 0.5 }), { pos: [0, 0.2, 0] }),
+      mesh(sphere(0.1, 20, 14), mat(0xffffff, { map: globeTexture(), rough: 0.5 }), { pos: [0, 0.2, 0] }),
       mesh(torus(0.115, 0.006, 6, 20, Math.PI), mat(C.gold, { metal: 0.6 }), { pos: [0, 0.2, 0], rot: [0, Math.PI / 2, 0.4] }),
       mesh(cyl(0.05, 0.06, 0.08, 12), dm, { pos: [0, 0.04, 0] }),
     ],
     { pos: [dx + 0.1, 0.775, cz + 0.55] },
   );
   g.add(globe);
+  spinningGlobe(ctx, ROOM, globe, globe.children[0]);
   const dbooks = bookRow(0.3, { height: 0.22, depth: 0.16 });
   dbooks.position.set(dx + 0.2, 0.775, cz + 0.1);
   dbooks.rotation.y = Math.PI / 2;
