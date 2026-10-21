@@ -1,13 +1,15 @@
 import * as THREE from 'three';
+import { LIGHT } from './quality.js';
 
 export function createRenderer(container) {
-  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+  // Light graphics skips edge smoothing (MSAA) and shadows: both cost a lot on weak chips.
+  const renderer = new THREE.WebGLRenderer({ antialias: !LIGHT, powerPreference: 'high-performance' });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
-  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.enabled = !LIGHT;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   container.appendChild(renderer.domElement);
   renderer.domElement.id = 'game-canvas';
@@ -44,7 +46,7 @@ export class LightPool {
       return l;
     });
     this.spot = new THREE.SpotLight(0xffe0b0, 0, 0, Math.PI / 3, 0.6, 2);
-    this.spot.castShadow = true;
+    this.spot.castShadow = !LIGHT;
     this.spot.shadow.mapSize.set(1024, 1024);
     this.spot.shadow.bias = -0.0006;
     this.spot.shadow.normalBias = 0.02;

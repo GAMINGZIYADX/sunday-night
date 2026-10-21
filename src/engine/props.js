@@ -305,17 +305,53 @@ export function stringLights(points, { colors = [C.lamp, 0xfff4e0, C.lamp, 0xffd
   const curve = new THREE.CatmullRomCurve3(pts);
   g.add(mesh(new THREE.TubeGeometry(curve, pts.length * 2, 0.004, 4, false), mat(0x3d3a33), { cast: false, receive: false }));
   const bulbGeo = sphere(0.018, 8, 6);
-  g.userData.glows = [];
+  // All the glows of one string are a single batch of points (one draw call
+  // instead of one per bulb). They twinkle by dimming their colours, which
+  // with additive blending is the same as fading them.
+  const pos = new Float32Array(bulbs * 3);
+  const base = new Float32Array(bulbs * 3);
+  const col = new THREE.Color();
   for (let i = 0; i < bulbs; i++) {
     const p = curve.getPointAt((i + 0.5) / bulbs);
     const color = colors[i % colors.length];
     g.add(mesh(bulbGeo, emissiveMat(color, 2.2), { pos: [p.x, p.y - 0.02, p.z], cast: false, receive: false }));
-    const s = glowSprite(color, 0.22, 0.65);
-    s.position.set(p.x, p.y - 0.02, p.z);
-    g.add(s);
-    g.userData.glows.push(s);
+    pos.set([p.x, p.y - 0.02, p.z], i * 3);
+    col.set(color).toArray(base, i * 3);
   }
-  g.userData.twinkle = (t) => g.userData.glows.forEach((s, i) => (s.material.opacity = 0.45 + 0.25 * Math.sin(t * 1.5 + i * 1.7)));
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const cAttr = new THREE.BufferAttribute(
+    base.map((v) => v * 0.65),
+    3,
+  );
+  geo.setAttribute('color', cAttr);
+  const glows = new THREE.Points(
+    geo,
+    new THREE.PointsMaterial({
+      map: glowTexture(),
+      vertexColors: true,
+      // Matches a 0.22 m glow sprite: points are sized against the screen
+      // height, sprites against the 70 degree field of view.
+      size: 0.22 / Math.tan((35 * Math.PI) / 180),
+      sizeAttenuation: true,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      fog: false,
+    }),
+  );
+  glows.renderOrder = 5;
+  g.add(glows);
+  g.userData.twinkle = (t) => {
+    const c = cAttr.array;
+    for (let i = 0; i < bulbs; i++) {
+      const k = 0.45 + 0.25 * Math.sin(t * 1.5 + i * 1.7);
+      c[i * 3] = base[i * 3] * k;
+      c[i * 3 + 1] = base[i * 3 + 1] * k;
+      c[i * 3 + 2] = base[i * 3 + 2] * k;
+    }
+    cAttr.needsUpdate = true;
+  };
   return g;
 }
 

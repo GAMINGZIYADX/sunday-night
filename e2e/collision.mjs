@@ -6,7 +6,10 @@
 //    places and keep arriving where they walk to (never stuck).
 import { launch, fileUrl, openGame, startNew } from './lib.mjs';
 const browser = await launch();
-const { page, problems } = await openGame(browser, fileUrl('dist-debug/index.html', '?debug=1&nolock=1&dtmax=0.25'), { width: 480, height: 270 });
+const { page, problems } = await openGame(browser, fileUrl('dist-debug/index.html', '?debug=1&nolock=1&dtmax=0.25&quality=light'), {
+  width: 480,
+  height: 270,
+});
 let ok = true;
 const check = (cond, msg) => {
   console.log(`  ${cond ? '✓' : '✗'} ${msg}`);

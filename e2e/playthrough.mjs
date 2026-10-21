@@ -12,7 +12,10 @@ const fail = (msg) => {
 };
 
 const browser = await launch();
-const { page, problems } = await openGame(browser, fileUrl('dist-debug/index.html', '?debug=1&nolock=1&dtmax=0.25'), { width: 800, height: 450 });
+const { page, problems } = await openGame(browser, fileUrl('dist-debug/index.html', '?debug=1&nolock=1&dtmax=0.25&quality=full'), {
+  width: 800,
+  height: 450,
+});
 const ev = (fn, arg) => page.evaluate(fn, arg);
 const waitFor = (fn, arg, timeout = 60000) => page.waitForFunction(fn, arg, { timeout, polling: 100 });
 const shot = async (name) => SHOTS && page.screenshot({ path: `${SHOTS}/${name}.png` });

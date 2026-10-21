@@ -13,7 +13,7 @@ import { saveGame, loadSave, hasSave, clearSave } from './save.js';
 import { zoneAt, ROOMS } from './layout.js';
 import { Hud } from '../ui/hud.js';
 import { Modals } from '../ui/manager.js';
-import { clickToStart, mainMenu, pauseMenu, journal, showNote, showClue, HintCard } from '../ui/screens.js';
+import { clickToStart, mainMenu, pauseMenu, journal, showNote, showClue, HintCard, confirmBox } from '../ui/screens.js';
 import { playLetter } from '../ui/letter.js';
 import { CatDirector } from '../cats/catDirector.js';
 import { buildWorld } from '../rooms/world.js';
@@ -22,8 +22,11 @@ import { PUZZLE_IDS } from '../puzzles/index.js';
 import { TOASTS } from '../config.js';
 import { fill } from './text.js';
 import { TOUCH, enterFullscreen } from './device.js';
+import { QUALITY, LIGHT, autoQuality } from './quality.js';
 
 export const START = { x: -0.25, z: 1.55, yaw: 0.35 };
+// Set just before a graphics restart, so the game carries on after the reload.
+const RESUME_KEY = 'sundayNight.resume';
 
 export class Game {
   constructor(container) {
@@ -70,6 +73,7 @@ export class Game {
 
     this._bindEvents();
     this._applySettings();
+    this._applyResolution();
     this.settings.onChange(() => this._applySettings());
     this.player.onStep = (slow) => this.audio.footstep(this.zone >= 4 ? 'grass' : 'wood', slow);
 
@@ -118,10 +122,18 @@ export class Game {
     this._placeMenuCamera();
     this.hud.setFade(false);
     this.state = 'menu';
+    let resume = false;
+    try {
+      resume = sessionStorage.getItem(RESUME_KEY) === '1';
+      sessionStorage.removeItem(RESUME_KEY);
+    } catch {
+      /* no session storage */
+    }
     clickToStart(this, () => {
       this.audio.init();
       this._applySettings();
-      mainMenu(this);
+      if (resume && this.hasSave()) this.continueGame();
+      else mainMenu(this);
     });
   }
 
@@ -269,24 +281,52 @@ export class Game {
     this.audio.setVolumes({ master: s.master, music: s.music, sfx: s.sfx });
     this.audio.setMuted(s.muted);
     document.body.classList.toggle('reduced', s.reducedMotion);
-    this._applyGraphics();
   }
 
-  // Resolution cap and shadows. Phones start a little lower than computers;
-  // "Simpler graphics" goes lower still and turns the shadows off.
-  _applyGraphics() {
-    const simple = !!this.settings.data.simpleGraphics;
-    if (this._gfxSimple === simple) return;
-    const first = this._gfxSimple === undefined;
-    this._gfxSimple = simple;
-    const cap = simple ? 1 : TOUCH ? 1.25 : 1.5;
+  // Resolution cap: phones start a little lower than computers, light
+  // graphics lower still. The frame-rate watcher can go down from there.
+  _applyResolution() {
+    const cap = LIGHT ? 1 : TOUCH ? 1.25 : 1.5;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cap));
-    this._perf = null; // restart the frame-rate watcher from the new ratio
-    if (first && !simple) return;
-    this.renderer.shadowMap.enabled = !simple;
-    this.lights.spot.castShadow = !simple;
-    this.scene.traverse((o) => {
-      if (o.material) for (const m of [].concat(o.material)) m.needsUpdate = true;
+    this._perf = null;
+  }
+
+  // The graphics choice changed in the settings. Materials and shadows are
+  // decided at startup, so a different quality means restarting the page;
+  // the game is saved first and continues straight away after the reload.
+  setGraphics(choice, { ask = true, onCancel = null } = {}) {
+    const want = choice === 'auto' ? autoQuality() : choice;
+    if (want === QUALITY) {
+      this.settings.set('graphics', choice);
+      return false;
+    }
+    const go = () => {
+      this.settings.set('graphics', choice);
+      if (this.state === 'playing') {
+        this.saveNow('quiet');
+        try {
+          sessionStorage.setItem(RESUME_KEY, '1');
+        } catch {
+          /* no session storage: they press Continue themselves */
+        }
+      }
+      location.reload();
+    };
+    if (ask) confirmBox(this, UI.graphicsRestart, go, { onNo: onCancel });
+    else go();
+    return true;
+  }
+
+  // Full graphics, but the frame rate stays low even at the lowest
+  // resolution: offer light graphics once (unless Full was picked on purpose).
+  _offerLight() {
+    if (this._offered || LIGHT || this.settings.data.graphics === 'full' || this.headless) return;
+    if (this.state !== 'playing' || this.modals.open) return;
+    this._offered = true;
+    confirmBox(this, UI.graphicsOffer, () => this.setGraphics('light', { ask: false }), {
+      yes: UI.graphicsSwitch,
+      no: UI.graphicsKeep,
+      onNo: () => this.settings.set('graphics', 'full'),
     });
   }
 
@@ -475,7 +515,10 @@ export class Game {
     p.t = 0;
     p.n = 0;
     let next = p.ratio;
-    const floor = TOUCH ? 0.6 : 0.75;
+    const floor = LIGHT ? 0.5 : TOUCH ? 0.6 : 0.75;
+    // Already as low as it goes and still under ~30 fps twice in a row.
+    p.slow = p.ratio <= floor && avg > 1 / 32 ? (p.slow || 0) + 1 : 0;
+    if (p.slow >= 2) this._offerLight();
     if (avg > 1 / 45 && p.ratio > floor) next = Math.max(floor, p.ratio - 0.25);
     else if (avg < 1 / 58 && p.ratio < p.max) next = Math.min(p.max, p.ratio + 0.25);
     if (next !== p.ratio) {

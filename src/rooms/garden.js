@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { LIGHT } from '../engine/quality.js';
 import { COLORS, CLUES } from '../config.js';
 import { mat, mesh, group, rbox, box, cyl, sphere, plane, cone, torus } from '../engine/materials.js';
 import { brick, grass, paperTexture, canvasTexture, makeCanvas, rr, rand } from '../engine/textures.js';
@@ -238,14 +239,16 @@ export function buildGarden(ctx) {
     const w = x1 - x0;
     const d = z0 - z1;
     g.add(mesh(rbox(w + 0.2, 0.08, d + 0.2, 0.03), mat(0x4a3628, { rough: 1 }), { pos: [(x0 + x1) / 2, 0.03, (z0 + z1) / 2], cast: false }));
-    for (let x = x0 + 0.12; x < x1; x += 0.24)
-      for (let z = z1 + 0.12; z < z0; z += 0.24) {
+    // Light graphics plants the beds about half as densely.
+    const step = LIGHT ? 0.34 : 0.24;
+    for (let x = x0 + 0.12; x < x1; x += step)
+      for (let z = z1 + 0.12; z < z0; z += step) {
         if (nearPath(x, z, 0.9)) continue;
-        const row = Math.round((x - x0) / 0.24);
+        const row = Math.round((x - x0) / step);
         tulips.push([x + rr(-0.05, 0.05), z + rr(-0.05, 0.05), (row + b) % 2 ? 'B' : 'W']);
       }
   });
-  const field = tulipField(g, tulips, { glow: 0.6 });
+  const field = tulipField(g, tulips, { glow: 0.6, scale: LIGHT ? 1.15 : 1 });
   // bushes along the walls
   for (let z = R.zS - 1; z > R.zN + 0.5; z -= 1.5) {
     for (const x of [R.x0 + 0.45, R.x1 - 0.45]) {

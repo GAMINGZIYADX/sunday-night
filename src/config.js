@@ -282,6 +282,11 @@ export const UI = {
   theEnd: 'The End',
   playAgain: 'Play again',
   keepWandering: 'Keep wandering',
+  graphicsRestart: 'The game restarts to change the graphics, right where you are now. Your progress is saved.',
+  graphicsOffer:
+    'This device is finding the full graphics hard work. Switch to light graphics? It looks a little simpler and runs much smoother. The game restarts right where you are.',
+  graphicsSwitch: 'Switch to light',
+  graphicsKeep: 'Keep full',
 };
 
 // -----------------------------------------------------------------------------
@@ -457,7 +462,10 @@ export const LABELS = {
   pause: 'Pause',
   fullscreen: 'Full screen',
   rotate: 'Turn your phone sideways to play',
-  simpleGraphics: 'Simpler graphics (smoother on phones)',
+  graphics: 'Graphics',
+  graphicsAuto: 'Auto ({Q})',
+  graphicsFull: 'Full',
+  graphicsLight: 'Light',
 };
 
 // On phones and tablets these replace the keyboard-and-mouse wording above.

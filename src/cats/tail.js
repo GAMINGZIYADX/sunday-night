@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { LIGHT } from '../engine/quality.js';
 
 // A smooth, tapered tail: one tube mesh whose vertices follow a curve through
 // the tail's control points every frame (parallel-transported frames, so it
@@ -46,7 +47,9 @@ export class TailTube {
     geo.setAttribute('normal', new THREE.BufferAttribute(this.normals, 3).setUsage(THREE.DynamicDrawUsage));
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
     this.geometry = geo;
-    this.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, emissive: 0xffb8c8, emissiveIntensity: 0 });
+    this.material = LIGHT
+      ? new THREE.MeshLambertMaterial({ vertexColors: true, emissive: 0xffb8c8, emissiveIntensity: 0 })
+      : new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, emissive: 0xffb8c8, emissiveIntensity: 0 });
     this.mesh = new THREE.Mesh(geo, this.material);
     this.mesh.castShadow = true;
     this.mesh.frustumCulled = false; // it moves every frame; the cat root is culled anyway

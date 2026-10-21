@@ -7,6 +7,7 @@ import { exportCode, importCode } from '../engine/save.js';
 import { LABELS, TOASTS } from '../config.js';
 import { fill } from '../engine/text.js';
 import { TOUCH, enterFullscreen, isFullscreen } from '../engine/device.js';
+import { autoQuality } from '../engine/quality.js';
 
 const tulips = () => el('div.tulip-row', { html: TULIP_SVG('#6f9be0', 26) + TULIP_SVG('#fbf7f0', 26) + TULIP_SVG('#6f9be0', 26) });
 
@@ -79,14 +80,15 @@ export function pauseMenu(game) {
   game.saveNow('pause');
 }
 
-export function confirmBox(game, text, onYes) {
+// opts: { title, yes, no, onNo } to reword the buttons.
+export function confirmBox(game, text, onYes, { title = LABELS.areYouSure, yes = LABELS.yes, no = LABELS.cancel, onNo = null } = {}) {
   let m;
-  const c = card(LABELS.areYouSure, [
+  const c = card(title, [
     el('p', text),
     el('div.btn-row', [
-      button(LABELS.cancel, () => game.modals.close(m)),
+      button(no, () => game.modals.close(m)),
       button(
-        LABELS.yes,
+        yes,
         () => {
           game.modals.close(m, { silent: true });
           onYes();
@@ -95,7 +97,8 @@ export function confirmBox(game, text, onYes) {
       ),
     ]),
   ]);
-  m = game.modals.show(c, { name: 'confirm' });
+  // Cancel, Esc and the backdrop all count as no.
+  m = game.modals.show(c, { name: 'confirm', onClose: onNo || undefined });
 }
 
 // ------------------------------------------------------------------ settings
@@ -127,7 +130,7 @@ export function settingsPanel(game) {
       toggle(LABELS.headBob, 'headBob'),
       toggle(LABELS.reducedMotion, 'reducedMotion'),
       toggle(LABELS.mute, 'muted'),
-      toggle(LABELS.simpleGraphics, 'simpleGraphics'),
+      graphicsChoice(game),
       el('div.btn-row', [
         button(LABELS.resetSave, () =>
           confirmBox(game, LABELS.confirmReset, () => {
@@ -140,6 +143,45 @@ export function settingsPanel(game) {
     { icon: TULIP_SVG('#fbf7f0', 26), onClose: () => game.modals.close(m), cls: 'settings' },
   );
   m = game.modals.show(c, { name: 'settings' });
+}
+
+// Graphics: Auto / Full / Light. Changing to a different look restarts the
+// page (after asking), because materials are chosen at startup.
+function graphicsChoice(game) {
+  const cur = game.settings.data.graphics || 'auto';
+  const auto = autoQuality();
+  const opts = [
+    ['auto', fill(LABELS.graphicsAuto, { Q: auto === 'light' ? LABELS.graphicsLight : LABELS.graphicsFull })],
+    ['full', LABELS.graphicsFull],
+    ['light', LABELS.graphicsLight],
+  ];
+  const row = el('div.seg', { role: 'radiogroup', 'aria-label': LABELS.graphics });
+  const render = (v) => {
+    for (const b of row.children) {
+      const on = b.dataset.v === v;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-checked', String(on));
+    }
+  };
+  for (const [v, label] of opts)
+    row.append(
+      el(
+        'button.seg-b',
+        {
+          type: 'button',
+          role: 'radio',
+          'data-v': v,
+          onclick: () => {
+            const before = game.settings.data.graphics || 'auto';
+            render(v);
+            game.setGraphics(v, { onCancel: () => render(before) });
+          },
+        },
+        label,
+      ),
+    );
+  render(cur);
+  return el('div.setting.graphics', [el('span', LABELS.graphics), row]);
 }
 
 // --------------------------------------------------------------- backup code

@@ -24,7 +24,7 @@ tablet. Hold the phone sideways; it goes full screen when you start.
 - **Tap** something to use it, or tap the button under the dot. Books, the
   cipher wheel and the oven dials also get a **Turn back** button.
 - **Top right:** journal, hint and pause buttons.
-- If it stutters, turn on Pause → Settings → **Simpler graphics**.
+- If it stutters, set Pause → Settings → **Graphics** to **Light** (see below).
 - Leaving the app pauses and saves the game.
 
 **Getting it onto the phone.** Phones are bad at opening HTML files saved on
@@ -40,6 +40,24 @@ the phone itself (saving progress may not work), so give it a web link instead:
 The link is public but random, so only people you send it to will find it.
 Each phone keeps its own save, so use Pause → *Backup code* to move a game
 between devices.
+
+## Weak tablets and older PCs
+
+There are two graphics settings, under Settings → **Graphics**:
+
+- **Full:** soft shadows, realistic materials, smooth edges.
+- **Light:** simpler lighting with no shadows, lower resolution and fewer
+  tulips in the garden. It runs about 2.5–3× faster, and the rooms look
+  nearly the same.
+
+**Auto** (the default) picks Light by itself on weak hardware:
+- Intel HD/UHD graphics, Atom, Celeron and Pentium chips
+- budget Android graphics chips
+- devices with 4 processor cores or fewer, or 4 GB of memory or less
+
+If Full still runs slowly, the game offers to switch to Light. Changing the
+setting restarts the game exactly where you were, and nothing is lost.
+Separately, the resolution always lowers itself a little when frames get slow.
 
 ## Change the text, codes and names
 
@@ -76,7 +94,8 @@ npm run e2e          # builds both versions, then runs the browser tests
 ```
 
 `npm run e2e` drives Chromium through Playwright, including a run on an
-emulated Android phone held sideways (`e2e/touch.mjs`). It uses the Chromium that
+emulated Android phone held sideways (`e2e/touch.mjs`) and the graphics
+switching (`e2e/quality.mjs`). It uses the Chromium that
 `playwright-core` finds. In a normal setup, run `npx playwright install chromium`
 once first.
 
@@ -108,7 +127,7 @@ you pause. The main menu then offers **Continue**.
 Debug code only exists in `npm run dev` and in `npm run build:debug`
 (→ `dist-debug/index.html`). Open it with `?debug=1`:
 
-- `?touch=1` / `?touch=0` force touch controls on or off (works in every build)
+- `?touch=1` / `?touch=0` force touch controls on or off, `?quality=full` / `?quality=light` force the graphics (both work in every build)
 - **Shift+1…6** jump to a room (6 = the clearing)
 - **Shift+K** solve both puzzles in the current room (grants both keys)
 - **Shift+O** open the current room's door

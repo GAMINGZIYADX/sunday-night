@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
+import { LIGHT } from './quality.js';
 
 // Shared materials and geometries, cached so the GPU sees as few as possible.
 const matCache = new Map();
@@ -17,6 +18,23 @@ export function mat(color, o = {}) {
       side: o.side ?? THREE.FrontSide,
       fog: o.fog ?? true,
       depthWrite: o.depthWrite ?? true,
+    });
+  } else if (LIGHT) {
+    // Light graphics: far cheaper per pixel than the physically based look.
+    // Metal (the keys) gets a simple shine so it still reads as metal.
+    const shiny = (o.metal ?? 0) >= 0.5;
+    const Kind = shiny ? THREE.MeshPhongMaterial : THREE.MeshLambertMaterial;
+    m = new Kind({
+      color,
+      ...(shiny ? { shininess: 60, specular: 0x8a8070 } : {}),
+      map: o.map || null,
+      emissive: o.emissive ?? 0x000000,
+      emissiveIntensity: o.ei ?? 1,
+      emissiveMap: o.emissiveMap || null,
+      flatShading: !!o.flat,
+      transparent: o.opacity !== undefined || !!o.transparent,
+      opacity: o.opacity ?? 1,
+      side: o.side ?? THREE.FrontSide,
     });
   } else {
     m = new THREE.MeshStandardMaterial({
