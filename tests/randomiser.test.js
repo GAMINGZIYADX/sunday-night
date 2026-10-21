@@ -219,3 +219,37 @@ describe('randomiser: a whole game', () => {
     }
   });
 });
+
+describe('randomiser: the hedge maze', async () => {
+  // maze.js is a browser module; give it the few globals it reads at load.
+  globalThis.location ||= { search: '' };
+  globalThis.document ||= { createElement: () => ({ getContext: () => null }) };
+  const { generateMaze, MIN_ROUTE } = await import('../src/rooms/maze.js');
+  const walk = (cells, r0, c0) => {
+    const d = new Map([[`${r0},${c0}`, 0]]);
+    const q = [[r0, c0]];
+    while (q.length) {
+      const [r, c] = q.shift();
+      const o = cells[r][c];
+      for (const [ok, r2, c2] of [
+        [o.n, r + 1, c],
+        [o.s, r - 1, c],
+        [o.e, r, c + 1],
+        [o.w, r, c - 1],
+      ])
+        if (ok && !d.has(`${r2},${c2}`)) (d.set(`${r2},${c2}`, d.get(`${r},${c}`) + 1), q.push([r2, c2]));
+    }
+    return d;
+  };
+  it('every maze reaches every cell, has a real walk to the middle, and one seed is one maze', () => {
+    for (let k = 1; k <= 300; k++) {
+      const seed = k * 104729;
+      const m = generateMaze(11, 9, seed, 5);
+      const d = walk(m.cells, 5, 0);
+      expect(d.size).toBe(99); // every cell can be reached
+      expect(d.get('4,5')).toBeGreaterThanOrEqual(MIN_ROUTE);
+      expect(m.cells[5][0].w).toBe(false); // the way in is the garden-wall gap only
+      expect(JSON.stringify(generateMaze(11, 9, seed, 5).cells)).toBe(JSON.stringify(m.cells));
+    }
+  });
+});

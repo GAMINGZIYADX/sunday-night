@@ -50,7 +50,21 @@ function hedgeTexture() {
 
 // Recursive-backtracker maze with a 3 x 3 clearing in the middle. Returns
 // open[r][c] = { n, s, e, w } passages and the clearing cells.
+// A maze whose way to the middle is shorter than this is grown again (from the
+// same seed, so one seed is always one maze).
+export const MIN_ROUTE = 40;
+
 export function generateMaze(cols, rows, seed, entranceRow) {
+  let best = null;
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const m = growMaze(cols, rows, (seed + attempt * 7919) >>> 0, entranceRow);
+    if (!best || m.route > best.route) best = m;
+    if (m.route >= MIN_ROUTE) break;
+  }
+  return best;
+}
+
+function growMaze(cols, rows, seed, entranceRow) {
   const rng = mulberry32(seed >>> 0);
   const cells = Array.from({ length: rows }, () => Array.from({ length: cols }, () => ({ n: false, s: false, e: false, w: false })));
   const cr = Math.floor(rows / 2) - 1;
@@ -90,6 +104,14 @@ export function generateMaze(cols, rows, seed, entranceRow) {
     seen[r2][c2] = true;
     stack.push([r2, c2]);
   }
+  // A couple of extra openings make small loops, so one wrong turn is not a
+  // long walk back. (Made before the clearing's door is chosen, so they can
+  // never turn into a shortcut to the middle.)
+  for (let k = 0; k < 3; k++) {
+    const r = Math.floor(rng() * rows);
+    const c = Math.floor(rng() * (cols - 1));
+    if (!inRoom(r, c) && !inRoom(r, c + 1)) link(r, c, r, c + 1);
+  }
   // One way into the clearing: from the outside cell furthest along the paths
   // from the entrance (so the middle is earned).
   const dist = distances(cells, rows, cols, entranceRow, 0, inRoom);
@@ -104,14 +126,9 @@ export function generateMaze(cols, rows, seed, entranceRow) {
         if (!best || d > best.d) best = { d, r, c, r2, c2 };
       }
   link(best.r, best.c, best.r2, best.c2);
-  // A couple of extra openings make small loops, so one wrong turn is not a
-  // long walk back.
-  for (let k = 0; k < 3; k++) {
-    const r = Math.floor(rng() * rows);
-    const c = Math.floor(rng() * (cols - 1));
-    if (!inRoom(r, c) && !inRoom(r, c + 1)) link(r, c, r, c + 1);
-  }
-  return { cells, room: { r: cr, c: cc }, inRoom };
+  // Steps from the entrance to the middle cell of the clearing.
+  const route = distances(cells, rows, cols, entranceRow, 0)[cr + 1][cc + 1];
+  return { cells, room: { r: cr, c: cc }, inRoom, route };
 }
 
 // Steps from (r0, c0) to every cell along open passages.
