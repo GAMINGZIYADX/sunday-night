@@ -21,7 +21,7 @@ import { INTRO_LINE, UI } from '../config.js';
 import { PUZZLE_IDS } from '../puzzles/index.js';
 import { TOASTS } from '../config.js';
 import { fill } from './text.js';
-import { TOUCH, enterFullscreen } from './device.js';
+import { device, enterFullscreen, setTouchMode, onTouchModeChange } from './device.js';
 import { QUALITY, LIGHT, autoQuality } from './quality.js';
 
 export const START = { x: -0.25, z: 1.55, yaw: 0.35 };
@@ -215,7 +215,7 @@ export class Game {
       this.wakeT = 0;
       setTimeout(() => this.hud.showIntro(INTRO_LINE, 5600), 1300);
     } else this.hud.showBanner(this.zone);
-    this.hud.showControls(TOUCH ? 14000 : 60000);
+    this.hud.showControls(device.touch ? 14000 : 60000);
     this.input.enabled = true;
     this.input.lock();
     enterFullscreen();
@@ -286,7 +286,7 @@ export class Game {
   // Resolution cap: phones start a little lower than computers, light
   // graphics lower still. The frame-rate watcher can go down from there.
   _applyResolution() {
-    const cap = LIGHT ? 1 : TOUCH ? 1.25 : 1.5;
+    const cap = LIGHT ? 1 : device.touch ? 1.25 : 1.5;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cap));
     this._perf = null;
   }
@@ -368,6 +368,16 @@ export class Game {
     this.input.on('interact', () => this._use(false));
     this.input.on('interactAlt', () => this._use(true));
     this.input.on('tap', ({ x, y }) => this._tap(x, y));
+    // 2-in-1 PCs: a finger switches to touch controls, a mouse back again.
+    this.input.on('pointerKind', (kind) => setTouchMode(kind === 'touch'));
+    onTouchModeChange((on) => {
+      this.input.touch = on;
+      this.input.releaseTouches();
+      if (on) this.input.unlock();
+      this.hud.setTouch(on);
+      this.hud.setClickToLook(false);
+      if (this.state === 'playing') this.hud.showControls(8000);
+    });
     this.hud.actions = {
       use: (alt) => this._use(alt),
       journal: () => this.state === 'playing' && !this.modals.open && journal(this),
@@ -515,7 +525,7 @@ export class Game {
     p.t = 0;
     p.n = 0;
     let next = p.ratio;
-    const floor = LIGHT ? 0.5 : TOUCH ? 0.6 : 0.75;
+    const floor = LIGHT ? 0.5 : device.touch ? 0.6 : 0.75;
     // Already as low as it goes and still under ~30 fps twice in a row.
     p.slow = p.ratio <= floor && avg > 1 / 32 ? (p.slow || 0) + 1 : 0;
     if (p.slow >= 2) this._offerLight();
@@ -548,7 +558,7 @@ export class Game {
       const hover = this.modals.open ? null : this.interact.update();
       const prompt = hover ? (typeof hover.prompt === 'function' ? hover.prompt() : hover.prompt) : null;
       this.hud.setPrompt(this.modals.open ? null : prompt, !!hover?.alt);
-      if (TOUCH) {
+      if (device.touch) {
         const st = this.input.stick;
         this.hud.setStick(st && !this.modals.open ? { ox: st.ox, oy: st.oy, dx: st.x - st.ox, dy: st.y - st.oy } : null);
       }

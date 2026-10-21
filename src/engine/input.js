@@ -1,4 +1,4 @@
-import { TOUCH } from './device.js';
+import { device } from './device.js';
 
 const STICK_R = 56; // px a thumb travels for full speed
 const TOUCH_LOOK = 1.5; // touch drag pixels -> mouse-like look pixels
@@ -16,8 +16,8 @@ export class Input {
     this.dy = 0;
     this.locked = false;
     this.wasLocked = false;
-    this.touch = TOUCH;
-    this.noLock = TOUCH; // fingers have no pointer to lock
+    this.touch = device.touch; // fingers have no pointer to lock
+    this.noLock = false; // tests that drive the camera themselves set this
     this._enabled = false; // gameplay input (movement/look/interact)
     this.stick = null; // { id, ox, oy, x, y } while a thumb is on the stick
     this.looks = new Map(); // pointerId -> drag-to-look finger
@@ -56,6 +56,9 @@ export class Input {
     });
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     this._bindTouch(canvas);
+    // Which kind of pointer is in use (anywhere on the page), so 2-in-1 PCs
+    // can switch between touch and mouse controls as they are used.
+    document.addEventListener('pointerdown', (e) => this._emit('pointerKind', e.pointerType === 'mouse' ? 'mouse' : 'touch'), true);
   }
 
   get enabled() {
@@ -142,7 +145,7 @@ export class Input {
   }
 
   lock() {
-    if (this.locked || !this.lockSupported() || this.noLock) return;
+    if (this.locked || !this.lockSupported() || this.noLock || this.touch) return;
     try {
       const p = this.canvas.requestPointerLock();
       if (p && typeof p.catch === 'function') p.catch(() => {});

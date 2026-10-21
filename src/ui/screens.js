@@ -6,7 +6,7 @@ import { KEY_SVG } from './dom.js';
 import { exportCode, importCode } from '../engine/save.js';
 import { LABELS, TOASTS } from '../config.js';
 import { fill } from '../engine/text.js';
-import { TOUCH, enterFullscreen, isFullscreen } from '../engine/device.js';
+import { device, enterFullscreen, isFullscreen } from '../engine/device.js';
 import { autoQuality } from '../engine/quality.js';
 
 const tulips = () => el('div.tulip-row', { html: TULIP_SVG('#6f9be0', 26) + TULIP_SVG('#fbf7f0', 26) + TULIP_SVG('#6f9be0', 26) });
@@ -16,7 +16,7 @@ export function clickToStart(game, onStart) {
   const c = el('div.card', [tulips(), el('h1', GAME_TITLE), el('p.sub', UI.subtitle), el('div.start-hint', UI.clickToStart)]);
   const m = game.modals.show(c, { name: 'start', escClose: false });
   const go = () => {
-    m.el.removeEventListener(TOUCH ? 'click' : 'mousedown', go);
+    m.el.removeEventListener('click', go);
     window.removeEventListener('keydown', key);
     game.modals.close(m, { silent: true });
     enterFullscreen();
@@ -26,7 +26,7 @@ export function clickToStart(game, onStart) {
     if (e.code === 'Enter' || e.code === 'Space') go();
   };
   // A tap has to finish (click) before the browser allows sound and full screen.
-  m.el.addEventListener(TOUCH ? 'click' : 'mousedown', go);
+  m.el.addEventListener('click', go);
   window.addEventListener('keydown', key);
 }
 
@@ -61,7 +61,7 @@ export function pauseMenu(game) {
         button(UI.journal, () => journal(game)),
         button(UI.settings, () => settingsPanel(game)),
         button(LABELS.backupCode, () => backupPanel(game)),
-        TOUCH && !isFullscreen()
+        device.touch && !isFullscreen()
           ? button(LABELS.fullscreen, () => {
               enterFullscreen();
               close();

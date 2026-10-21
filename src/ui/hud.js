@@ -1,7 +1,7 @@
 import { el, TULIP_SVG, KEY_SVG } from './dom.js';
 import { UI, ROOM_NAMES, ROOM_TITLES, PROMPTS } from '../config.js';
 import { LABELS } from '../config.js';
-import { TOUCH } from '../engine/device.js';
+import { device } from '../engine/device.js';
 
 const BOOK_SVG =
   '<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5c3-1 6-1 8 1v14c-2-2-5-2-8-1zM20 5c-3-1-6-1-8 1v14c2-2 5-2 8-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
@@ -16,7 +16,7 @@ const PAUSE_SVG =
 export class Hud {
   constructor(root) {
     this.root = root;
-    this.touch = TOUCH;
+    this.touch = device.touch;
     // Set by the game: what the touch buttons and the tappable prompt do.
     this.actions = { use: () => {}, journal: () => {}, hint: () => {}, pause: () => {} };
     this.vignette = el('div.vignette');
@@ -30,7 +30,8 @@ export class Hud {
     this.goldSlot = el('div.slot', { html: KEY_SVG('#e9b640'), title: LABELS.goldKey });
     this.silverSlot = el('div.slot', { html: KEY_SVG('#aeb7c4'), title: LABELS.silverKey });
     this.keys = el('div.keys.hidden', [this.keyRoom, this.goldSlot, this.silverSlot]);
-    this.controls = el('div.controls.hidden', [el('div.t', LABELS.controlsTitle), ...UI.controls.flatMap(([k, v]) => [el('kbd', k), el('span', v)])]);
+    this.controls = el('div.controls.hidden');
+    this._fillControls();
     this.banner = el('div.banner', [el('div.small'), el('div.big')]);
     this.intro = el('div.intro-line');
     for (const n of [
@@ -51,6 +52,25 @@ export class Hud {
     this.setPlaying(false);
     this._lastPrompt = '';
     this._lastHot = false;
+  }
+
+  _fillControls() {
+    this.controls.replaceChildren(el('div.t', LABELS.controlsTitle), ...UI.controls.flatMap(([k, v]) => [el('kbd', k), el('span', v)]));
+  }
+
+  // 2-in-1 PCs: switch the on-screen controls between touch and mouse.
+  setTouch(on) {
+    if (on === this.touch) return;
+    this.touch = on;
+    if (on && !this.touchBar) this._buildTouch(this.root);
+    if (!on && this.touchBar) {
+      this.touchBar.classList.add('hidden');
+      this.stickBase.classList.add('hidden');
+      this.stickHint.classList.add('hidden');
+    }
+    this._fillControls();
+    this._lastPrompt = null; // redraw the prompt in the new style
+    this.setPlaying(this._playing);
   }
 
   _buildTouch(root) {
@@ -83,7 +103,7 @@ export class Hud {
   setPlaying(on) {
     this._playing = on;
     for (const n of [this.cross, this.keys]) n.classList.toggle('hidden', !on);
-    if (this.touch) {
+    if (this.touch && this.touchBar) {
       this.touchBar.classList.toggle('hidden', !on);
       this.setStick(null);
     }

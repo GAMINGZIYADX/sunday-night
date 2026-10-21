@@ -1360,11 +1360,14 @@ body.touch .puse {
     background: inherit;
   }
 }
+/* On touch screens the prompt is a button near the bottom, between the thumbs,
+   so it never covers what is under the dot. */
 body.touch .prompt {
   background: none;
   box-shadow: none;
   padding: 0;
-  top: calc(50% + 26px);
+  top: auto;
+  bottom: 64px;
   gap: 10px;
 }
 /* Only the buttons take taps; the space around them still reaches the room. */
@@ -1482,7 +1485,8 @@ body.touch .toast {
 .rotate {
   display: none;
 }
-@media (orientation: portrait) {
+/* Phones held upright (tablets are big enough to play either way). */
+@media (orientation: portrait) and (max-width: 600px) {
   body.touch .rotate {
     display: flex;
     position: fixed;

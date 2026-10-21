@@ -1,9 +1,11 @@
 import { TOUCH_TEXT } from '../config.js';
 import * as config from '../config.js';
 
-// Phones and tablets get touch controls. The choice is made once at startup:
-// a coarse primary pointer (a finger) means touch. `?touch=1` / `?touch=0`
-// force it either way (used by the tests and handy on odd devices).
+// Phones and tablets get touch controls. The starting choice: a coarse
+// primary pointer (a finger) means touch. On 2-in-1 PCs the game then
+// follows whatever is used: touching the screen switches to touch controls,
+// a mouse or trackpad switches back (see setTouchMode). `?touch=1` / `?touch=0`
+// force the start either way (used by the tests and handy on odd devices).
 function detectTouch() {
   const p = new URLSearchParams(location.search).get('touch');
   if (p === '1') return true;
@@ -16,29 +18,59 @@ function detectTouch() {
   return false;
 }
 
-export const TOUCH = detectTouch();
+// device.touch is read wherever controls or wording depend on it.
+export const device = { touch: detectTouch() };
 
-// Swap keyboard/mouse wording for touch wording (all of it lives in
-// config.js under TOUCH_TEXT). Runs before any UI is built.
-export function applyDeviceText() {
-  if (!TOUCH) return;
+// Touch wording (config.js TOUCH_TEXT) is swapped in and out in place; the
+// mouse wording is remembered so switching back restores it exactly.
+const originals = [];
+let textIsTouch = false;
+function setTouchText(on) {
+  if (on === textIsTouch) return;
+  textIsTouch = on;
+  if (!on) {
+    for (const [target, key, value] of originals) target[key] = value;
+    originals.length = 0;
+    return;
+  }
+  const put = (target, key, value) => {
+    originals.push([target, key, target[key]]);
+    target[key] = value;
+  };
   for (const [group, entries] of Object.entries(TOUCH_TEXT)) {
     const target = config[group];
     if (!target) continue;
     for (const [k, v] of Object.entries(entries)) {
       // { 2: 'text' } replaces one entry of a list (used for hints).
       if (Array.isArray(target[k]) && v && !Array.isArray(v) && typeof v === 'object') {
-        for (const [i, t] of Object.entries(v)) target[k][Number(i)] = t;
-      } else target[k] = v;
+        for (const [i, t] of Object.entries(v)) put(target[k], Number(i), t);
+      } else put(target, k, v);
     }
   }
-  document.body.classList.add('touch');
+}
+
+// Runs once before any UI is built.
+export function applyDeviceText() {
+  setTouchText(device.touch);
+  document.body.classList.toggle('touch', device.touch);
+}
+
+const listeners = [];
+export function onTouchModeChange(fn) {
+  listeners.push(fn);
+}
+export function setTouchMode(on) {
+  if (device.touch === on) return;
+  device.touch = on;
+  setTouchText(on);
+  document.body.classList.toggle('touch', on);
+  for (const fn of listeners) fn(on);
 }
 
 // Full screen + landscape. Both need a tap to be allowed, and both are
 // best-effort: if the browser says no, the game still works.
 export function enterFullscreen() {
-  if (!TOUCH) return;
+  if (!device.touch) return;
   const de = document.documentElement;
   const lock = () => {
     try {
