@@ -145,7 +145,7 @@ export function slidingOverlay(game, puzzle, { onSolvedClose } = {}) {
     ],
     { onClose: close, cls: 'pz' },
   );
-  const off = puzzle.onChange((p, just) => {
+  const offChange = puzzle.onChange((p, just) => {
     layout();
     if (just) {
       board.classList.add('solved-glow');
@@ -155,6 +155,9 @@ export function slidingOverlay(game, puzzle, { onSolvedClose } = {}) {
       }, 1700);
     }
   });
+  // "A bigger hint" on the hint card can unlock the gentle shuffle too.
+  const offHint = game.gs.on('hint', ({ id }) => id === 'r1b' && layout());
+  const off = () => (offChange(), offHint());
   m = game.modals.show(c, {
     name: 'sliding',
     onClose: off,

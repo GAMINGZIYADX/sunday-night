@@ -140,10 +140,12 @@ export class GameState extends Emitter {
     const cur = this.data.hintTier[id] ?? -1;
     const tier = Math.min(2, cur + 1);
     this.data.hintTier[id] = tier;
+    this.emit('hint', { id, tier });
     return { tier, text: this.puzzles[id].hint(tier) };
   }
   hintAt(id, tier) {
     this.data.hintTier[id] = Math.max(this.data.hintTier[id] ?? -1, tier);
+    this.emit('hint', { id, tier: this.data.hintTier[id] });
     return this.puzzles[id].hint(tier);
   }
 

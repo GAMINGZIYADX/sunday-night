@@ -395,11 +395,7 @@ export class HintCard {
     const gs = this.game.gs;
     const sameCard = this.node && this.id === id;
     const h = sameCard ? gs.nextHint(id) : { tier: Math.max(0, gs.data.hintTier[id] ?? 0), text: null };
-    if (!sameCard) {
-      gs.data.hintTier[id] = Math.max(gs.data.hintTier[id] ?? -1, 0);
-      h.tier = gs.data.hintTier[id];
-      h.text = gs.puzzles[id].hint(h.tier);
-    }
+    if (!sameCard) h.text = gs.hintAt(id, h.tier);
     this.id = id;
     this.render(id, h.tier, h.text);
   }

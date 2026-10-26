@@ -193,7 +193,10 @@ try {
     .nth(firstMove - 1)
     .dispatchEvent('pointerdown');
   if ((await ev(() => window.__game.gs.puzzles.r1b.moves)) !== 1) fail('sliding move did not register');
-  for (let k = 0; k < 3; k++) await page.getByRole('button', { name: 'Hint (H)' }).click();
+  // The hint card can cover the overlay's Hint button (it wraps taller with
+  // some fonts), so ask for more from the card itself, as a player would.
+  await page.getByRole('button', { name: 'Hint (H)' }).click();
+  for (let k = 0; k < 2; k++) await page.getByRole('button', { name: 'A bigger hint' }).click();
   await page.getByRole('button', { name: 'Gentle shuffle' }).click();
   const tiles = await ev(() => window.__game.gs.puzzles.r1b.tiles.slice());
   const moves = solveSliding(tiles);
