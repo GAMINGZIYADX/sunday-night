@@ -163,7 +163,9 @@ in it, with the save kept. From then on that file opens the newest version it
 has downloaded, offline too, even though the file itself doesn't change. If
 an update ever fails to start, the next launch goes back to the file's own
 version. Copies from before 1.2.0 can't do this: they only show a download
-link, so send those people the new file once.
+link, so send those people the new file once. To try it without publishing
+anything, run `npm run build` then `node scripts/try-update.mjs`: it opens the
+game in a browser window where GitHub seems to have version 9.9.9.
 
 **Or the Windows desktop app.** On Windows the menu also offers
 **Get the desktop app**: the release page's `Sunday-Night-Setup-X.Y.Z.exe`
