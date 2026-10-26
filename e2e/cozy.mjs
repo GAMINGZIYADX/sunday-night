@@ -83,19 +83,16 @@ try {
     return { out, follow: cat.follow, id: cat.id };
   });
   if (petResult.out[0].blink > 0 || !(petResult.out[1].blink > 0) || !(petResult.follow > 30)) fail(`petting: ${JSON.stringify(petResult)}`);
-  // It walks after the player.
-  // Stand in the free spot furthest from the cat, and wait.
+  // It walks after the player. A following cat trots to the waypoint nearest
+  // the player, so stand on the bedroom floor waypoint furthest from it: that
+  // is exactly where it has to come.
   const spot = await ev(() => {
-    const c = window.__game.game.cats.cats[0].model.root.position;
-    const spots = [
-      [2.0, 2.6],
-      [1.0, -2.2],
-      [-1.5, 0.8],
-      [2.2, -1.0],
-    ];
-    spots.sort((a, b) => Math.hypot(b[0] - c.x, b[1] - c.z) - Math.hypot(a[0] - c.x, a[1] - c.z));
-    window.__game.teleport(spots[0][0], spots[0][1], 0, 0);
-    return spots[0];
+    const d = window.__game.game.cats;
+    const c = d.cats[0].model.root.position;
+    const far = (n) => Math.hypot(n.x - c.x, n.z - c.z);
+    const floor = d.nodes.filter((n) => n.zone === 0 && n.door === undefined && n.y < 0.05).sort((a, b) => far(b) - far(a));
+    window.__game.teleport(floor[0].x, floor[0].z, 0, 0);
+    return [floor[0].x, floor[0].z];
   });
   const dist = () =>
     ev(([x, z]) => {
@@ -103,9 +100,21 @@ try {
       return Math.hypot(c.x - x, c.z - z);
     }, spot);
   const before = await dist();
-  await page.waitForTimeout(12000);
+  // Software rendering runs slower than real time, so wait for it to arrive
+  // (within 1.5 m it has caught up and stops re-pathing, see catDirector.js).
+  const arrived = await page
+    .waitForFunction(
+      ([x, z]) => {
+        const c = window.__game.game.cats.cats[0].model.root.position;
+        return Math.hypot(c.x - x, c.z - z) < 1.5;
+      },
+      spot,
+      { timeout: 30000, polling: 250 },
+    )
+    .then(() => true)
+    .catch(() => false);
   const after = await dist();
-  if (!(before > 1.6) || !(after < before - 0.8)) fail(`the cat did not follow: ${before.toFixed(2)} -> ${after.toFixed(2)} m`);
+  if (!(before > 2.0) || !arrived) fail(`the cat did not follow: ${before.toFixed(2)} -> ${after.toFixed(2)} m`);
   log(`petting: meow, then purr + slow blink, then it follows (${before.toFixed(1)} m -> ${after.toFixed(1)} m)`);
 
   // ---- living room
