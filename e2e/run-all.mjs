@@ -11,6 +11,7 @@ const tests = [
   'hybrid.mjs',
   'cozy.mjs',
   'maze.mjs',
+  'selfupdate.mjs',
 ];
 let failed = 0;
 for (const t of tests) {

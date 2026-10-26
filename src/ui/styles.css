@@ -592,6 +592,14 @@ textarea.code {
   color: #3f6fc4;
   font-weight: 600;
 }
+.update-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  margin-top: 8px;
+}
 
 /* Journal */
 .journal {

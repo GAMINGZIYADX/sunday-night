@@ -26,9 +26,11 @@ try {
     route.fulfill({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: '{"tag_name":"v99.0.0"}' });
   });
   await page.click('.start-hint');
-  const link = await page.waitForSelector('.update-link', { timeout: 10000 }).catch(() => null);
-  check(asked === 1 && !!link, 'the main menu asks GitHub once and offers the newer version');
-  if (link) check((await link.getAttribute('href')).endsWith('/releases/latest'), 'the download link opens the latest release');
+  const offer = await page.waitForSelector('button:has-text("Update now")', { timeout: 10000 }).catch(() => null);
+  check(asked === 1 && !!offer, 'the main menu asks GitHub once and offers "Update now" (the rest is e2e/selfupdate.mjs)');
+  // The desktop app link is offered on Windows only.
+  const link = await page.$('.update-link');
+  if (link) check((await link.getAttribute('href')).endsWith('/releases/latest'), 'the desktop app link opens the latest release');
   await page.getByRole('button', { name: 'New game' }).click();
   await page.waitForTimeout(6000);
   // Debug shortcuts must not work: Shift+3 would jump to the kitchen in debug builds.

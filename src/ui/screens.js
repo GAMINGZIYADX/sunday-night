@@ -8,7 +8,8 @@ import { LABELS, TOASTS } from '../config.js';
 import { fill } from '../engine/text.js';
 import { device, enterFullscreen, isFullscreen } from '../engine/device.js';
 import { autoQuality } from '../engine/quality.js';
-import { updateNotice } from '../engine/updateCheck.js';
+import { updateNotice, updatesEnabled } from '../engine/updateCheck.js';
+import { canSelfUpdate, downloadUpdate } from '../engine/selfUpdate.js';
 
 const tulips = () => el('div.tulip-row', { html: TULIP_SVG('#6f9be0', 26) + TULIP_SVG('#fbf7f0', 26) + TULIP_SVG('#6f9be0', 26) });
 
@@ -48,18 +49,39 @@ export function mainMenu(game) {
   items.push(button(UI.settings, () => settingsPanel(game)));
   const foot = el('p.version', fill(UI.version, { V: __APP_VERSION__ }));
   const c = el('div.card', [tulips(), el('h1', GAME_TITLE), el('p.sub', UI.subtitle), el('div.menu', items), foot]);
-  // Debug builds (browser tests, npm run dev) skip the network unless ?updatecheck is set.
-  if (!__DEBUG__ || new URLSearchParams(location.search).has('updatecheck')) {
-    updateNotice().then((u) => {
-      if (!u) return;
-      foot.replaceChildren(
-        el('span.update', fill(UI.updateReady, { V: u.version })),
-        ' ',
-        el('a.update-link', { href: u.url, target: '_blank', rel: 'noopener' }, UI.updateDownload),
-      );
-    });
-  }
+  if (updatesEnabled()) updateNotice().then((u) => u && showUpdate(game, foot, u));
   return game.modals.show(c, { name: 'main', escClose: false });
+}
+
+// "A new version is ready" with Update now (self-update, see selfUpdate.js)
+// and, on Windows, a link to the desktop app. The plain download link is the
+// fallback when this browser cannot keep a downloaded build.
+async function showUpdate(game, foot, u) {
+  const link = (text) => el('a.update-link', { href: u.url, target: '_blank', rel: 'noopener' }, text);
+  const actions = el('div.update-actions');
+  foot.replaceChildren(el('span.update', fill(UI.updateReady, { V: u.version })), actions);
+  if (!(await canSelfUpdate())) {
+    actions.append(link(UI.updateDownload));
+    return;
+  }
+  const now = button(
+    UI.updateNow,
+    async () => {
+      now.disabled = true;
+      now.textContent = UI.updating;
+      if (await downloadUpdate(u.version)) {
+        location.reload(); // the new build takes over on the way back in
+        return;
+      }
+      now.disabled = false;
+      now.textContent = UI.updateNow;
+      game.toast(TOASTS.updateFailed, { ms: 5000 });
+      if (!actions.querySelector('.download')) actions.append(el('span.download', [link(UI.updateDownload)]));
+    },
+    'small.primary',
+  );
+  actions.append(now);
+  if (/Windows/.test(navigator.userAgent) && !device.touch) actions.append(link(UI.getDesktopApp));
 }
 
 export function pauseMenu(game) {

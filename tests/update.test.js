@@ -63,7 +63,7 @@ describe('update check: asking GitHub', () => {
     expect(await checkForUpdate({ current: '1.0.0', fetchFn: offline, now: 0 })).toBe(null);
     expect(await checkForUpdate({ current: '1.0.0', fetchFn: fakeFetch('v9.0.0', { ok: false }), now: 0 })).toBe(null);
     expect(await checkForUpdate({ current: '1.0.0', fetchFn: fakeFetch(null), now: 0 })).toBe(null);
-    expect(await checkForUpdate({ current: '1.0.0', fetchFn: undefined, now: 0 })).toBe(null);
+    expect(await checkForUpdate({ current: '1.0.0', fetchFn: null, now: 0 })).toBe(null);
   });
 
   it('gives up on a slow reply', async () => {

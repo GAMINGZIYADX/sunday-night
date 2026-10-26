@@ -7,13 +7,19 @@ const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 
 // __DEBUG__ is a build-time flag. It is true only for `npm run dev` and
 // `npm run build:debug`. The production build (`npm run build`) sets it to
 // false, so every debug shortcut is stripped out of dist/index.html.
-// __APP_VERSION__ is package.json's version, used by the update check.
+// __APP_VERSION__ is package.json's version, used by the update check. It is
+// also stamped into a <meta> so a downloaded update can be checked before use.
+const versionMeta = {
+  name: 'version-meta',
+  transformIndexHtml: () => [{ tag: 'meta', attrs: { name: 'sunday-night-version', content: pkg.version }, injectTo: 'head-prepend' }],
+};
+
 export default defineConfig(({ command, mode }) => {
   const debug = command === 'serve' || mode === 'debug';
   return {
     base: './',
     define: { __DEBUG__: JSON.stringify(debug), __APP_VERSION__: JSON.stringify(pkg.version) },
-    plugins: [viteSingleFile()],
+    plugins: [versionMeta, viteSingleFile()],
     build: {
       target: 'es2020',
       assetsInlineLimit: 100000000,
