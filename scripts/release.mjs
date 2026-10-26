@@ -12,7 +12,9 @@ import { copyFileSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-const [bump, notes] = process.argv.slice(2);
+const [bump, ...words] = process.argv.slice(2);
+// npm on Windows can split quoted notes into words, so join them back up.
+const notes = words.join(' ');
 const fail = (msg) => {
   console.error(`release: ${msg}`);
   process.exit(1);
@@ -24,7 +26,8 @@ const npm = (...args) => run('npm', args, { shell: process.platform === 'win32' 
 
 if (!/^(patch|minor|major|\d+\.\d+\.\d+)$/.test(bump || '')) fail('say how to bump: patch, minor, major or an exact version like 1.4.0');
 if (out('git', ['rev-parse', '--abbrev-ref', 'HEAD']) !== 'main') fail('switch to main first (git switch main)');
-if (out('git', ['status', '--porcelain'])) fail('commit or stash your changes first; the release must match what is in git');
+// Untracked files are fine: only committed files can end up in the build.
+if (out('git', ['status', '--porcelain', '--untracked-files=no'])) fail('commit or stash your changes first; the release must match what is in git');
 try {
   out('gh', ['auth', 'status']);
 } catch {
