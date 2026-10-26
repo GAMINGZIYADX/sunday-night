@@ -5,8 +5,9 @@ import { pathToFileURL } from 'node:url';
 
 const CANDIDATES = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/opt/pw-browsers/chromium'];
 
+// CHROME_PATH=/path/to/chrome uses a Chromium of your choice instead.
 export async function launch() {
-  const executablePath = CANDIDATES.find((p) => existsSync(p) && !p.endsWith('chromium')) || undefined;
+  const executablePath = process.env.CHROME_PATH || CANDIDATES.find((p) => existsSync(p) && !p.endsWith('chromium')) || undefined;
   return chromium.launch({
     executablePath,
     args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'],

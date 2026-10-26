@@ -145,8 +145,8 @@ emulated Android phone held sideways (`e2e/touch.mjs`), a 2-in-1 PC
 (`e2e/hybrid.mjs`), the graphics switching (`e2e/quality.mjs`), every little
 interaction and find (`e2e/cozy.mjs`) and a walk through the hedge maze
 (`e2e/maze.mjs`). It uses the Chromium that
-`playwright-core` finds. In a normal setup, run `npx playwright install chromium`
-once first.
+`playwright-core` finds. In a normal setup, run `npx playwright-core install chromium`
+once first, or set `CHROME_PATH` to a Chromium you already have.
 
 ## Updates
 
