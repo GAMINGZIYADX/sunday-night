@@ -6,7 +6,10 @@
 //
 // Steps: bump package.json, run the unit tests, build dist/index.html, commit,
 // tag vX.Y.Z, push main and the tag, then create the GitHub release with the
-// game file attached. Anything failing stops it before the push.
+// game file attached. Anything failing stops it before the push. Last, build
+// the Windows desktop app and attach its installer and latest.yml.
+// The game file's self-update needs nothing extra: it downloads the tag's
+// dist/index.html, which the release commit contains.
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -57,5 +60,19 @@ const asset = path.join(mkdtempSync(path.join(tmpdir(), 'sunday-night-')), `Sund
 copyFileSync('dist/index.html', asset);
 const ghArgs = ['release', 'create', tag, asset, '--title', `Sunday Night ${tag}`];
 run('gh', notes ? [...ghArgs, '--notes', notes] : [...ghArgs, '--generate-notes']);
+console.log(`\nThe game file is released. Copies from 1.2.0 on update themselves with "Update now".`);
 
-console.log(`\nDone. Copies older than ${tag} will show "A new version (${version}) is ready" on the main menu.`);
+// The Windows desktop app: build the installer and attach it with latest.yml,
+// which installed apps read to find the update.
+const appFiles = [`dist-app/Sunday-Night-Setup-${version}.exe`, `dist-app/Sunday-Night-Setup-${version}.exe.blockmap`, 'dist-app/latest.yml'];
+try {
+  run(process.execPath, ['node_modules/electron-builder/cli.js', '--win', '--publish', 'never']);
+  run('gh', ['release', 'upload', tag, ...appFiles, '--clobber']);
+  console.log(`\nDone. The desktop app updates itself to ${version} the next time it opens.`);
+} catch {
+  fail(
+    `the game file is released, but the desktop app is not. Try again with:\n` +
+      `  npx electron-builder --win --publish never\n` +
+      `  gh release upload ${tag} ${appFiles.join(' ')} --clobber`,
+  );
+}

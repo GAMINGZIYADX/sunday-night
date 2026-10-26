@@ -391,6 +391,9 @@ export class Game {
     document.addEventListener('visibilitychange', () => {
       if (document.hidden && this.state === 'playing' && !this.modals.open) pauseMenu(this);
     });
+    // Closing the tab or the desktop app (also when it restarts to update)
+    // keeps where you were standing.
+    window.addEventListener('pagehide', () => this.saveNow('quiet'));
     // Phones can suspend sound in the background; any touch wakes it again.
     document.addEventListener('pointerup', () => {
       if (this.audio.ctx && this.audio.ctx.state !== 'running') this.audio.init();

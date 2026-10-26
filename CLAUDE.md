@@ -25,15 +25,21 @@ that works from `file://`. Read `README.md` for the player-facing description.
 ```
 npm install
 npm run dev            # dev server, debug tools on
-npm test               # vitest: puzzles, randomiser, saves, updates (53 tests)
+npm test               # vitest: puzzles, randomiser, saves, updates (62 tests)
 npm run build          # -> dist/index.html (the shippable file)
 npm run build:debug    # -> dist-debug/index.html (used by the browser tests)
 npm run e2e            # builds both, then runs every browser test
 node e2e/<name>.mjs    # one browser test (needs the debug build first)
+npm run app            # the Windows desktop app from source (Electron)
+npm run build:app      # -> dist-app/Sunday-Night-Setup-X.Y.Z.exe + latest.yml
 ```
 
 Browser tests use `playwright-core` + Chromium with software rendering, so they
-are slow (the full playthrough takes minutes). Pass a directory as the first
+are slow (the full playthrough takes minutes). On the author's Windows PC,
+Playwright's own Chromium download hangs; set `CHROME_PATH` to an installed
+Chromium (`%LOCALAPPDATA%\ms-playwright\chromium-1228\chrome-win64\chrome.exe`).
+Electron is pinned to 44.5.1 because that zip is already in the Electron cache
+there; a fresh Electron download failed the same way. Pass a directory as the first
 argument to some tests to save screenshots. Debug URL flags: `?debug=1`,
 `&nolock=1` (no pointer lock), `&dtmax=0.25` (needed for slow rendering),
 `&nomerge`, `&touch=1|0`, `&quality=full|light`.
@@ -95,13 +101,34 @@ redrawn from the current puzzle (`GameState.syncText`). When adding a variant,
 ## Updates
 
 `src/engine/updateCheck.js` asks the GitHub releases API for the latest tag
-(cached a day in `sundayNight.update.v1`) and the main menu shows a download
-link if it is newer than `__APP_VERSION__` (package.json's version, baked in
-by `vite.config.js`). Debug builds skip it unless `?updatecheck=1`, so browser
-tests stay offline; `e2e/prod.mjs` fakes the GitHub reply. Publish with
-`npm run release -- patch|minor|major "notes"` (`scripts/release.mjs`): it
-bumps, tests, builds, commits, tags, pushes and runs `gh release create`.
-Don't bump the version by hand in a normal commit.
+(cached a day in `sundayNight.update.v1`) and the main menu offers it if it is
+newer than `__APP_VERSION__` (package.json's version, baked in by
+`vite.config.js`, which also stamps `<meta name="sunday-night-version">`).
+`updatesEnabled()` is off in debug builds unless `?updatecheck=1` (browser
+tests stay offline) and in the desktop app. The repo must stay public.
+
+- **Self-update** (`src/engine/selfUpdate.js`): "Update now" fetches
+  `raw.githubusercontent.com/<repo>/vX.Y.Z/dist/index.html` (release assets
+  have no CORS), checks the meta version, and stores it in IndexedDB
+  (`sundayNight` / `builds` / `latest`). `src/main.js` calls `bootStored()`
+  before creating the game: a newer stored build is `document.write`n over
+  the page (same origin, so saves carry over). Crash guard:
+  `sundayNight.update.pending` is set before the swap and cleared by
+  `markBooted()`; still set on the next launch means it failed, so it is
+  deleted. `e2e/selfupdate.mjs` covers it all with faked GitHub replies.
+- **Desktop app** (`desktop/main.cjs`, `preload.cjs`, `icon.png`): Electron
+  loads `dist/index.html`; electron-updater reads `latest.yml` from the latest
+  GitHub release, downloads in the background and asks Restart now / Later.
+  The preload sets `window.sundayNightApp.desktop` so the game's own checks
+  stay off. The app has its own saves. Unsigned (SmartScreen warning).
+  `three` is a devDependency so the installer only ships `electron-updater`.
+
+Publish with `npm run release -- patch|minor|major "notes"`
+(`scripts/release.mjs`): it bumps, tests, builds, commits, tags, pushes, runs
+`gh release create` with the HTML, then builds the installer and uploads it
+with `latest.yml`. Don't bump the version by hand in a normal commit. The full
+"Restart now" cycle of the desktop app can only be checked across two real
+releases (install one, release the next).
 
 ## Things that bite
 
@@ -123,8 +150,8 @@ Don't bump the version by hand in a normal commit.
 
 ## Status
 
-All unit tests (53) and browser tests (prod, props, playthrough, continue,
-collision, touch, quality, hybrid, cozy, maze) pass as of the last commit. The
+All unit tests (62) and browser tests (prod, props, playthrough, continue,
+collision, touch, quality, hybrid, cozy, maze, selfupdate) pass as of the last commit. The
 playthrough also passes with random scrambles. Ideas not done: a Cozy/Brainy
 difficulty choice, personal photos in the bedroom frames, a spectator mode for
 the author.

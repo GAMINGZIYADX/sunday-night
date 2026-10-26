@@ -152,12 +152,29 @@ once first, or set `CHROME_PATH` to a Chromium you already have.
 
 The main menu shows the game's version. When a copy is online, it asks GitHub
 (at most once a day) for the newest release of
-`GAMINGZIYADX/sunday-night`. If there's a newer one, the menu says
-_A new version (1.1.0) is ready. Download it_, and the link opens the release
-page. Offline, or if GitHub can't be reached, nothing shows and the game plays
-as usual. The repo has to stay public for the check to work. Saves are kept by
-the browser, so a downloaded new version opened in the same browser continues
-the same game.
+`GAMINGZIYADX/sunday-night`. Offline, or if GitHub can't be reached, nothing
+shows and the game plays as usual. The repo has to stay public for this to
+work.
+
+**The game file updates itself.** When there's a newer release, the menu says
+_A new version (1.2.0) is ready_ with an **Update now** button. It downloads
+the new version (under 1 MB), keeps it in the browser and reopens the game
+in it, with the save kept. From then on that file opens the newest version it
+has downloaded, offline too, even though the file itself doesn't change. If
+an update ever fails to start, the next launch goes back to the file's own
+version. Copies from before 1.2.0 can't do this: they only show a download
+link, so send those people the new file once.
+
+**Or the Windows desktop app.** On Windows the menu also offers
+**Get the desktop app**: the release page's `Sunday-Night-Setup-X.Y.Z.exe`
+installs Sunday Night like any program, with its own window and Start menu
+entry (F11 for full screen). It downloads new versions in the background and
+asks _Restart now_ or _Later_ (Later updates it the next time it closes).
+Two things to know: Windows warns about an unknown publisher on the first
+install, because the app isn't code-signed (_More info_ → _Run anyway_); and
+the app keeps its own saves, separate from the browser, so use Pause →
+_Backup code_ to bring a game across. To try it from the source folder:
+`npm run app`; to build the installer: `npm run build:app` (into `dist-app/`).
 
 To publish an update, from a clean `main` with the GitHub CLI signed in
 (`gh auth login`):
@@ -169,8 +186,9 @@ npm run release -- minor "A new room"          # 1.0.0 -> 1.1.0
 
 That bumps the version, runs the tests, builds `dist/index.html`, commits,
 tags `vX.Y.Z`, pushes, and creates a GitHub release with the game attached as
-`Sunday-Night-vX.Y.Z.html`. Leave out the notes to have GitHub write them from
-the commits. The check can be switched off with `UPDATES.check` in
+`Sunday-Night-vX.Y.Z.html`, then builds the desktop app and attaches its
+installer and `latest.yml` (which installed apps check). Leave out the notes
+to have GitHub write them from the commits. The check can be switched off with `UPDATES.check` in
 `src/config.js`.
 
 ## The puzzles
