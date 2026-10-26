@@ -19,7 +19,16 @@ const browser = await launch();
 try {
   const { page, problems } = await openGame(browser, fileUrl('dist/index.html', '?debug=1&nolock=1'), { width: 960, height: 540 });
   check(await page.evaluate(() => window.__game === undefined), '?debug=1 does nothing in production');
+  // The update check: answer GitHub's releases API with a far-future version.
+  let asked = 0;
+  await page.route('https://api.github.com/**', (route) => {
+    asked++;
+    route.fulfill({ status: 200, contentType: 'application/json', headers: { 'Access-Control-Allow-Origin': '*' }, body: '{"tag_name":"v99.0.0"}' });
+  });
   await page.click('.start-hint');
+  const link = await page.waitForSelector('.update-link', { timeout: 10000 }).catch(() => null);
+  check(asked === 1 && !!link, 'the main menu asks GitHub once and offers the newer version');
+  if (link) check((await link.getAttribute('href')).endsWith('/releases/latest'), 'the download link opens the latest release');
   await page.getByRole('button', { name: 'New game' }).click();
   await page.waitForTimeout(6000);
   // Debug shortcuts must not work: Shift+3 would jump to the kitchen in debug builds.

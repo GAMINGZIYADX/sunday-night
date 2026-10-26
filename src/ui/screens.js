@@ -8,6 +8,7 @@ import { LABELS, TOASTS } from '../config.js';
 import { fill } from '../engine/text.js';
 import { device, enterFullscreen, isFullscreen } from '../engine/device.js';
 import { autoQuality } from '../engine/quality.js';
+import { updateNotice } from '../engine/updateCheck.js';
 
 const tulips = () => el('div.tulip-row', { html: TULIP_SVG('#6f9be0', 26) + TULIP_SVG('#fbf7f0', 26) + TULIP_SVG('#6f9be0', 26) });
 
@@ -45,7 +46,19 @@ export function mainMenu(game) {
     ),
   );
   items.push(button(UI.settings, () => settingsPanel(game)));
-  const c = el('div.card', [tulips(), el('h1', GAME_TITLE), el('p.sub', UI.subtitle), el('div.menu', items)]);
+  const foot = el('p.version', fill(UI.version, { V: __APP_VERSION__ }));
+  const c = el('div.card', [tulips(), el('h1', GAME_TITLE), el('p.sub', UI.subtitle), el('div.menu', items), foot]);
+  // Debug builds (browser tests, npm run dev) skip the network unless ?updatecheck is set.
+  if (!__DEBUG__ || new URLSearchParams(location.search).has('updatecheck')) {
+    updateNotice().then((u) => {
+      if (!u) return;
+      foot.replaceChildren(
+        el('span.update', fill(UI.updateReady, { V: u.version })),
+        ' ',
+        el('a.update-link', { href: u.url, target: '_blank', rel: 'noopener' }, UI.updateDownload),
+      );
+    });
+  }
   return game.modals.show(c, { name: 'main', escClose: false });
 }
 

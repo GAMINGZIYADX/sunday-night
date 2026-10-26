@@ -10,7 +10,8 @@
     "build:debug": "vite build --mode debug --outDir dist-debug",
     "preview": "vite preview",
     "test": "vitest run",
-    "e2e": "npm run build && npm run build:debug && node e2e/run-all.mjs"
+    "e2e": "npm run build && npm run build:debug && node e2e/run-all.mjs",
+    "release": "node scripts/release.mjs"
   },
   "dependencies": {
     "three": "^0.180.0"

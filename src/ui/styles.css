@@ -579,6 +579,19 @@ textarea.code {
   font-size: 13px;
   color: var(--ink-soft);
 }
+.version {
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin: 16px 0 0;
+}
+.version .update {
+  color: var(--ink);
+}
+.version .update-link {
+  color: #3f6fc4;
+  font-weight: 600;
+}
 
 /* Journal */
 .journal {

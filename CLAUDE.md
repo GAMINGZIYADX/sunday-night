@@ -25,7 +25,7 @@ that works from `file://`. Read `README.md` for the player-facing description.
 ```
 npm install
 npm run dev            # dev server, debug tools on
-npm test               # vitest: puzzles, randomiser, saves (45 tests)
+npm test               # vitest: puzzles, randomiser, saves, updates (53 tests)
 npm run build          # -> dist/index.html (the shippable file)
 npm run build:debug    # -> dist-debug/index.html (used by the browser tests)
 npm run e2e            # builds both, then runs every browser test
@@ -68,13 +68,13 @@ room's door and give one digit of the lock code. Then the clearing and the
 ending (the cats' tails form a heart; the letter fades in line by line).
 Two cats: Tchobin (tabby), Zizo (tuxedo).
 
-| Room | Gold key | Silver key |
-| --- | --- | --- |
-| Bedroom | 5 frames ordered by distance and season | 4x4 sliding picture |
-| Living | 12-vase tulip pattern | Books that only turn three at a time |
-| Kitchen | Caesar-cipher sentence, spell the last word | 4 oven dials from a riddle |
-| Study | Hide and seek (cats move after each wrong guess) | 6x6 sudoku |
-| Garden | 4-digit gate lock (the memory digits) | Constellation of month letters |
+| Room    | Gold key                                         | Silver key                           |
+| ------- | ------------------------------------------------ | ------------------------------------ |
+| Bedroom | 5 frames ordered by distance and season          | 4x4 sliding picture                  |
+| Living  | 12-vase tulip pattern                            | Books that only turn three at a time |
+| Kitchen | Caesar-cipher sentence, spell the last word      | 4 oven dials from a riddle           |
+| Study   | Hide and seek (cats move after each wrong guess) | 6x6 sudoku                           |
+| Garden  | 4-digit gate lock (the memory digits)            | Constellation of month letters       |
 
 Extras: 5 optional **little finds** (paper star in the dresser drawer, toy mouse
 under the striped sofa cushion, cookie in the kitchen jar, pressed tulip in the
@@ -91,6 +91,17 @@ the save; old saves fall back to the first variants. Clue cards and textures are
 redrawn from the current puzzle (`GameState.syncText`). When adding a variant,
 **make sure it has exactly one answer** and add it to `tests/randomiser.test.js`
 (brute force for dials, family-of-rules check for vases).
+
+## Updates
+
+`src/engine/updateCheck.js` asks the GitHub releases API for the latest tag
+(cached a day in `sundayNight.update.v1`) and the main menu shows a download
+link if it is newer than `__APP_VERSION__` (package.json's version, baked in
+by `vite.config.js`). Debug builds skip it unless `?updatecheck=1`, so browser
+tests stay offline; `e2e/prod.mjs` fakes the GitHub reply. Publish with
+`npm run release -- patch|minor|major "notes"` (`scripts/release.mjs`): it
+bumps, tests, builds, commits, tags, pushes and runs `gh release create`.
+Don't bump the version by hand in a normal commit.
 
 ## Things that bite
 
@@ -112,7 +123,7 @@ redrawn from the current puzzle (`GameState.syncText`). When adding a variant,
 
 ## Status
 
-All unit tests (45) and browser tests (prod, props, playthrough, continue,
+All unit tests (53) and browser tests (prod, props, playthrough, continue,
 collision, touch, quality, hybrid, cozy, maze) pass as of the last commit. The
 playthrough also passes with random scrambles. Ideas not done: a Cozy/Brainy
 difficulty choice, personal photos in the bedroom frames, a spectator mode for

@@ -14,6 +14,17 @@ import { caesarEncode } from './puzzles/cipherMath.js';
 export const GAME_TITLE = 'Sunday Night';
 
 // -----------------------------------------------------------------------------
+//  Updates: the main menu asks GitHub (at most once a day) whether a newer
+//  release exists and shows a download link if so. Offline it stays quiet.
+//  To publish an update: `npm run release -- patch` (see README).
+// -----------------------------------------------------------------------------
+export const UPDATES = {
+  check: true,
+  repo: 'GAMINGZIYADX/sunday-night',
+  everyHours: 24,
+};
+
+// -----------------------------------------------------------------------------
 //  The cats
 // -----------------------------------------------------------------------------
 export const CATS = {
@@ -306,6 +317,9 @@ export const PUZZLE_NAMES = {
 export const UI = {
   subtitle: 'a small house, two cats, ten puzzles',
   clickToStart: 'Click to start',
+  version: 'Version {V}',
+  updateReady: 'A new version ({V}) is ready.',
+  updateDownload: 'Download it',
   continue: 'Continue',
   newGame: 'New game',
   settings: 'Settings',

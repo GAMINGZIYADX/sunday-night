@@ -148,6 +148,31 @@ interaction and find (`e2e/cozy.mjs`) and a walk through the hedge maze
 `playwright-core` finds. In a normal setup, run `npx playwright install chromium`
 once first.
 
+## Updates
+
+The main menu shows the game's version. When a copy is online, it asks GitHub
+(at most once a day) for the newest release of
+`GAMINGZIYADX/sunday-night`. If there's a newer one, the menu says
+_A new version (1.1.0) is ready. Download it_, and the link opens the release
+page. Offline, or if GitHub can't be reached, nothing shows and the game plays
+as usual. The repo has to stay public for the check to work. Saves are kept by
+the browser, so a downloaded new version opened in the same browser continues
+the same game.
+
+To publish an update, from a clean `main` with the GitHub CLI signed in
+(`gh auth login`):
+
+```
+npm run release -- patch "Fixed the kettle"    # 1.0.0 -> 1.0.1
+npm run release -- minor "A new room"          # 1.0.0 -> 1.1.0
+```
+
+That bumps the version, runs the tests, builds `dist/index.html`, commits,
+tags `vX.Y.Z`, pushes, and creates a GitHub release with the game attached as
+`Sunday-Night-vX.Y.Z.html`. Leave out the notes to have GitHub write them from
+the commits. The check can be switched off with `UPDATES.check` in
+`src/config.js`.
+
 ## The puzzles
 
 | Room        | Gold key (themed)                                                                                             | Silver key (classic)                                                             |
