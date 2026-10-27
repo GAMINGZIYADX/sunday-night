@@ -2,8 +2,9 @@
 
 A small, cosy first-person puzzle house. Five rooms, two puzzles each, two cats
 (Tchobin and Zizo), no timers, no fail states. About 20 minutes, plus a hedge
-maze, an attic with a photo in it, and little things to find. Every new game
-changes several puzzles and grows a new maze.
+maze, four optional side rooms (an attic with a photo in it, a greenhouse, a
+basement and a balcony), little things to find, and a treasure hunt after the
+ending. Every new game changes the puzzles, the lock code and the maze.
 
 ## Play it
 
@@ -122,13 +123,15 @@ Separately, the resolution always lowers itself a little when frames get slow.
   - put the kettle on
   - open the kitchen window to hear the crickets
   - spin the study globe
-- **Six little finds**, kept in the journal:
+- **Nine little finds**, kept in the journal:
   - a paper star in the bedroom dresser's top drawer
   - a toy mouse under a sofa cushion
   - a cookie in the kitchen cookie jar
   - a pressed tulip in the little book on the study desk
   - a jar of fireflies in the middle of the hedge maze
   - a photo in the attic trunk
+  - a tulip in bloom in the greenhouse, a wind-up cat in the basement and a
+    wish lantern on the balcony, each once both puzzles there are solved
 - **The hedge maze:** go through the gap in the garden's east wall. A new maze
   grows every new game. Reaching the middle records your time (the best one is
   kept in the journal), and **H** shows a short firefly trail.
@@ -139,6 +142,22 @@ Separately, the resolution always lowers itself a little when frames get slow.
   of the little finds in some order; those are the four pictures that open the
   trunk under the round window. Inside is a photo. It is all optional, and
   open from the very start.
+- **The greenhouse** (the glass door in the garden's west wall): water six
+  thirsty plants, thirstiest first (each tag says the day it was last
+  watered, and today is Sunday), and light a 4×4 grid of grow lamps where each
+  lamp also flips the ones beside it.
+- **The basement** (the hatch in the kitchen floor, south-west corner): dark
+  until the fuse box is fixed. Set five switches so every rule on its card
+  holds, then pull the lever; and turn the pipe pieces until water runs from
+  the tap to the boiler.
+- **The balcony** (the glass doors in the study's east wall), under the
+  stars: light a 5×5 net of lanterns to match the numbers on each row and
+  column (they draw a picture), and match six pairs of star cards.
+- **The treasure hunt:** after the letter, a folded note waits by the
+  envelope. Each note lies on the floor by a puzzle somewhere and says where
+  the next one is; the last place has an envelope with a coupon. A new order
+  every game. The coupon's words are `HUNT_COUPON` in `src/config.js`; until
+  they are written, the hunt stays hidden.
 
 ### Your photo in the trunk
 
@@ -162,10 +181,14 @@ With `RANDOMIZE = true` in `src/config.js` (the default), each new game picks:
 | Telescope      | where the decoy stars are, and their letters                                                                    |
 | Hedge maze     | the whole layout                                                                                                |
 | Attic          | the piano's tune and the order of the four pictures on the trunk                                                |
+| Lock code      | the four digits the memory tulips give and the gate wants                                                       |
+| Greenhouse     | which plants, and the day on each tag; the grow lamps' starting tangle                                          |
+| Basement       | the switch names, the answer, and a card of rules that only that answer keeps; the pipe route                   |
+| Balcony        | the lantern picture (from `LANTERN_PICTURES`, maybe mirrored); the star cards and where they lie                |
+| Treasure hunt  | which places the notes are in, and their order                                                                  |
 
 These were already random: the frame order, the sliding picture, the book
-order and where the cats hide. The lock code, the notes and the letter never
-change. Saves remember which version you are playing, and `npm test` checks
+order and where the cats hide. The notes and the letter never change. Saves remember which version you are playing, and `npm test` checks
 every version has exactly one answer. Set `RANDOMIZE = false` to always play
 the first version of each.
 
@@ -175,7 +198,6 @@ Everything you'd want to change is in **`src/config.js`**, with comments:
 
 | What                                                      | Where in `config.js`                                                                                                                                                            |
 | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Final lock code (now `2007`)                              | `LOCK_CODE`. Door 1 gives the 1st digit, door 2 the 2nd, and so on.                                                                                                             |
 | The final letter                                          | `FINAL_MESSAGE` (blank line = new paragraph, last line starting with `—` is the signature)                                                                                      |
 | The five room notes                                       | `NOTES`                                                                                                                                                                         |
 | Letter pacing                                             | `LETTER_TIMING`                                                                                                                                                                 |
@@ -183,7 +205,10 @@ Everything you'd want to change is in **`src/config.js`**, with comments:
 | Oven dial riddles                                         | `DIAL_RIDDLES` (text, answer, middle hint). Each riddle's rule is in `DIAL_RULES` in `src/puzzles/dials.js`; `npm test` checks every riddle has exactly one answer              |
 | Randomiser on or off                                      | `RANDOMIZE`                                                                                                                                                                     |
 | Little finds                                              | `FINDS`                                                                                                                                                                         |
-| The attic                                                 | `ATTIC_NAME`, `PIANO_KEYS`, `PIANO_START`, `PIANO_LENGTH`, `TRUNK_PICTURES`, `TRUNK_RIDDLE`, `PHOTO` (the photo itself goes in `src/photo/`)                                    |
+| The side rooms' names                                     | `SIDE_ROOMS`                                                                                                                                                                    |
+| Greenhouse, basement, balcony                             | `WATER_DAYS`, `WATER_PLANTS`, `FUSE_NAMES`, `FUSE_RULES`, `LANTERN_PICTURES` (each needs one answer: `npm test` checks), `PAIR_PICTURES`                                         |
+| The treasure hunt                                         | `HUNT_COUPON` (your coupon), `HUNT_LENGTH`, `HUNT_RIDDLES`, `HUNT_TEXT`                                                                                                         |
+| The attic                                                 | `PIANO_KEYS`, `PIANO_START`, `PIANO_LENGTH`, `TRUNK_PICTURES`, `TRUNK_RIDDLE`, `PHOTO` (the photo itself goes in `src/photo/`)                                    |
 | Sudoku (6×6)                                              | `SUDOKU_GIVENS` (keep it to one solution: run `npm test` to check)                                                                                                              |
 | Vase patterns, rug, constellation, hiding spots           | `VASE_VARIANTS`, `RUG_SHOWN`, `CONSTELLATION_LABELS`, `CONSTELLATION_DECOYS`, `HIDING_SPOTS`                                                                                    |
 | Hints (3 per puzzle)                                      | `HINTS`                                                                                                                                                                         |

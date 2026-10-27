@@ -10,7 +10,7 @@ import { KeyFx } from './keyfx.js';
 import { Settings } from './settings.js';
 import { GameState } from './gamestate.js';
 import { saveGame, loadSave, hasSave, clearSave } from './save.js';
-import { zoneAt, ROOMS, ATTIC_ZONE } from './layout.js';
+import { zoneAt, ROOMS, isSideZone } from './layout.js';
 import { Hud } from '../ui/hud.js';
 import { Modals } from '../ui/manager.js';
 import { clickToStart, mainMenu, pauseMenu, journal, showNote, showClue, HintCard, confirmBox } from '../ui/screens.js';
@@ -289,6 +289,8 @@ export class Game {
         else {
           this.cats.freeRoam();
           this.toast(TOASTS.wandering, { ms: 5000 });
+          // The treasure hunt starts by the envelope (once the coupon has words).
+          if (this.gs.huntOpen() && !this.gs.huntDone()) setTimeout(() => this.toast(TOASTS.huntStart, { ms: 4500 }), 5600);
         }
       },
     });
@@ -453,7 +455,7 @@ export class Game {
   }
 
   _nearestPuzzle() {
-    const room = this.zone === ATTIC_ZONE ? ATTIC_ZONE : Math.min(this.zone, 4);
+    const room = isSideZone(this.zone) ? this.zone : Math.min(this.zone, 4);
     const r = this.rooms[room];
     if (!r?.anchors) return null;
     let best = null;
@@ -531,7 +533,7 @@ export class Game {
       setTimeout(() => this.toast(fill(UI.memoryTulip, { D: digit }), { ms: 5200 }), 300);
     });
     this.gs.on('room', ({ room, first }) => {
-      if (first && (room <= 4 || room === ATTIC_ZONE)) this.hud.showBanner(room);
+      if (first && (room <= 4 || isSideZone(room))) this.hud.showBanner(room);
     });
   }
 
@@ -740,19 +742,21 @@ export class Game {
     this.hints.hide();
   }
 
-  // Show the current room and its neighbours only. The attic stands apart:
-  // it is shown only while you are in it, and hides the whole house.
+  // Show the current room and its neighbours only. The side rooms (attic,
+  // greenhouse, basement, balcony) stand apart: each is shown only while you
+  // are in it, and hides the whole house.
   _cull() {
     const z = this.state === 'playing' ? this.zone : 0;
     this.roomGroups.forEach((g, i) => {
       if (!g) return;
       // Room i also owns the hallway north of it.
-      if (i === ATTIC_ZONE || z === ATTIC_ZONE) g.visible = i === z;
+      if (isSideZone(i) || isSideZone(z)) g.visible = i === z;
       else g.visible = i >= z - 1 && i <= z + 1;
     });
   }
 
-  // The attic ladder: a quick fade out, a few creaky rungs, and back in
+  // To and from a side room (the attic ladder, the greenhouse door, the cellar
+  // stairs, the balcony doors): a quick fade out, a few steps, and back in
   // somewhere else.
   travel(x, z, yaw) {
     if (this._traveling || this.state !== 'playing') return;

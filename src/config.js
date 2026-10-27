@@ -112,9 +112,8 @@ export const ROOM_TITLES = ['Strangers', 'Tulips', 'Sunday', 'The Cats', 'The La
 // always play the first version of each (the ones written first below).
 export const RANDOMIZE = true;
 
-// Final gate lock. One digit is collected per opened door, in room order:
-// door of room 1 gives LOCK_CODE[0], room 2 gives LOCK_CODE[1], and so on.
-export const LOCK_CODE = '2007';
+// The final gate lock's four digits are picked at random every new game (see
+// puzzles/lock.js). Each opened door shows one on its memory tulip, in room order.
 
 // Kitchen cipher. The pinned card shows CIPHER_SENTENCE with every letter
 // moved CIPHER_SHIFT steps forward, and nothing on it says how far. The fridge
@@ -226,11 +225,20 @@ export const HIDING_SPOTS = [
 ];
 
 // -----------------------------------------------------------------------------
+//  The optional side rooms, each with two puzzles and a little find. Their
+//  names on the banner when you first walk in (by room number).
+// -----------------------------------------------------------------------------
+export const SIDE_ROOMS = {
+  6: { name: 'Attic', title: 'Kept Things' },
+  7: { name: 'Greenhouse', title: 'Growing Things' },
+  8: { name: 'Basement', title: 'Warm Things' },
+  9: { name: 'Balcony', title: 'Night Things' },
+};
+
+// -----------------------------------------------------------------------------
 //  The attic (optional, up the ladder in the bedroom ceiling): an old piano that
 //  plays a tune to play back, then a picture lock on a trunk that keeps a photo.
 // -----------------------------------------------------------------------------
-export const ATTIC_NAME = 'Attic';
-export const ATTIC_TITLE = 'Kept Things';
 // One octave of white keys. The tune starts with PIANO_START notes and grows by
 // one each time it is played back, up to PIANO_LENGTH.
 export const PIANO_KEYS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
@@ -260,6 +268,107 @@ export const TRUNK_ANSWER = ['cookie', 'star', 'tulip', 'mouse']; // when RANDOM
 export const PHOTO = { caption: "I mistake your beauty for the sun's." };
 
 // -----------------------------------------------------------------------------
+//  The greenhouse (optional, a glass door at the side of the garden)
+// -----------------------------------------------------------------------------
+// Watering: each pot's tag says the day it was last watered. Today is Sunday,
+// so the pot watered longest ago is the thirstiest and drinks first. Every
+// game picks six of these plants and gives them the days in a new order.
+export const WATER_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+export const WATER_PLANTS = [
+  { id: 'fern', name: 'the fern' },
+  { id: 'cactus', name: 'the little cactus' },
+  { id: 'basil', name: 'the basil' },
+  { id: 'lemon', name: 'the lemon tree' },
+  { id: 'orchid', name: 'the orchid' },
+  { id: 'ivy', name: 'the ivy' },
+  { id: 'tomato', name: 'the tomato plant' },
+  { id: 'daisy', name: 'the daisies' },
+];
+// Grow lamps: a 4×4 grid. Each lamp flips itself and the lamps beside it.
+
+// -----------------------------------------------------------------------------
+//  The basement (optional, down the hatch in the kitchen floor)
+// -----------------------------------------------------------------------------
+// The fuse box: five switches, five of these names (picked every game), and a
+// card of rules that only one setting keeps. {A} and {B} are switch names
+// (keep them singular: the rules say "is").
+export const FUSE_NAMES = ['the kettle', 'the radio', 'the porch light', 'the heater', 'the lamp', 'the record player', 'the fridge', 'the toaster'];
+export const FUSE_RULES = {
+  on: '{A} stays on.',
+  off: '{A} stays off.',
+  never: 'Never {A} and {B} together.',
+  either: 'At least one of {A} and {B}.',
+  ifThen: 'If {A} is on, so is {B}.',
+  same: '{A} and {B} go together: both on or both off.',
+  differ: 'Exactly one of {A} and {B}.',
+  count: 'Exactly {N} switches on.',
+};
+// The pipes: a 5×5 grid of pipe pieces. Turn them until water runs from the
+// tap on the left to the boiler on the right. A new layout every game.
+
+// -----------------------------------------------------------------------------
+//  The balcony (optional, the glass doors in the study)
+// -----------------------------------------------------------------------------
+// The lanterns: a 5×5 net of paper lanterns with a number for each row and
+// column (how many in a row are lit, in groups). Lit right, they draw one of
+// these pictures ('#' is a lit lantern). Each must have exactly one answer
+// (tests/rooms.test.js checks).
+export const LANTERN_PICTURES = [
+  { id: 'heart', name: 'a heart', rows: ['.#.#.', '#####', '#####', '.###.', '..#..'] },
+  { id: 'moon', name: 'a crescent moon', rows: ['.###.', '##...', '#....', '##...', '.###.'] },
+  { id: 'tulip', name: 'a tulip', rows: ['#.#.#', '#####', '.###.', '..#..', '.###.'] },
+  { id: 'cat', name: 'a cat', rows: ['#...#', '##.##', '#####', '#.#.#', '.###.'] },
+  { id: 'star', name: 'a star', rows: ['..#..', '#####', '.###.', '.#.#.', '#...#'] },
+  { id: 'house', name: 'a little house', rows: ['..#..', '.###.', '#####', '.#.#.', '.###.'] },
+];
+// Star cards: six pairs to match, from these pictures (six picked every game).
+export const PAIR_PICTURES = [
+  { id: 'moon', name: 'the moon' },
+  { id: 'star', name: 'a star' },
+  { id: 'heart', name: 'a heart' },
+  { id: 'tulip', name: 'a tulip' },
+  { id: 'cat', name: 'a cat' },
+  { id: 'comet', name: 'a comet' },
+  { id: 'planet', name: 'a planet' },
+  { id: 'cloud', name: 'a cloud' },
+];
+
+// -----------------------------------------------------------------------------
+//  The treasure hunt: after the letter, a folded note by the envelope starts a
+//  chain of notes around the house, in a new order every game. The last one
+//  holds HUNT_COUPON. Write it here (until it has words, the hunt stays away).
+// -----------------------------------------------------------------------------
+export const HUNT_COUPON = { title: 'A coupon', text: '' };
+export const HUNT_LENGTH = 5; // places to visit; the last one keeps the coupon
+// Where a note can hide (by which puzzle), and how the note before it says so.
+export const HUNT_RIDDLES = {
+  r1a: 'where five frames tell how we got closer',
+  r1b: 'where the tulip painting fell to pieces',
+  r2a: 'where blue and white tulips stand in a row',
+  r2b: 'where the rainbow books are squeezed in tight',
+  r3a: 'where the magnets spell a secret word',
+  r3b: 'where the oven waits for its four dials',
+  r4b: 'where numbers fill a board of chalk',
+  r5a: 'where the gate asked for four digits',
+  r5b: 'where a year of us hides in the stars',
+  piano: 'where an old tune lives, up the ladder',
+  water: 'where thirsty plants wait their turn',
+  lamps: 'where sixteen little suns hang over the seedlings',
+  fuses: 'where the switches decide what gets power',
+  pipes: 'where the water winds its way to the boiler',
+  lanterns: 'where paper lanterns draw in the dark',
+  pairs: 'where twelve cards wait face down under the stars',
+};
+// The notes' words. {RIDDLE} is where the next one is; {N} counts them.
+export const HUNT_TEXT = {
+  startTitle: 'One more thing',
+  start: 'The cats left you a trail of notes. Follow it.\n\nThe first one is {RIDDLE}.',
+  noteTitle: 'Note {N}',
+  note: 'Getting warmer.\n\nThe next one is {RIDDLE}.',
+  lastNote: 'Almost there.\n\nThe last one is {RIDDLE}.',
+};
+
+// -----------------------------------------------------------------------------
 //  Clue cards (short printed cards next to puzzles; kept in the journal)
 // -----------------------------------------------------------------------------
 export const CLUES = {
@@ -275,6 +384,9 @@ export const CLUES = {
   gate: { title: 'A note on the gate', text: 'Remember what each room gave you.' },
   // Written from the trunk's answer when a game starts (see puzzles/trunk.js).
   atticRiddle: { title: 'A card from the piano', text: '' },
+  waterCard: { title: 'A note on the watering can', text: 'Today is Sunday.\nThe thirstiest drink first.' },
+  // Written from the fuse puzzle's rules when a game starts (puzzles/fuses.js).
+  fuseCard: { title: 'The card on the fuse box', text: '' },
 };
 
 // -----------------------------------------------------------------------------
@@ -342,6 +454,36 @@ export const HINTS = {
     'Each line of the card is one of the little finds around the house: the dresser drawer keeps the paper star, the cushion hides the toy mouse, the kitchen jar holds the cookie, the little book presses the tulip.',
     'Set the wheels, left to right, to {ANSWER}, then Open.',
   ],
+  water: [
+    'Every pot has a tag with the day it was last watered. The note on the watering can says today is Sunday.',
+    'The longer ago, the thirstier. Since last Sunday, Monday was the longest ago, then Tuesday, and so on. Start with {FIRST}.',
+    'Water them in this order: {ORDER}.',
+  ],
+  lamps: [
+    'Each grow lamp switches itself and the lamps right next to it (not the corner ones). Light all sixteen.',
+    'Switching the same lamp twice changes nothing, so order does not matter: it is only which lamps you switch. Try fixing the top rows first by switching lamps in the row below.',
+    'From here, switch these {N}: {LAMPS}.',
+  ],
+  fuses: [
+    'The card on the fuse box has rules for the five switches. Only one setting keeps every rule. Then pull the lever.',
+    'Rules that break show in red as you flip switches. Start with the firmest rules, like how many are on, and the ones that tie two switches together.',
+    'On: {ON}. Off: {OFF}. Then pull the lever.',
+  ],
+  pipes: [
+    'Turn the pipe pieces until water runs from the tap on the left to the boiler on the right. Pieces the water reaches turn blue.',
+    'Work from the tap: it comes in on row {TAPROW}. Turn each wet piece until it leads somewhere, and keep going towards the boiler on row {BOILERROW}.',
+    'From the tap, the water goes: {ROUTE}, then into the boiler.',
+  ],
+  lanterns: [
+    'Light the lanterns so each row and column matches its numbers: "2 1" means two lit next to each other, a gap, then one more.',
+    'A row of 5 is all lit, and a row with nothing is all dark. Start there, then use the columns to fill in the rest. Lines that match turn gold.',
+    'It is {NAME}. Lit lanterns, by row: {ROWS}.',
+  ],
+  pairs: [
+    'Turn two cards. A pair stays up; anything else turns back over. Remember where the pictures were.',
+    'Go row by row, and turn a card you have not seen yet first. Then, if its pair is one you saw, you know where to go.',
+    'The pairs left, counting cards 1 to 12 in rows of four: {PAIRS}.',
+  ],
 };
 
 export const PUZZLE_NAMES = {
@@ -357,6 +499,12 @@ export const PUZZLE_NAMES = {
   r5b: 'The telescope',
   piano: 'The old piano',
   trunk: 'The picture lock',
+  water: 'The thirsty plants',
+  lamps: 'The grow lamps',
+  fuses: 'The fuse box',
+  pipes: 'The pipes',
+  lanterns: 'The lanterns',
+  pairs: 'The star cards',
 };
 
 // -----------------------------------------------------------------------------
@@ -489,6 +637,31 @@ export const PROMPTS = {
   trunk: 'Open the old trunk',
   photoTake: 'Take the photo',
   photoLook: 'Look at the photo',
+  // the greenhouse, basement and balcony
+  greenhouseIn: 'Go into the greenhouse',
+  greenhouseOut: 'Back to the garden',
+  water: 'Water the plants',
+  waterCard: 'Read the note on the can',
+  lamps: 'Switch the grow lamps',
+  bloom: 'Pick the tulip',
+  bloomLook: 'The tulip is blooming',
+  cellarOpen: 'Open the hatch',
+  cellarDown: 'Go down to the basement',
+  cellarUp: 'Back up to the kitchen',
+  fuses: 'Open the fuse box',
+  fuseCard: 'Read the card',
+  pipes: 'Look at the pipes',
+  windup: 'Take the wind-up cat',
+  windupLook: 'Wind up the cat',
+  balconyOut: 'Go out to the balcony',
+  balconyIn: 'Back to the study',
+  lanterns: 'Light the lanterns',
+  pairs: 'Turn the star cards',
+  wish: 'Let the lantern go',
+  wishLook: 'Watch the wish lantern',
+  // the treasure hunt
+  huntNote: 'Read the note',
+  huntCoupon: 'Open the envelope',
 };
 
 // Little messages that pop up at the top of the screen.
@@ -522,6 +695,14 @@ export const TOASTS = {
   mazeAgain: 'The middle again, in {TIME} (best {BEST}).',
   mazeHint: 'The fireflies show you the way, just for a moment.',
   ladder: 'A ladder unfolds from the ceiling.',
+  cellar: 'The hatch creaks open. Stairs go down into the dark.',
+  bloom: 'The plants perk up under the lamps, and a tulip opens.',
+  basementLit: 'The lights flicker on. The boiler starts to hum.',
+  windup: 'Behind the boiler, something small and warm.',
+  wish: 'One lantern is left over, waiting for a wish.',
+  huntStart: 'Something is tucked under the envelope.',
+  huntFound: 'Another note.',
+  huntDone: 'The last envelope.',
 };
 
 // Words on buttons, menus and puzzle screens.
@@ -656,11 +837,44 @@ export const LABELS = {
   trunkOpened: 'Click. The lid lifts a little.',
   trunkHelp: 'Turn each wheel with the arrows, then Open.',
   photoTitle: 'A photo',
+  // the greenhouse
+  waterStart: 'Six thirsty pots. Each tag says when it was last watered.',
+  waterOk: '{NAME} drinks happily.',
+  waterWrong: '{NAME} was not that thirsty yet. The others still wait. Start again.',
+  waterSolved: 'Everyone has had a drink.',
+  waterHelp: 'Click a pot to water it.',
+  waterTag: 'Last watered: {DAY}',
+  lampsStart: 'Each lamp switches itself and its neighbours.',
+  lampsMoves: 'Switches: {N}',
+  lampsSolved: 'All sixteen lamps glow.',
+  lampsHelp: 'Click a lamp to switch it.',
+  // the basement
+  fusesStart: 'Set the switches so every rule on the card holds, then pull the lever.',
+  fusesLever: 'Pull the lever',
+  fusesWrong: 'Pop. The fuse trips. Not like that.',
+  fusesSolved: 'Clunk. The lights come on.',
+  fusesHelp: 'Click a switch to flip it. Red rules are broken.',
+  pipesStart: 'Turn the pieces so the water reaches the boiler.',
+  pipesSolved: 'Water rushes through. The boiler glugs happily.',
+  pipesHelp: 'Click a piece to turn it.',
+  pipesTap: 'tap',
+  pipesBoiler: 'boiler',
+  // the balcony
+  lanternsStart: 'Light lanterns to match the numbers on every row and column.',
+  lanternsSolved: 'The lanterns draw {NAME} in the night.',
+  lanternsHelp: 'Click a lantern to light it or blow it out.',
+  pairsStart: 'Turn two cards at a time. Find the six pairs.',
+  pairsPair: 'A pair.',
+  pairsMiss: 'Not a pair.',
+  pairsSolved: 'Every pair found, in {N} turns.',
+  pairsTurns: 'Turns: {N}',
+  pairsHelp: 'Click a card to turn it.',
 };
 
 // Little finds: small things hidden around the house (in a drawer, under a
-// cushion, in the cookie jar, in a book, in the middle of the garden maze, and
-// in the attic's trunk). They are optional and kept in the journal.
+// cushion, in the cookie jar, in a book, in the middle of the garden maze, in
+// the attic's trunk, and one in each of the other side rooms once both its
+// puzzles are solved). They are optional and kept in the journal.
 export const FINDS = [
   { id: 'star', room: 0, name: 'a paper star', text: 'Folded very carefully from a page of a notebook. Someone kept it.' },
   { id: 'mouse', room: 1, name: 'a toy mouse', text: "Tchobin's favourite toy. It has clearly been through a lot." },
@@ -668,6 +882,9 @@ export const FINDS = [
   { id: 'tulip', room: 3, name: 'a pressed tulip', text: 'Flattened between two pages, still a little blue.' },
   { id: 'fireflies', room: 4, name: 'a jar of fireflies', text: 'Waiting in the middle of the hedge maze.' },
   { id: 'photo', room: 6, name: 'a photo', text: 'Kept in the old trunk in the attic.' },
+  { id: 'bloom', room: 7, name: 'a tulip in bloom', text: 'It opened under the grow lamps once every plant had its drink.' },
+  { id: 'windup', room: 8, name: 'a wind-up cat', text: 'Found behind the boiler, still warm. Wind it and it walks in little circles.' },
+  { id: 'wish', room: 9, name: 'a wish lantern', text: 'Let go from the balcony. It is still up there somewhere, glowing.' },
 ];
 
 // On phones and tablets these replace the keyboard-and-mouse wording above.
@@ -693,6 +910,12 @@ export const TOUCH_TEXT = {
     lockNotYet: 'Not yet. Your journal has the digits from each door.',
     lockHelp: 'Tap the arrows to set each digit, then Open.',
     pianoHelp: 'Tap the keys.',
+    waterHelp: 'Tap a pot to water it.',
+    lampsHelp: 'Tap a lamp to switch it.',
+    fusesHelp: 'Tap a switch to flip it. Red rules are broken.',
+    pipesHelp: 'Tap a piece to turn it.',
+    lanternsHelp: 'Tap a lantern to light it or blow it out.',
+    pairsHelp: 'Tap a card to turn it.',
     readFaster: 'tap to read faster',
   },
   TOASTS: {

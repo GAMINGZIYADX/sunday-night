@@ -1896,3 +1896,284 @@ body.touch .seg-b {
   line-height: 1.5;
   text-align: center;
 }
+
+/* ---------------------------------------------------------------------------
+   The greenhouse, basement and balcony screens. Boards are sized with a
+   width and a height (no aspect-ratio: older phone browsers lack it).
+   --------------------------------------------------------------------------- */
+.pots,
+.lamp-grid,
+.fuse-box,
+canvas.pipes,
+.lantern-grid,
+.pairs-grid {
+  --bs: min(calc(92vh - 230px), 78vw, 420px);
+}
+/* Watering: six pots in two rows. */
+.pots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  width: min(calc((92vh - 230px) * 1.4), 86vw, 520px);
+}
+.pot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 4px;
+  border: 0;
+  border-radius: 14px;
+  background: #f3ead9;
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+.pot canvas {
+  width: 64px;
+  height: 64px;
+}
+.pot b {
+  font-size: 13px;
+}
+.pot .tag {
+  font-size: 12px;
+  color: var(--ink-soft);
+  background: #fffaf0;
+  border-radius: 6px;
+  padding: 1px 6px;
+}
+.pot.wet {
+  background: #dfecf6;
+}
+/* Grow lamps: 4×4. */
+.lamp-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  width: var(--bs);
+  height: var(--bs);
+  padding: 10px;
+  border-radius: 16px;
+  background: #3a3a3e;
+}
+.lamp {
+  border: 0;
+  border-radius: 50%;
+  background: #57534d;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lamp i {
+  width: 44%;
+  height: 44%;
+  border-radius: 50%;
+  background: #7a746b;
+}
+.lamp.on {
+  background: #6b5a3a;
+  box-shadow: 0 0 18px 4px rgba(255, 210, 122, 0.55);
+}
+.lamp.on i {
+  background: #fff1c8;
+}
+/* Fuse box: switches above, the rule card below. */
+.fuse-box {
+  width: min(86vw, 480px);
+  padding: 12px;
+  border-radius: 14px;
+  background: #5a6168;
+}
+.fuse-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+.fuse {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 2px;
+  border: 0;
+  border-radius: 10px;
+  background: #2c2f33;
+  color: #e9e2d6;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.fuse i {
+  width: 18px;
+  height: 34px;
+  border-radius: 6px;
+  background: #1c1e21;
+  position: relative;
+}
+.fuse i::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  height: 14px;
+  bottom: 3px;
+  border-radius: 4px;
+  background: #b9b1a3;
+}
+.fuse.on i::after {
+  top: 3px;
+  bottom: auto;
+  background: #8fe39a;
+}
+.fuse-card {
+  margin: 10px 0 0;
+  padding: 10px 12px 10px 30px;
+  border-radius: 8px;
+  background: var(--paper);
+  font-size: 14px;
+  line-height: 1.4;
+}
+.fuse-card li.broken {
+  color: #c0392b;
+}
+/* Pipes. */
+canvas.pipes {
+  width: var(--bs);
+  height: var(--bs);
+  border-radius: 12px;
+  cursor: pointer;
+  touch-action: none;
+}
+/* Lanterns: a 6×6 grid, numbers in the first row and column. */
+.lantern-grid {
+  display: grid;
+  grid-template-columns: 1.3fr repeat(5, 1fr);
+  grid-template-rows: 1.3fr repeat(5, 1fr);
+  gap: 5px;
+  width: var(--bs);
+  height: var(--bs);
+  padding: 8px;
+  border-radius: 14px;
+  background: #1d2445;
+}
+.lantern-grid .clue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #c9cff0;
+  font-size: 14px;
+  font-weight: 700;
+}
+.lantern-grid .clue.col {
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.lantern-grid .clue.row {
+  justify-content: flex-end;
+  padding-right: 4px;
+}
+.lantern-grid .clue.done {
+  color: #f2c14e;
+}
+.lantern {
+  border: 0;
+  border-radius: 50%;
+  background: #2f3866;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lantern i {
+  width: 52%;
+  height: 64%;
+  border-radius: 45%;
+  background: #4a5180;
+}
+.lantern.on {
+  box-shadow: 0 0 14px 3px rgba(255, 196, 107, 0.5);
+}
+.lantern.on i {
+  background: #ffd38a;
+}
+/* Star cards: three rows of four. */
+.pairs-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  width: min(calc((92vh - 230px) * 1.05), 80vw, 440px);
+}
+.scard {
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  background: transparent;
+  box-shadow: 0 3px 8px rgba(40, 20, 30, 0.25);
+}
+.scard canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.scard.matched {
+  opacity: 0.85;
+  box-shadow: 0 0 0 3px #f2c14e;
+}
+/* The coupon at the end of the treasure hunt. */
+.coupon {
+  max-width: 460px;
+  padding: 28px 30px 22px;
+  border: 3px dashed var(--blush-deep);
+  border-radius: 18px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+.coupon .title {
+  display: block;
+  font-family: var(--hand);
+  font-size: 30px;
+  margin-bottom: 10px;
+}
+.coupon p {
+  font-size: 19px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+.coupon-heart {
+  color: var(--blush-deep);
+  font-size: 28px;
+}
+@media (max-height: 520px) {
+  .pots,
+  .lamp-grid,
+  .fuse-box,
+  canvas.pipes,
+  .lantern-grid,
+  .pairs-grid {
+    --bs: min(calc(100vh - 44px), 52vw);
+  }
+  .pots {
+    width: min(calc((100vh - 44px) * 1.3), 56vw);
+  }
+  .pot canvas {
+    width: 44px;
+    height: 44px;
+  }
+  .fuse-box {
+    width: min(58vw, 460px);
+  }
+  .fuse-card {
+    font-size: 12px;
+    margin-top: 6px;
+  }
+  .pairs-grid {
+    width: min(calc((100vh - 44px) * 1.05), 54vw);
+    gap: 5px;
+  }
+}

@@ -1,9 +1,8 @@
 import { el, button, TULIP_SVG } from './dom.js';
 import { card } from './manager.js';
 import { GAME_TITLE, UI, NOTES, NOTE_PLACES, PUZZLE_NAMES, ROOM_NAMES, CLUES, FINDS } from '../config.js';
-import { ALL_IDS, PUZZLE_IDS, ATTIC_IDS } from '../puzzles/index.js';
+import { ALL_IDS, PUZZLE_IDS, EXTRA_IDS } from '../puzzles/index.js';
 import { photoOverlay } from './overlays.js';
-import { ATTIC_ZONE } from '../engine/layout.js';
 import { KEY_SVG } from './dom.js';
 import { exportCode, importCode } from '../engine/save.js';
 import { LABELS, TOASTS } from '../config.js';
@@ -356,7 +355,10 @@ export function journal(game) {
               )
             : null,
         ]),
-        el('section', [el('h3', `${LABELS.puzzles}  ${solved}/${PUZZLE_IDS.length + (gs.data.visited[ATTIC_ZONE] ? ATTIC_IDS.length : 0)}`), plist]),
+        el('section', [
+          el('h3', `${LABELS.puzzles}  ${solved}/${PUZZLE_IDS.length + EXTRA_IDS.filter((id) => gs.data.visited[gs.puzzles[id].room]).length}`),
+          plist,
+        ]),
       ]),
     ],
     { wide: true, icon: TULIP_SVG('#6f9be0', 26), onClose: () => game.modals.close(m) },

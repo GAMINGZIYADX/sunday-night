@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { ROOMS, zoneAt } from './engine/layout.js';
 import { PUZZLE_IDS } from './puzzles/index.js';
+import { HUNT_COUPON } from './config.js';
 
 // Debug helpers (only in debug builds, with ?debug=1):
 //   Shift+1..6  jump to room / clearing
@@ -78,6 +79,10 @@ export function installDebug(game, params) {
       game.modals.closeAll();
     },
     modal: () => game.modals.top()?.name || null,
+    // The treasure hunt only runs once the coupon has words (tests give it some).
+    setCoupon(text) {
+      HUNT_COUPON.text = text;
+    },
     closeModals: () => game.modals.closeAll(),
     // Simulate held keys for n frames of dt (movement + collision only).
     walk(keys, frames = 60, dt = 1 / 60) {

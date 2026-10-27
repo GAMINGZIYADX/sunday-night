@@ -1,14 +1,15 @@
 import { el, button, TULIP_SVG } from './dom.js';
 import { card } from './manager.js';
-import { drawTulipField, drawStarField, drawLockPicture } from '../rooms/art.js';
+import { drawTulipField, drawStarField, drawLockPicture, drawCardPicture } from '../rooms/art.js';
 import { photoImage, sizeOf } from '../rooms/photo.js';
 import { heartStars } from '../puzzles/constellation.js';
 import { N as SN } from '../puzzles/sliding.js';
-import { PUZZLE_NAMES, COLORS, CLUES, PIANO_KEYS, TRUNK_PICTURES, PHOTO } from '../config.js';
+import { PUZZLE_NAMES, COLORS, CLUES, PIANO_KEYS, TRUNK_PICTURES, PHOTO, HUNT_COUPON } from '../config.js';
 import { hex } from '../engine/textures.js';
 import { LABELS } from '../config.js';
 import { fill } from '../engine/text.js';
 import { shape } from '../puzzles/sudokuMath.js';
+import { showClue } from './screens.js';
 
 // Shared: H inside an overlay shows the next hint for that puzzle.
 function hintKey(game, id, e) {
@@ -812,5 +813,491 @@ export function photoOverlay(game) {
   const polaroid = el('div.photo', [holder, PHOTO.caption ? el('p.photo-caption', PHOTO.caption) : null]);
   const wrap = el('div.paper-wrap', [polaroid, el('div.paper-actions', [button(LABELS.okay, close)])]);
   m = game.modals.show(wrap, { name: 'photo', backdropClose: true });
+  return m;
+}
+
+// Shared by the side rooms' screens: a puzzle card with the usual side panel.
+function sideCard(game, id, main, msg, tools, help) {
+  return card(
+    null,
+    [
+      el('div.pz-main', [main]),
+      el('div.pz-side', [
+        header(PUZZLE_NAMES[id]),
+        msg,
+        el('div.pz-tools', [...tools, game.gs.puzzles[id].isSolved() ? null : button(LABELS.hint, () => game.showHint(id), 'small')]),
+        el('p.note-small', { style: { textAlign: 'center' } }, help),
+      ]),
+    ],
+    { cls: 'pz', onClose: () => game.modals.close(game.modals.top()) },
+  );
+}
+function shake(node) {
+  node.classList.remove('lock-shake');
+  void node.offsetWidth;
+  node.classList.add('lock-shake');
+}
+function solvedThenClose(game, getM, node, ms = 1500) {
+  node.classList.add('solved-glow');
+  setTimeout(() => game.modals.top() === getM() && game.modals.close(getM()), ms);
+}
+const capFirst = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+// A little potted plant, drawn for the watering screen.
+function drawPot(cv, plantId, wet) {
+  const g = cv.getContext('2d');
+  const w = cv.width;
+  const h = cv.height;
+  g.clearRect(0, 0, w, h);
+  const leaf = { cactus: '#7aa86a', tomato: '#5f8f55', lemon: '#4f7a4a', daisy: '#6f9d5a' }[plantId] || '#5f8f55';
+  g.save();
+  g.translate(w / 2, h * 0.62);
+  if (!wet) g.rotate(0.12);
+  g.fillStyle = leaf;
+  for (let i = 0; i < 7; i++) {
+    const a = -Math.PI / 2 + (i - 3) * 0.38;
+    g.beginPath();
+    g.ellipse(Math.cos(a) * w * 0.16, Math.sin(a) * w * 0.2, w * 0.07, w * 0.17, a + Math.PI / 2, 0, Math.PI * 2);
+    g.fill();
+  }
+  if (plantId === 'daisy' || plantId === 'orchid')
+    for (const [x, y] of [
+      [-0.12, -0.3],
+      [0.1, -0.36],
+    ]) {
+      g.fillStyle = plantId === 'daisy' ? '#ffffff' : '#e7a3d0';
+      g.beginPath();
+      g.arc(x * w, y * w, w * 0.05, 0, Math.PI * 2);
+      g.fill();
+    }
+  if (plantId === 'lemon' || plantId === 'tomato') {
+    g.fillStyle = plantId === 'lemon' ? '#f2d24a' : '#e0533e';
+    g.beginPath();
+    g.arc(w * 0.12, -w * 0.12, w * 0.05, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.restore();
+  g.fillStyle = wet ? '#b5654a' : '#d99a6c';
+  g.beginPath();
+  g.moveTo(w * 0.28, h * 0.6);
+  g.lineTo(w * 0.72, h * 0.6);
+  g.lineTo(w * 0.66, h * 0.95);
+  g.lineTo(w * 0.34, h * 0.95);
+  g.closePath();
+  g.fill();
+  if (wet) {
+    g.fillStyle = '#6fa8dc';
+    g.beginPath();
+    g.arc(w * 0.82, h * 0.2, w * 0.05, 0, Math.PI * 2);
+    g.fill();
+  }
+}
+
+// ------------------------------------------------------ greenhouse: watering
+export function waterOverlay(game, puzzle) {
+  const pots = [];
+  const grid = el('div.pots');
+  const msg = el('div.pz-msg', puzzle.isSolved() ? LABELS.waterSolved : LABELS.waterStart);
+  for (let i = 0; i < 6; i++) {
+    const cv = el('canvas', { width: 120, height: 120 });
+    const b = el('button.pot', { type: 'button', onclick: () => water(i) }, [
+      cv,
+      el('b', puzzle.plant(i).name),
+      el('span.tag', fill(LABELS.waterTag, { DAY: puzzle.day(i) })),
+    ]);
+    pots.push({ b, cv });
+    grid.append(b);
+  }
+  const render = () =>
+    pots.forEach(({ b, cv }, i) => {
+      const wet = puzzle.isWatered(i) || puzzle.isSolved();
+      b.classList.toggle('wet', wet);
+      drawPot(cv, puzzle.plant(i).id, wet);
+    });
+  const water = (i) => {
+    const r = puzzle.water(i);
+    const name = capFirst(puzzle.plant(i).name);
+    if (r === 'wrong') {
+      game.audio.soft();
+      msg.textContent = fill(LABELS.waterWrong, { NAME: name });
+      shake(grid);
+    } else if (r === 'ok') {
+      game.audio.click();
+      msg.textContent = fill(LABELS.waterOk, { NAME: name });
+    } else if (r === 'solved') {
+      msg.textContent = LABELS.waterSolved;
+      solvedThenClose(game, () => m, grid);
+    }
+    render();
+  };
+  let m;
+  const close = () => game.modals.close(m);
+  const c = sideCard(
+    game,
+    'water',
+    grid,
+    msg,
+    [button(LABELS.readCard, () => showClue(game, 'waterCard'), 'small'), button(LABELS.close, close, 'small')],
+    LABELS.waterHelp,
+  );
+  m = game.modals.show(c, {
+    name: 'water',
+    onKey: (e) => {
+      if (hintKey(game, 'water', e)) return true;
+      const d = /^(Digit|Numpad)([1-6])$/.exec(e.code);
+      if (d) water(Number(d[2]) - 1);
+      return true;
+    },
+  });
+  render();
+  return m;
+}
+
+// --------------------------------------------------- greenhouse: grow lamps
+export function lampsOverlay(game, puzzle) {
+  const grid = el('div.lamp-grid');
+  const msg = el('div.pz-msg', LABELS.lampsStart);
+  const flip = (i) => {
+    if (puzzle.isSolved()) return;
+    puzzle.flip(i);
+    game.audio.click();
+  };
+  const cells = Array.from({ length: 16 }, (_, i) =>
+    el(
+      'button.lamp',
+      { type: 'button', 'aria-label': `${Math.floor(i / 4) + 1}-${(i % 4) + 1}`, onpointerdown: (e) => (e.preventDefault(), flip(i)) },
+      [el('i')],
+    ),
+  );
+  grid.append(...cells);
+  const render = () => {
+    cells.forEach((c, i) => c.classList.toggle('on', puzzle.isOn(i)));
+    msg.textContent = puzzle.isSolved() ? LABELS.lampsSolved : fill(LABELS.lampsMoves, { N: puzzle.moves });
+  };
+  let m;
+  const close = () => game.modals.close(m);
+  const c = sideCard(game, 'lamps', grid, msg, [button(LABELS.close, close, 'small')], LABELS.lampsHelp);
+  const off = puzzle.onChange((p, just) => {
+    render();
+    if (just) solvedThenClose(game, () => m, grid);
+  });
+  m = game.modals.show(c, { name: 'lamps', onClose: off, onKey: (e) => hintKey(game, 'lamps', e) || true });
+  render();
+  return m;
+}
+
+// ----------------------------------------------------- basement: fuse box
+export function fusesOverlay(game, puzzle) {
+  const switches = [];
+  const row = el('div.fuse-row');
+  const toggle = (i) => {
+    if (puzzle.isSolved()) return;
+    puzzle.toggle(i);
+    game.audio.click();
+    render();
+  };
+  for (let i = 0; i < 5; i++) {
+    const b = el('button.fuse', { type: 'button', onclick: () => toggle(i) }, [el('i'), el('span', puzzle.name(i))]);
+    switches.push(b);
+    row.append(b);
+  }
+  const items = puzzle.card.map((line) => el('li', line));
+  const rules = el('ol.fuse-card', items);
+  const box = el('div.fuse-box', [row, rules]);
+  const msg = el('div.pz-msg', puzzle.isSolved() ? LABELS.fusesSolved : LABELS.fusesStart);
+  const render = () => {
+    switches.forEach((b, i) => b.classList.toggle('on', puzzle.isOn(i)));
+    const broken = puzzle.broken();
+    items.forEach((li, i) => li.classList.toggle('broken', broken[i]));
+  };
+  const pull = () => {
+    if (puzzle.isSolved()) return;
+    if (puzzle.pull()) {
+      game.audio.keyTurn();
+      msg.textContent = LABELS.fusesSolved;
+      solvedThenClose(game, () => m, box);
+      return;
+    }
+    game.audio.soft();
+    msg.textContent = LABELS.fusesWrong;
+    shake(box);
+  };
+  let m;
+  const close = () => game.modals.close(m);
+  const c = sideCard(
+    game,
+    'fuses',
+    box,
+    msg,
+    [puzzle.isSolved() ? null : button(LABELS.fusesLever, pull, 'primary'), button(LABELS.close, close, 'small')],
+    LABELS.fusesHelp,
+  );
+  m = game.modals.show(c, {
+    name: 'fuses',
+    onKey: (e) => {
+      if (hintKey(game, 'fuses', e)) return true;
+      const d = /^(Digit|Numpad)([1-5])$/.exec(e.code);
+      if (d) toggle(Number(d[2]) - 1);
+      if (e.code === 'Enter') pull();
+      return true;
+    },
+  });
+  render();
+  return m;
+}
+
+// ------------------------------------------------------- basement: pipes
+// The board: 5×5 pieces with the tap on the left edge and the boiler on the
+// right, drawn on a canvas `size` pixels square (the wall board uses it too).
+const PIPE_N = 5;
+const pipeGeom = (size) => {
+  const cell = size / (PIPE_N + 1);
+  return { cell, x0: cell / 2, y0: cell / 2 };
+};
+export function drawPipes(g, puzzle, size, { wet = new Set() } = {}) {
+  const { cell, x0, y0 } = pipeGeom(size);
+  g.fillStyle = '#e9dfcc';
+  g.fillRect(0, 0, size, size);
+  g.strokeStyle = 'rgba(120,100,80,0.25)';
+  g.lineWidth = 1;
+  for (let i = 0; i <= PIPE_N; i++) {
+    g.beginPath();
+    g.moveTo(x0 + i * cell, y0);
+    g.lineTo(x0 + i * cell, y0 + PIPE_N * cell);
+    g.moveTo(x0, y0 + i * cell);
+    g.lineTo(x0 + PIPE_N * cell, y0 + i * cell);
+    g.stroke();
+  }
+  // The tap (red) and the boiler (blue once the water gets there).
+  const tapY = y0 + (puzzle.tapRow + 0.5) * cell;
+  const boilY = y0 + (puzzle.boilerRow + 0.5) * cell;
+  g.fillStyle = '#c0392b';
+  g.beginPath();
+  g.arc(x0 * 0.55, tapY, cell * 0.2, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = puzzle.isSolved() ? '#3d8bfd' : '#8a8178';
+  g.fillRect(x0 + PIPE_N * cell + cell * 0.08, boilY - cell * 0.32, cell * 0.36, cell * 0.64);
+  const dirs = [
+    [1, 0, -1],
+    [2, 1, 0],
+    [4, 0, 1],
+    [8, -1, 0],
+  ];
+  g.lineCap = 'round';
+  for (let i = 0; i < PIPE_N * PIPE_N; i++) {
+    const cx = x0 + ((i % PIPE_N) + 0.5) * cell;
+    const cy = y0 + (Math.floor(i / PIPE_N) + 0.5) * cell;
+    const m = puzzle.masks[i];
+    const color = wet.has(i) ? '#3d8bfd' : '#8a6a50';
+    g.strokeStyle = color;
+    g.lineWidth = cell * 0.24;
+    for (const [bit, dx, dy] of dirs) {
+      if (!(m & bit)) continue;
+      g.beginPath();
+      g.moveTo(cx, cy);
+      g.lineTo(cx + (dx * cell) / 2, cy + (dy * cell) / 2);
+      g.stroke();
+    }
+    g.fillStyle = color;
+    g.beginPath();
+    g.arc(cx, cy, cell * 0.12, 0, Math.PI * 2);
+    g.fill();
+  }
+}
+export function pipesOverlay(game, puzzle) {
+  const size = 480;
+  const cv = el('canvas.pipes', { width: size, height: size, role: 'img' });
+  const msg = el('div.pz-msg', puzzle.isSolved() ? LABELS.pipesSolved : LABELS.pipesStart);
+  const render = () => drawPipes(cv.getContext('2d'), puzzle, size, { wet: puzzle.wet() });
+  cv.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    const r = cv.getBoundingClientRect();
+    const { cell, x0, y0 } = pipeGeom(r.width);
+    const x = Math.floor((e.clientX - r.left - x0) / cell);
+    const y = Math.floor((e.clientY - r.top - y0) / cell);
+    if (x < 0 || y < 0 || x >= PIPE_N || y >= PIPE_N || puzzle.isSolved()) return;
+    puzzle.rotate(y * PIPE_N + x);
+    game.audio.click();
+  });
+  let m;
+  const close = () => game.modals.close(m);
+  const c = sideCard(game, 'pipes', cv, msg, [button(LABELS.close, close, 'small')], LABELS.pipesHelp);
+  const off = puzzle.onChange((p, just) => {
+    render();
+    if (just) {
+      msg.textContent = LABELS.pipesSolved;
+      solvedThenClose(game, () => m, cv);
+    }
+  });
+  m = game.modals.show(c, { name: 'pipes', onClose: off, onKey: (e) => hintKey(game, 'pipes', e) || true });
+  render();
+  return m;
+}
+
+// ------------------------------------------------------ balcony: lanterns
+export function lanternsOverlay(game, puzzle) {
+  const N = 5;
+  const grid = el('div.lantern-grid');
+  const clues = puzzle.clues;
+  const colHeads = [];
+  const rowHeads = [];
+  const cells = [];
+  const toggle = (i) => {
+    if (puzzle.isSolved()) return;
+    puzzle.toggle(i);
+    game.audio.click();
+  };
+  grid.append(el('span.corner'));
+  for (let c = 0; c < N; c++) {
+    const h = el(
+      'span.clue.col',
+      (clues.cols[c].length ? clues.cols[c] : [0]).map((n) => el('b', String(n))),
+    );
+    colHeads.push(h);
+    grid.append(h);
+  }
+  for (let r = 0; r < N; r++) {
+    const h = el('span.clue.row', clues.rows[r].length ? clues.rows[r].join(' ') : '0');
+    rowHeads.push(h);
+    grid.append(h);
+    for (let c = 0; c < N; c++) {
+      const i = r * N + c;
+      const b = el('button.lantern', { type: 'button', onpointerdown: (e) => (e.preventDefault(), toggle(i)) }, [el('i')]);
+      cells.push(b);
+      grid.append(b);
+    }
+  }
+  const msg = el('div.pz-msg', LABELS.lanternsStart);
+  const render = () => {
+    cells.forEach((b, i) => b.classList.toggle('on', !!(puzzle.lit[i] || (puzzle.isSolved() && puzzle.target[i]))));
+    for (let k = 0; k < N; k++) {
+      rowHeads[k].classList.toggle('done', puzzle.lineDone(k, false));
+      colHeads[k].classList.toggle('done', puzzle.lineDone(k, true));
+    }
+    if (puzzle.isSolved()) msg.textContent = fill(LABELS.lanternsSolved, { NAME: puzzle.name });
+  };
+  let m;
+  const close = () => game.modals.close(m);
+  const c = sideCard(game, 'lanterns', grid, msg, [button(LABELS.close, close, 'small')], LABELS.lanternsHelp);
+  const off = puzzle.onChange((p, just) => {
+    render();
+    if (just) solvedThenClose(game, () => m, grid, 2200);
+  });
+  m = game.modals.show(c, { name: 'lanterns', onClose: off, onKey: (e) => hintKey(game, 'lanterns', e) || true });
+  render();
+  return m;
+}
+
+// ------------------------------------------------------ balcony: star cards
+function drawCardBack(g, w, h) {
+  g.fillStyle = '#2b3566';
+  g.fillRect(0, 0, w, h);
+  g.fillStyle = '#f2c14e';
+  for (const [x, y, r] of [
+    [0.3, 0.3, 0.05],
+    [0.7, 0.45, 0.04],
+    [0.45, 0.72, 0.06],
+  ]) {
+    g.beginPath();
+    g.arc(x * w, y * h, r * w, 0, Math.PI * 2);
+    g.fill();
+  }
+}
+// The cards as they lie on the balcony table (matched ones face up).
+export function drawPairsTable(g, puzzle, w, h) {
+  g.fillStyle = '#c9a27a';
+  g.fillRect(0, 0, w, h);
+  const cw = w / 4.6;
+  const ch = h / 3.4;
+  for (let i = 0; i < 12; i++) {
+    const x = (w - 4 * cw) / 2 + (i % 4) * cw + cw * 0.08;
+    const y = (h - 3 * ch) / 2 + Math.floor(i / 4) * ch + ch * 0.08;
+    g.save();
+    g.translate(x, y);
+    if (puzzle.matched.includes(i)) {
+      g.fillStyle = '#fbf3e4';
+      g.fillRect(0, 0, cw * 0.84, ch * 0.84);
+      drawCardPicture(g, puzzle.picture(i).id, cw * 0.42, ch * 0.42, Math.min(cw, ch) * 0.7);
+    } else drawCardBack(g, cw * 0.84, ch * 0.84);
+    g.restore();
+  }
+}
+export function pairsOverlay(game, puzzle) {
+  const grid = el('div.pairs-grid');
+  const msg = el('div.pz-msg', puzzle.isSolved() ? fill(LABELS.pairsSolved, { N: puzzle.turns }) : LABELS.pairsStart);
+  let peek = []; // a missed pair, shown for a moment
+  let busy = false;
+  const pick = (i) => {
+    if (busy) return;
+    const first = puzzle.open;
+    const r = puzzle.pick(i);
+    if (!r) return;
+    game.audio.pageFlip();
+    if (r === 'miss') {
+      peek = [first, i];
+      busy = true;
+      msg.textContent = LABELS.pairsMiss;
+      setTimeout(() => {
+        peek = [];
+        busy = false;
+        render();
+        msg.textContent = fill(LABELS.pairsTurns, { N: puzzle.turns });
+      }, 950);
+    } else if (r === 'pair') {
+      game.audio.chime();
+      msg.textContent = LABELS.pairsPair;
+    } else if (r === 'done') {
+      msg.textContent = fill(LABELS.pairsSolved, { N: puzzle.turns });
+      solvedThenClose(game, () => m, grid, 1800);
+    }
+    render();
+  };
+  const cards = Array.from({ length: 12 }, (_, i) => {
+    const cv = el('canvas', { width: 110, height: 140 });
+    const b = el('button.scard', { type: 'button', onpointerdown: (e) => (e.preventDefault(), pick(i)) }, [cv]);
+    grid.append(b);
+    return { b, cv };
+  });
+  const render = () =>
+    cards.forEach(({ b, cv }, i) => {
+      const up = puzzle.isUp(i) || peek.includes(i);
+      const g = cv.getContext('2d');
+      g.clearRect(0, 0, cv.width, cv.height);
+      if (up) {
+        g.fillStyle = '#fbf3e4';
+        g.fillRect(0, 0, cv.width, cv.height);
+        drawCardPicture(g, puzzle.picture(i).id, cv.width / 2, cv.height / 2, cv.width * 0.78);
+      } else drawCardBack(g, cv.width, cv.height);
+      b.classList.toggle('up', up);
+      b.classList.toggle('matched', puzzle.matched.includes(i));
+    });
+  let m;
+  const close = () => game.modals.close(m);
+  const c = sideCard(game, 'pairs', grid, msg, [button(LABELS.close, close, 'small')], LABELS.pairsHelp);
+  m = game.modals.show(c, {
+    name: 'pairs',
+    onClose: () => {
+      // A half-turned pair goes back over when the cards are left.
+      if (puzzle.open !== null) {
+        puzzle.open = null;
+        puzzle.changed();
+      }
+    },
+    onKey: (e) => hintKey(game, 'pairs', e) || true,
+  });
+  render();
+  return m;
+}
+
+// ------------------------------------------------- the treasure hunt's end
+export function couponOverlay(game) {
+  game.audio.sparkle();
+  let m;
+  const close = () => game.modals.close(m);
+  const coupon = el('div.coupon', [el('span.title', HUNT_COUPON.title), el('p', HUNT_COUPON.text), el('div.coupon-heart', '♥')]);
+  m = game.modals.show(el('div.paper-wrap', [coupon, el('div.paper-actions', [button(LABELS.okay, close)])]), {
+    name: 'coupon',
+    backdropClose: true,
+  });
   return m;
 }

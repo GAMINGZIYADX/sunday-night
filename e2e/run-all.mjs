@@ -16,6 +16,7 @@ const tests = [
   'oldphones.mjs',
   'gfxcheck.mjs',
   'gfxtest.mjs',
+  'siderooms.mjs',
 ];
 let failed = 0;
 for (const t of tests) {

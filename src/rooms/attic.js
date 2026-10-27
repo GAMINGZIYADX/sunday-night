@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { COLORS, PROMPTS, TOASTS, ATTIC_NAME } from '../config.js';
+import { COLORS, PROMPTS, TOASTS, SIDE_ROOMS } from '../config.js';
 import { ATTIC, ATTIC_ZONE, ATTIC_HOLE, HATCH, WALL_H, atticRoofY } from '../engine/layout.js';
 import { mat, mesh, group, rbox, box, cyl, sphere, plane, torus } from '../engine/materials.js';
 import { woodPlanks, nightSky, canvasTexture, makeCanvas, rug, fabric, paperTexture, HAND_FONT } from '../engine/textures.js';
@@ -610,7 +610,7 @@ export function buildAttic(ctx) {
   buildCozy(ctx, g);
   return {
     index: ROOM,
-    name: ATTIC_NAME,
+    name: SIDE_ROOMS[ROOM].name,
     rig: {
       hemi: { sky: 0xffd9b4, ground: 0x3a2a26, intensity: 0.62 },
       spot: { pos: [0, ATTIC.ridge - 0.5, 21.5], target: [0, 0, 21.0], color: 0xffd6a0, intensity: 18, angle: 1.2, penumbra: 0.85 },

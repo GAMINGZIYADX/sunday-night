@@ -13,6 +13,9 @@ const THEMES = [
   { root: 63, bpm: 58, prog: [0, 3, 0, 4], arp: [0, 4, 7, 4], lift: 24, density: 0.5 }, // garden, Eb
   { root: 63, bpm: 52, prog: [0, 5, 3, 4], arp: [0, 4, 7, 9], lift: 24, density: 0.42 }, // ending
   { root: 62, bpm: 56, prog: [0, 3, 5, 4], arp: [0, 2, 4, 2], lift: 12, density: 0.4 }, // attic, D
+  { root: 64, bpm: 68, prog: [0, 4, 3, 4], arp: [0, 2, 4, 7], lift: 12, density: 0.55 }, // greenhouse, E
+  { root: 58, bpm: 54, prog: [0, 3, 4, 0], arp: [0, 4, 2, 4], lift: 12, density: 0.38, minor: true }, // basement, Bb minor
+  { root: 61, bpm: 50, prog: [0, 5, 3, 4], arp: [0, 4, 7, 9], lift: 24, density: 0.4 }, // balcony, Db
 ];
 const MAJOR = [0, 2, 4, 5, 7, 9, 11];
 const MINOR = [0, 2, 3, 5, 7, 8, 10];

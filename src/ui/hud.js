@@ -1,6 +1,5 @@
 import { el, TULIP_SVG, KEY_SVG } from './dom.js';
-import { UI, ROOM_NAMES, ROOM_TITLES, PROMPTS, ATTIC_NAME, ATTIC_TITLE } from '../config.js';
-import { ATTIC_ZONE } from '../engine/layout.js';
+import { UI, ROOM_NAMES, ROOM_TITLES, PROMPTS, SIDE_ROOMS } from '../config.js';
 import { LABELS } from '../config.js';
 import { device } from '../engine/device.js';
 
@@ -189,9 +188,9 @@ export class Hud {
 
   showBanner(room) {
     const [small, big] = this.banner.children;
-    const attic = room === ATTIC_ZONE;
-    small.textContent = attic ? ATTIC_NAME : ROOM_NAMES[room] || '';
-    big.textContent = attic ? ATTIC_TITLE : ROOM_TITLES[room] || '';
+    const side = SIDE_ROOMS[room];
+    small.textContent = side ? side.name : ROOM_NAMES[room] || '';
+    big.textContent = side ? side.title : ROOM_TITLES[room] || '';
     this.banner.classList.add('on');
     clearTimeout(this._banT);
     this._banT = setTimeout(() => this.banner.classList.remove('on'), 2600);

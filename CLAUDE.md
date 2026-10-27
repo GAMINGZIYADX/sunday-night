@@ -8,9 +8,12 @@ works from `file://`. Read `README.md` for the player-facing description.
 
 ## Rules that matter
 
-- **Never soften or rewrite** `FINAL_MESSAGE`, `NOTES` or `LOCK_CODE` (`2007`)
-  in `src/config.js`. They are the author's own words. A test checks the
-  letter has no `!` and ends with `— Zizou`.
+- **Never soften or rewrite** `FINAL_MESSAGE` or `NOTES` in `src/config.js`.
+  They are the author's own words. A test checks the letter has no `!` and
+  ends with `— Zizou`. The gate lock code is random every game (the author
+  asked for nothing fixed; it was `2007`): `LockPuzzle.code`, saved with it.
+- **The coupon** at the end of the treasure hunt (`HUNT_COUPON.text`) is the
+  author's to write. Until it has words the hunt does not appear.
 - **All text, answers, colours and tuning live in `src/config.js`.** Add new
   strings there (`PROMPTS`, `TOASTS`, `LABELS`, `UI`), not inline.
 - **Debug code must never ship.** `__DEBUG__` is a build-time flag (true only
@@ -26,7 +29,7 @@ works from `file://`. Read `README.md` for the player-facing description.
 ```
 npm install
 npm run dev            # dev server, debug tools on
-npm test               # vitest: puzzles, randomiser, saves, updates, attic, quality (80 tests)
+npm test               # vitest: puzzles, randomiser, saves, updates, side rooms, quality (100 tests)
 npm run build          # -> dist/index.html (the shippable file)
 npm run build:debug    # -> dist-debug/index.html (used by the browser tests)
 npm run e2e            # builds both, then runs every browser test
@@ -223,13 +226,39 @@ releases (install one, release the next).
 - Not verifiable in the cloud sandbox: how audio sounds, real-GPU frame rate,
   handwriting fonts on Windows/Mac, real phones. Say so rather than claiming it.
 
+## The other side rooms and the treasure hunt
+
+Like the attic, built apart from the house (south of it) and reached by
+`game.travel()` fades; each zone is shown only while you are in it
+(`isSideZone`). `SIDE_ROOMS` (config) names them; `SIDE_IDS`
+(puzzles/index.js) lists each room's two puzzles (no keys: they emit
+`sideSolved`); `gs.sideDone(room)` brings out the room's little find.
+Shared bits in `rooms/side.js` (`wallDoor`, `skyDome`, `tween`, `boxIn`).
+
+| Zone | Room        | Way in                       | Puzzles                                   | Find         |
+| ---- | ----------- | ---------------------------- | ----------------------------------------- | ------------ |
+| 7    | Greenhouse  | glass door, garden west wall | `water` (thirstiest first), `lamps` (4×4) | a tulip      |
+| 8    | Basement    | hatch in the kitchen floor   | `fuses` (rule card), `pipes` (5×5)        | wind-up cat  |
+| 9    | Balcony     | glass doors, study east wall | `lanterns` (5×5 picture), `pairs` (12)    | wish lantern |
+
+All are randomised per game and saved. The fuse card is generated so only
+one setting fits (`makeRules`, checked in `tests/rooms.test.js`); the basement
+stays dark until the fuses are right (`room.rig` swaps). Lantern pictures in
+`LANTERN_PICTURES` must each have one answer (tested, mirrored too).
+
+**Treasure hunt** (`engine/hunt.js`, `rooms/hunt.js`): after the letter and
+only once `HUNT_COUPON.text` has words, a note by the envelope starts a chain
+of `HUNT_LENGTH` notes by puzzles (spots = `HUNT_RIDDLES` keys, a new order
+every game, `gs.data.hunt`). Notes lie on the floor a step in front of their
+puzzle; the last spot holds the coupon (`couponOverlay`). The current note's
+text is the `hunt` clue in the journal. `e2e/siderooms.mjs` plays all of this
+and checks every spot can be reached.
+
 ## Status
 
-All unit tests (80) and browser tests (prod, props, playthrough, continue,
+All unit tests (100) and browser tests (prod, props, playthrough, continue,
 collision, touch, quality, hybrid, cozy, maze, selfupdate, attic, oldphones,
-gfxcheck)
-pass as of the last commit, and the playthrough passes on WebGL 1. The
+gfxcheck, gfxtest, siderooms) pass as of the last commit, and the playthrough passes on WebGL 1. The
 playthrough also passes with random scrambles. Ideas not done: a Cozy/Brainy
 difficulty choice, personal photos in the bedroom frames, a spectator mode for
-the author. The attic is built and waiting for the author's photo (and an
-optional caption in `PHOTO.caption`; the caption is the author's to write).
+the author. The coupon (`HUNT_COUPON.text`) is waiting for the author's words.

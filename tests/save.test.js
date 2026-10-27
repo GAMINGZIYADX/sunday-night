@@ -37,7 +37,9 @@ describe('save / load', () => {
     expect(b.isDoorOpen(0)).toBe(true);
     expect(b.hasKey(0, 'gold')).toBe(true);
     expect(b.puzzles.r2a.slots[6]).toBe('W');
-    expect(b.collectedDigits()[0]).toBe('2');
+    // The lock code is random per game, and the save keeps it.
+    expect(b.puzzles.r5a.code).toBe(a.puzzles.r5a.code);
+    expect(b.collectedDigits()[0]).toBe(a.puzzles.r5a.code[0]);
     clearSave();
     expect(hasSave()).toBe(false);
   });

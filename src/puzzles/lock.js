@@ -1,15 +1,17 @@
 import { Puzzle } from './base.js';
-import { LOCK_CODE } from '../config.js';
 
-// Room 5, puzzle A. Four-digit lock on the garden gate.
+// Room 5, puzzle A. Four-digit lock on the garden gate. The code is new every
+// game (four random digits); each opened door shows one of them on its memory
+// tulip, in room order. Saves keep their code.
 export class LockPuzzle extends Puzzle {
   constructor() {
     super('r5a', 4, 'A');
-    this.code = String(LOCK_CODE).replace(/\D/g, '').padEnd(4, '0').slice(0, 4);
+    this.code = '0000';
     this.digits = [0, 0, 0, 0];
     this.attempts = 0;
   }
-  newGame() {
+  newGame(rng) {
+    this.code = Array.from({ length: 4 }, () => Math.floor(rng() * 10)).join('');
     this.digits = [0, 0, 0, 0];
     this.attempts = 0;
     this.solved = false;
@@ -35,9 +37,11 @@ export class LockPuzzle extends Puzzle {
     return ok;
   }
   serialize() {
-    return { digits: this.digits.slice(), attempts: this.attempts };
+    return { code: this.code, digits: this.digits.slice(), attempts: this.attempts };
   }
   deserialize(s) {
+    // Saves from before the random code keep the new one picked for them.
+    if (typeof s.code === 'string' && /^\d{4}$/.test(s.code)) this.code = s.code;
     if (Array.isArray(s.digits) && s.digits.length === 4) this.digits = s.digits.map((v) => (((v | 0) % 10) + 10) % 10);
     this.attempts = s.attempts | 0;
   }

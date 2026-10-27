@@ -19,7 +19,6 @@ import {
   CIPHER_ENCODED,
   CIPHER_SENTENCE,
   DIAL_SOLUTION,
-  LOCK_CODE,
   HINTS,
   NOTES,
   FINAL_MESSAGE,
@@ -319,14 +318,25 @@ describe('other puzzles', () => {
     expect(p.search(p.spots.zizo)).toBe('zizo');
     expect(p.isSolved()).toBe(true);
   });
-  it('lock opens only with the configured code', () => {
+  it('lock opens only with this game’s code, which is new every game and saved', () => {
     const p = new LockPuzzle();
-    expect(p.tryOpen()).toBe(false);
-    String(LOCK_CODE)
-      .split('')
-      .forEach((d, i) => p.setDigit(i, Number(d)));
-    expect(p.isSolved()).toBe(false); // needs the handle
+    p.newGame(mulberry32(7));
+    expect(p.code).toMatch(/^\d{4}$/);
+    expect(p.tryOpen()).toBe(p.code === '0000');
+    p.code.split('').forEach((d, i) => p.setDigit(i, Number(d)));
+    expect(p.isSolved()).toBe(p.code === '0000'); // needs the handle
     expect(p.tryOpen()).toBe(true);
+    const codes = new Set();
+    for (let s = 1; s <= 40; s++) {
+      const q = new LockPuzzle();
+      q.newGame(mulberry32(s));
+      codes.add(q.code);
+    }
+    expect(codes.size).toBeGreaterThan(30);
+    const again = new LockPuzzle();
+    again.newGame(mulberry32(99));
+    again.setState(p.getState());
+    expect(again.code).toBe(p.code);
   });
   it('constellation: month letters, repeated letters and decoys', () => {
     const p = new ConstellationPuzzle();

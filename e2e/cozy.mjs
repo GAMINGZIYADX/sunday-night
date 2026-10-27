@@ -152,7 +152,7 @@ try {
   await ev(() => window.__game.game.openJournal());
   await page.waitForTimeout(500);
   const j = await page.textContent('.journal');
-  if (!/Little finds\s+4\/6/.test(j)|| !/A paper star/.test(j) || !/A pressed tulip/.test(j))
+  if (!/Little finds\s+4\/9/.test(j)|| !/A paper star/.test(j) || !/A pressed tulip/.test(j))
     fail('journal does not list the finds: ' + j.slice(0, 400));
   await shot('journal');
   await ev(() => window.__game.closeModals());
@@ -165,7 +165,7 @@ try {
     return g.gs.data.finds.length;
   });
   if (kept !== 4) fail(`finds after reload: ${kept}`);
-  log('journal shows 4/6 finds; they are saved');
+  log('journal shows 4/9 finds; they are saved');
 
   if (problems.length) fail('console problems:\n' + problems.join('\n'));
   console.log('COZY PASSED');

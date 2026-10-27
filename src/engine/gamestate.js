@@ -1,7 +1,8 @@
 import { Emitter } from './emitter.js';
-import { createPuzzles, PUZZLE_IDS, ALL_IDS, ATTIC_IDS } from '../puzzles/index.js';
-import { ATTIC } from '../puzzles/piano.js';
-import { LOCK_CODE, NOTES, FINDS, CLUES, RANDOMIZE } from '../config.js';
+import { createPuzzles, PUZZLE_IDS, ALL_IDS, EXTRA_IDS } from '../puzzles/index.js';
+import { NOTES, FINDS, CLUES, RANDOMIZE, HUNT_COUPON } from '../config.js';
+import { BALCONY_ZONE } from './layout.js';
+import { huntSpots, HUNT_SPOT_IDS } from './hunt.js';
 
 export const SAVE_VERSION = 2; // 2: harder puzzles (old saves are ignored)
 export const ROOM_COUNT = 5;
@@ -10,8 +11,9 @@ export const ROOM_COUNT = 5;
 // read from here and listen to its events:
 //   'puzzle'        { puzzle, justSolved }   any puzzle change
 //   'solved'        { puzzle }               a key puzzle was just solved
-//   'atticSolved'   { puzzle }               an attic puzzle was just solved
+//   'sideSolved'    { puzzle }               a side-room puzzle was just solved
 //   'ladder'        {}                       the attic ladder came down
+//   'hunt'          { step }                 a treasure-hunt note was found
 //   'door'          { room }                 a door was opened
 //   'digit'         { room, digit }          a memory-tulip digit was collected
 //   'note'          { index }                a note was read (first time)
@@ -26,12 +28,12 @@ export class GameState extends Emitter {
     super();
     this.puzzles = createPuzzles();
     for (const id of ALL_IDS) {
-      const attic = ATTIC_IDS.includes(id);
+      const side = EXTRA_IDS.includes(id);
       this.puzzles[id].onChange((puzzle, justSolved) => {
         this.emit('puzzle', { puzzle, justSolved });
         if (justSolved) {
-          // Only the ten room puzzles give keys; the attic's are just for fun.
-          this.emit(attic ? 'atticSolved' : 'solved', { puzzle });
+          // Only the ten room puzzles give keys; the side rooms' are just for fun.
+          this.emit(side ? 'sideSolved' : 'solved', { puzzle });
           this.emit('autosave', { reason: 'solved' });
         }
       });
@@ -45,12 +47,16 @@ export class GameState extends Emitter {
       room: 0,
       player: { x: 0, z: 1.4, yaw: 0, pitch: 0 },
       doors: [false, false, false, false, false],
-      visited: [true, false, false, false, false, false, false],
+      visited: [true, false, false, false, false, false, false, false, false, false],
       notes: [],
       clues: [],
       finds: [],
       maze: { best: 0, done: false },
       attic: { ladder: false },
+      cellar: false, // the hatch in the kitchen floor is open
+      // The treasure hunt after the letter: where its notes are, in order
+      // (new every game), and how many are found.
+      hunt: { spots: [], found: 0 },
       hintTier: {},
       finished: false,
       playTime: 0,
@@ -58,6 +64,7 @@ export class GameState extends Emitter {
     for (const id of ALL_IDS) this.puzzles[id].newGame(rng);
     // The hedge maze is built from this number (the same number, the same maze).
     this.data.mazeSeed = RANDOMIZE ? Math.floor(rng() * 2 ** 31) : 20070;
+    this.data.hunt.spots = huntSpots(rng);
     this.syncText();
   }
 
@@ -66,6 +73,7 @@ export class GameState extends Emitter {
     CLUES.cipherCard.text = this.puzzles.r3a.encoded;
     CLUES.recipe.text = this.puzzles.r3b.recipe;
     CLUES.atticRiddle.text = this.puzzles.trunk.riddle;
+    CLUES.fuseCard.text = this.puzzles.fuses.card.join('\n');
   }
 
   puzzleIdFor(room, kind) {
@@ -96,9 +104,9 @@ export class GameState extends Emitter {
     return true;
   }
 
-  // Digits for the final lock: one per opened door, rooms 1-4.
+  // Digits for the final lock (new every game): one per opened door, rooms 1-4.
   digit(room) {
-    return String(LOCK_CODE).charAt(room);
+    return this.puzzles.r5a.code.charAt(room);
   }
   collectedDigits() {
     return [0, 1, 2, 3].map((r) => (this.isDoorOpen(r) ? this.digit(r) : null));
@@ -150,6 +158,38 @@ export class GameState extends Emitter {
     this.emit('autosave', { reason: 'ladder' });
     return true;
   }
+  // The cellar hatch in the kitchen floor (opened once, it stays open).
+  openCellar() {
+    if (this.data.cellar) return false;
+    this.data.cellar = true;
+    this.emit('autosave', { reason: 'cellar' });
+    return true;
+  }
+  // Both puzzles of a side room solved (its little find is then out).
+  sideDone(room) {
+    return ALL_IDS.filter((id) => this.puzzles[id].room === room).every((id) => this.puzzles[id].isSolved());
+  }
+
+  // ---- the treasure hunt (after the letter; only once the coupon has words)
+  huntOpen() {
+    return this.data.finished && !!HUNT_COUPON.text.trim();
+  }
+  // The spot of the note to find next (null when all are found).
+  huntNext() {
+    if (!this.huntOpen()) return null;
+    return this.data.hunt.spots[this.data.hunt.found] ?? null;
+  }
+  huntDone() {
+    return this.huntOpen() && this.data.hunt.found >= this.data.hunt.spots.length;
+  }
+  // Found the note at `spot`: true if it was the one to find next.
+  findHuntNote(spot) {
+    if (this.huntNext() !== spot) return false;
+    this.data.hunt.found++;
+    this.emit('hunt', { step: this.data.hunt.found });
+    this.emit('autosave', { reason: 'hunt' });
+    return true;
+  }
 
   // Hints: returns the next tier text for a puzzle (stays on tier 3).
   nextHint(id) {
@@ -190,7 +230,7 @@ export class GameState extends Emitter {
     this.reset();
     const d = this.data;
     const num = (v, def) => (typeof v === 'number' && Number.isFinite(v) ? v : def);
-    d.room = Math.max(0, Math.min(ATTIC, num(obj.room, 0) | 0));
+    d.room = Math.max(0, Math.min(BALCONY_ZONE, num(obj.room, 0) | 0));
     if (obj.player) {
       d.player = {
         x: num(obj.player.x, d.player.x),
@@ -207,7 +247,7 @@ export class GameState extends Emitter {
     if (obj.hintTier && typeof obj.hintTier === 'object') d.hintTier = { ...obj.hintTier };
     d.finished = !!obj.finished;
     d.playTime = num(obj.playTime, 0);
-    // Saves from before the attic have no attic puzzles: those stay as new.
+    // Saves from before a side room have no puzzles for it: those stay as new.
     for (const id of ALL_IDS) if (obj.puzzles && obj.puzzles[id]) this.puzzles[id].setState(obj.puzzles[id]);
     // Doors can only be open if their keys exist (repairs hand-edited saves).
     d.doors = d.doors.map((open, r) => open && this.hasKey(r, 'gold') && this.hasKey(r, 'silver'));
@@ -215,6 +255,18 @@ export class GameState extends Emitter {
     if (Number.isInteger(obj.mazeSeed) && obj.mazeSeed >= 0) d.mazeSeed = obj.mazeSeed;
     if (obj.maze && typeof obj.maze === 'object') d.maze = { best: num(obj.maze.best, 0), done: !!obj.maze.done };
     if (obj.attic && typeof obj.attic === 'object') d.attic = { ladder: !!obj.attic.ladder };
+    d.cellar = !!obj.cellar;
+    // The hunt (saves from before it keep the spots picked for them now).
+    const h = obj.hunt;
+    if (
+      h &&
+      Array.isArray(h.spots) &&
+      h.spots.length &&
+      h.spots.every((s) => HUNT_SPOT_IDS.includes(s)) &&
+      new Set(h.spots).size === h.spots.length
+    ) {
+      d.hunt = { spots: h.spots.slice(), found: Math.max(0, Math.min(h.spots.length, num(h.found, 0) | 0)) };
+    }
     this.syncText();
     this.emit('loaded', {});
     return true;

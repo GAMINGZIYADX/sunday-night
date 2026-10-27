@@ -131,7 +131,7 @@ describe('attic: in the game state and saves', () => {
     gs.reset(mulberry32(8));
     const seen = [];
     gs.on('solved', () => seen.push('solved'));
-    gs.on('atticSolved', ({ puzzle }) => seen.push(puzzle.id));
+    gs.on('sideSolved', ({ puzzle }) => seen.push(puzzle.id));
     gs.puzzles.piano.forceSolve();
     gs.puzzles.trunk.forceSolve();
     expect(seen).toEqual(['piano', 'trunk']);
@@ -186,7 +186,7 @@ describe('attic: in the game state and saves', () => {
     expect(b.data.finds).toEqual(['star']);
   });
 
-  it('the photo is the sixth little find', () => {
-    expect(FINDS.map((f) => f.id)).toEqual(['star', 'mouse', 'cookie', 'tulip', 'fireflies', 'photo']);
+  it('the photo is the sixth little find (the other side rooms add three)', () => {
+    expect(FINDS.map((f) => f.id)).toEqual(['star', 'mouse', 'cookie', 'tulip', 'fireflies', 'photo', 'bloom', 'windup', 'wish']);
   });
 });

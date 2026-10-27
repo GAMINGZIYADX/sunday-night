@@ -7,7 +7,7 @@ import { woodMat, stringLights, glowSprite, stone, bush, tulipGeometries, potted
 import { buildWall } from './shell.js';
 import { Door } from './door.js';
 import { lockOverlay, constellationOverlay } from '../ui/overlays.js';
-import { ROOMS, WALL_T, DOOR_W, DOOR_H } from '../engine/layout.js';
+import { ROOMS, WALL_T, DOOR_W, DOOR_H, GREENHOUSE_DOOR_Z } from '../engine/layout.js';
 import { PROMPTS } from '../config.js';
 import { placeNote } from './notes.js';
 import { buildMaze } from './maze.js';
@@ -273,12 +273,14 @@ export function buildGarden(ctx) {
   for (let z = R.zS - 1; z > R.zN + 0.5; z -= 1.5) {
     for (const x of [R.x0 + 0.45, R.x1 - 0.45]) {
       if (x > 0 && Math.abs(z - MAZE_Z) < 1.3) continue; // keep the way into the maze clear
+      if (x < 0 && Math.abs(z - GREENHOUSE_DOOR_Z) < 1.3) continue; // and to the greenhouse door
       const b = bush({ r: 0.55, color: 0x46684a });
       b.position.set(x, 0, z + rr(-0.2, 0.2));
       g.add(b);
     }
   }
-  col.add(R.x0, R.zN, R.x0 + 0.75, R.zS, 'bush');
+  col.add(R.x0, R.zN, R.x0 + 0.75, GREENHOUSE_DOOR_Z - 0.85, 'bush');
+  col.add(R.x0, GREENHOUSE_DOOR_Z + 0.85, R.x0 + 0.75, R.zS, 'bush');
   col.add(R.x1 - 0.75, R.zN, R.x1, mazeGap.a - 0.15, 'bush');
   col.add(R.x1 - 0.75, mazeGap.b + 0.15, R.x1, R.zS, 'bush');
 

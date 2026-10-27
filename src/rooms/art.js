@@ -700,3 +700,80 @@ export function drawLockPicture(g, id, x, y, s) {
   }
   g.restore();
 }
+
+// ------------------------------------------------------ the balcony's star cards
+// One star card's picture, centred at (x, y), about s across. The ones the
+// trunk lock also has are drawn the same way.
+export function drawCardPicture(g, id, x, y, s) {
+  if (['star', 'moon', 'heart', 'tulip'].includes(id)) return drawLockPicture(g, id, x, y, s);
+  g.save();
+  g.translate(x, y);
+  g.lineCap = 'round';
+  g.lineJoin = 'round';
+  if (id === 'cat') {
+    // A tuxedo cat's face: round head, two ears, green eyes, white muzzle.
+    g.fillStyle = '#3a3438';
+    g.beginPath();
+    g.moveTo(-s * 0.34, -s * 0.06);
+    g.lineTo(-s * 0.3, -s * 0.4);
+    g.lineTo(-s * 0.1, -s * 0.22);
+    g.lineTo(s * 0.1, -s * 0.22);
+    g.lineTo(s * 0.3, -s * 0.4);
+    g.lineTo(s * 0.34, -s * 0.06);
+    g.arc(0, s * 0.02, s * 0.35, -0.2, Math.PI + 0.2);
+    g.closePath();
+    g.fill();
+    g.fillStyle = '#f6efe2';
+    g.beginPath();
+    g.ellipse(0, s * 0.16, s * 0.15, s * 0.12, 0, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#8fd48a';
+    for (const ex of [-s * 0.13, s * 0.13]) {
+      g.beginPath();
+      g.ellipse(ex, -s * 0.02, s * 0.055, s * 0.07, 0, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.fillStyle = '#e98b9c';
+    g.beginPath();
+    g.arc(0, s * 0.1, s * 0.03, 0, Math.PI * 2);
+    g.fill();
+  } else if (id === 'comet') {
+    const grad = g.createLinearGradient(-s * 0.45, -s * 0.35, s * 0.15, s * 0.1);
+    grad.addColorStop(0, 'rgba(160,190,255,0)');
+    grad.addColorStop(1, 'rgba(200,220,255,0.95)');
+    g.fillStyle = grad;
+    g.beginPath();
+    g.moveTo(-s * 0.46, -s * 0.38);
+    g.lineTo(s * 0.2, s * 0.02);
+    g.lineTo(s * 0.06, s * 0.2);
+    g.closePath();
+    g.fill();
+    g.fillStyle = '#f6f2d8';
+    g.beginPath();
+    g.arc(s * 0.16, s * 0.14, s * 0.13, 0, Math.PI * 2);
+    g.fill();
+  } else if (id === 'planet') {
+    g.fillStyle = '#e8a87c';
+    g.beginPath();
+    g.arc(0, 0, s * 0.24, 0, Math.PI * 2);
+    g.fill();
+    g.strokeStyle = '#f3d9a0';
+    g.lineWidth = Math.max(1, s * 0.045);
+    g.beginPath();
+    g.ellipse(0, 0, s * 0.42, s * 0.12, -0.35, 0.1, Math.PI * 2 - 0.1);
+    g.stroke();
+  } else if (id === 'cloud') {
+    g.fillStyle = '#eef1f8';
+    for (const [cx, cy, r] of [
+      [-s * 0.2, s * 0.06, s * 0.17],
+      [0, -s * 0.06, s * 0.22],
+      [s * 0.21, s * 0.06, s * 0.16],
+      [0, s * 0.12, s * 0.16],
+    ]) {
+      g.beginPath();
+      g.arc(cx, cy, r, 0, Math.PI * 2);
+      g.fill();
+    }
+  }
+  g.restore();
+}

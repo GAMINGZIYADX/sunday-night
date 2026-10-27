@@ -43,8 +43,35 @@ export const ATTIC_HOLE = { x0: 0.55, x1: 1.25, z0: 23.6, z1: 24.6 };
 // Roof height above the floor at a given x.
 export const atticRoofY = (x) => ATTIC.ridge - ((ATTIC.ridge - ATTIC.knee) * Math.abs(x)) / ATTIC.x1;
 
+// The other optional side rooms stand apart like the attic, further south,
+// each reached by a short fade (game.travel): the greenhouse through a glass
+// door in the garden, the basement down a hatch in the kitchen floor, the
+// balcony through the glass doors in the study.
+export const GREENHOUSE_ZONE = 7;
+export const BASEMENT_ZONE = 8;
+export const BALCONY_ZONE = 9;
+const sideRoom = (r) => Object.assign(r, { x0: -r.w / 2, x1: r.w / 2, cz: (r.zS + r.zN) / 2, d: r.zS - r.zN });
+export const GREENHOUSE = sideRoom({ id: 'greenhouse', w: 7, zS: 38, zN: 31, h: 3.2 });
+export const BASEMENT = sideRoom({ id: 'basement', w: 7, zS: 50, zN: 43, h: 2.4 });
+export const BALCONY = sideRoom({ id: 'balcony', w: 6, zS: 61, zN: 56 });
+export const SIDE_ZONES = [ATTIC_ZONE, GREENHOUSE_ZONE, BASEMENT_ZONE, BALCONY_ZONE];
+// The ways in: the greenhouse door in the garden's west wall, the cellar
+// hatch in the kitchen floor (south-west corner), the balcony doors in the
+// study's east wall.
+export const GREENHOUSE_DOOR_Z = -40.0;
+export const CELLAR_HATCH = { x0: -3.05, x1: -2.25, z0: -17.4, z1: -16.6 };
+export const BALCONY_DOOR_Z = -30.6;
+export const isSideZone = (zone) => zone >= ATTIC_ZONE;
+// Where each side room starts (z), south of the bedroom.
+const SIDE_FROM = [
+  [52.5, BALCONY_ZONE],
+  [40.5, BASEMENT_ZONE],
+  [28, GREENHOUSE_ZONE],
+  [12, ATTIC_ZONE],
+];
+
 export function zoneAt(z) {
-  if (z > 12) return ATTIC_ZONE;
+  for (const [from, zone] of SIDE_FROM) if (z > from) return zone;
   let zone = 0;
   for (const b of ZONE_BOUNDS) if (z < b) zone++;
   return zone;
