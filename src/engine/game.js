@@ -22,7 +22,7 @@ import { PUZZLE_IDS, ALL_IDS } from '../puzzles/index.js';
 import { TOASTS } from '../config.js';
 import { fill } from './text.js';
 import { device, enterFullscreen, setTouchMode, onTouchModeChange } from './device.js';
-import { QUALITY, LIGHT, autoQuality, MAX_RATIO, PROBE, FLAGS } from './quality.js';
+import { QUALITY, LIGHT, autoQuality, MAX_RATIO, PROBE } from './quality.js';
 
 export const START = { x: -0.25, z: 1.55, yaw: 0.35 };
 // Set just before a graphics restart, so the game carries on after the reload.
@@ -95,6 +95,7 @@ export class Game {
     this._nextFrame = 0;
     this._check = LIGHT || PROBE ? null : { frames: 0 };
     this._probe = PROBE ? { frames: 0, times: [] } : null;
+    this._watchGraphics();
     this.renderer.setAnimationLoop((now) => this._tick(now));
   }
 
@@ -347,19 +348,59 @@ export class Game {
     location.reload();
   }
 
-  // Some phone drivers draw the full look as a white screen (a Pixel 10 did).
-  // A moment after the start, look at the picture: white all over means step
-  // down (shadows off, then edge smoothing off, then light graphics) and
-  // remember the step for this device (GFX_FIX in quality.js).
+  // Graphics drivers that break the full look. The Pixel 10's (PowerVR,
+  // Android 17; three.js issue #34311) fails to link shaders, shadows first,
+  // then the realistic materials, and then loses 3D altogether; elsewhere the
+  // picture came out white. Any of these steps the look down and remembers
+  // the step for this device (GFX_FIX in quality.js): shadows off, then edge
+  // smoothing off, then light graphics.
+  _watchGraphics() {
+    this.renderer.debug.onShaderError = (gl, program, vs, fs) => {
+      const shadow = /DEPTH_PACKING|DISTANCE/.test(gl.getShaderSource(fs) || '');
+      const log = [gl.getProgramInfoLog(program), gl.getShaderInfoLog(vs), gl.getShaderInfoLog(fs)].map((s) => (s || '').trim()).filter(Boolean);
+      console.error(
+        `THREE.WebGLProgram: ${shadow ? 'shadow' : 'material'} shader failed to link, error ${gl.getError()}: ${log.join(' / ') || 'no log'}`,
+      );
+      this._graphicsFailed(shadow ? 'shadow' : 'shader');
+    };
+    this.renderer.domElement.addEventListener('webglcontextlost', () => {
+      console.error('WebGL: the 3D context was lost');
+      this._graphicsFailed('lost');
+    });
+  }
+
+  // A moment after the start, look at the picture: white all over is broken.
   _checkPicture() {
     const c = this._check;
     if (++c.frames < 30) return;
     this._check = null;
-    if (!pictureIsWhite(this.renderer)) return;
+    if (pictureIsWhite(this.renderer)) this._graphicsFailed('white');
+  }
+
+  // kind: 'shadow' or 'shader' (a shader failed to link), 'lost' (no more
+  // 3D), 'white' (see _checkPicture).
+  _graphicsFailed(kind) {
+    if (PROBE) {
+      // A graphics test run: report at once (a lost context draws nothing more).
+      if (kind === 'lost' && !this._probeLost) {
+        this._probeLost = true;
+        parent.postMessage({ gfxProbe: location.search, lost: true, errors: probeErrors }, '*');
+      }
+      return;
+    }
+    if (this._failing) return;
+    // 3D lost long after the start, or while away (phones can drop it in the
+    // background): not the driver failing the look, so just start again.
+    if (kind === 'lost' && (document.hidden || performance.now() > 90000)) {
+      this._failing = true;
+      setTimeout(() => this._reloadGraphics(), 500);
+      return;
+    }
+    if (LIGHT) return; // nothing simpler to fall back to
     const fix = this.settings.data.gfxFix || 0;
-    this.toast(UI.graphicsFixing, { ms: 3000 });
-    if (fix < 1 && this.renderer.shadowMap.enabled) {
+    if (kind === 'white' && fix < 1 && this.renderer.shadowMap.enabled) {
       // Shadows go without a restart; then look again.
+      this.toast(UI.graphicsFixing, { ms: 3000 });
       this.settings.set('gfxFix', 1);
       this.renderer.shadowMap.enabled = false;
       this.lights.spot.castShadow = false;
@@ -369,11 +410,15 @@ export class Game {
       this._check = { frames: 0 };
       return;
     }
-    if (fix < 2) this.settings.set('gfxFix', 2);
-    else {
-      this.settings.set('gfxFix', 3);
-      this.settings.set('graphics', 'light');
-    }
+    this._failing = true;
+    this._check = null;
+    let next;
+    if (kind === 'shadow') next = Math.max(fix, 1);
+    else if (kind === 'shader') next = 3;
+    else next = Math.min(3, Math.max(fix + 1, this.renderer.shadowMap.enabled ? 1 : 2));
+    this.settings.set('gfxFix', next);
+    if (next >= 3) this.settings.set('graphics', 'light');
+    this.toast(UI.graphicsFixing, { ms: 3000 });
     setTimeout(() => this._reloadGraphics(), 1500);
   }
 
@@ -681,9 +726,9 @@ export class Game {
       '*',
     );
     this.renderer.setAnimationLoop(null);
-    // Give the drawing context back at once (browsers allow only a few), unless
-    // the test page keeps this run on screen.
-    if (!FLAGS.has('keep')) this.renderer.forceContextLoss();
+    // Give the drawing context back at once (browsers allow only a few).
+    this._probeLost = true; // our own doing, not the driver's
+    this.renderer.forceContextLoss();
   }
 
   _enterZone(z) {

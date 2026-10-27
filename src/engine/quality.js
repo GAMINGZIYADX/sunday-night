@@ -91,7 +91,10 @@ export const LIGHT = QUALITY === 'light';
 // step for this device in the settings: 1 = no shadows, 2 = also no edge
 // smoothing (MSAA), 3 = the full look doesn't work here, so light graphics.
 export const GFX_FIX = typeof location === 'undefined' ? 0 : Number(readJSON(SETTINGS_KEY)?.gfxFix) || 0;
-export const SHADOWS = flag('shadows') ?? (!LIGHT && GFX_FIX < 1);
+// The Pixel 10's PowerVR D-Series driver (Android 17) crashes on shadow
+// shaders (three.js issue #34311), so Full starts without them there.
+const SHADOW_BUG = /powervr.*(d-series|dxt)/i.test(GPU.name);
+export const SHADOWS = flag('shadows') ?? (!LIGHT && GFX_FIX < 1 && !SHADOW_BUG);
 export const MSAA = flag('msaa') ?? (!LIGHT && GFX_FIX < 2);
 export const TONEMAP = flag('tonemap') ?? true;
 export const MAX_RATIO = Number(FLAGS.get('ratio')) || 0; // 0: the usual caps (game.js)

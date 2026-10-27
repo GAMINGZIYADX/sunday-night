@@ -71,6 +71,24 @@ try {
   await reload2;
   s = await look();
   check(s.fix === 3 && s.graphics === 'light' && !s.standard, 'still white: restarts with light graphics');
+
+  // The Pixel 10's way of failing: 3D lost right after the start.
+  await page.evaluate(() => localStorage.setItem('sundayNight.settings.v1', JSON.stringify({ graphics: 'full' })));
+  await page.reload();
+  await page.waitForFunction(() => window.__game?.game);
+  await page.waitForTimeout(2000);
+  const reload3 = afterReload();
+  await ev(() => window.__game.game.renderer.getContext().getExtension('WEBGL_lose_context').loseContext());
+  await reload3;
+  s = await look();
+  check(s.fix === 1 && !s.shadows && s.msaa && s.standard, '3D lost: restarts without shadows');
+
+  // A shader that fails to link (the realistic materials): straight to Light.
+  const reload4 = afterReload();
+  await ev(() => window.__game.game._graphicsFailed('shader'));
+  await reload4;
+  s = await look();
+  check(s.fix === 3 && s.graphics === 'light' && !s.standard, 'a material shader fails: restarts with light graphics');
   check(problems.length === 0, `no page errors${problems.length ? ': ' + problems.join(' | ') : ''}`);
 } finally {
   await browser.close();

@@ -91,11 +91,21 @@ On phones the game draws at most 60 frames a second, even on 90 and 120 Hz
 screens. Twice the frames would barely look smoother, but would double the
 work and the heat; this headroom is what keeps Full smooth there.
 
-Some phones' graphics drivers draw parts of Full wrong (a Pixel 10 showed a
-white screen). A moment after starting, the game looks at its own picture;
-if it is white all over, it turns off shadows, then edge smoothing, then
-switches to Light, restarting where needed, and remembers what this device
-needed. Settings → Graphics then says what was adjusted.
+Some phones' graphics drivers break parts of Full. The Pixel 10 on Android 17
+is one: its driver fails on shadows and on the realistic materials, and then
+3D stops altogether (a known driver bug, three.js issue #34311). Light works
+there, and auto picks it. If Full fails anyway (a white picture, shaders that
+fail, or 3D lost), the game turns off shadows, then edge smoothing, then
+switches to Light, restarting as needed, and remembers what this device
+needed. Settings → Graphics then says what was adjusted. If the screen says
+3D is off, close the app completely and open it again: after a crash, the
+browser keeps 3D off until it restarts.
+
+To see what a phone can handle, open the game with `?gfxtest` in Chrome on
+it (for example
+`https://raw.githack.com/GAMINGZIYADX/sunday-night/v1.3.2/dist/index.html?gfxtest`).
+It runs the bedroom with each setting, from the safest up, and gives results
+to copy.
 
 If Full still runs slowly, the game offers to switch to Light. Changing the
 setting restarts the game exactly where you were, and nothing is lost.

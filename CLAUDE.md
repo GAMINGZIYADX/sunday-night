@@ -171,20 +171,28 @@ tests stay offline) and in the desktop app. The repo must stay public.
   No WebGL 2 or a `WEAK_GPU` means Light; `GOOD_PHONE_GPU` (Adreno 618+: the phone
   the game is meant for is a Redmi Note 12 Pro 4G) means Full even at 4 GB.
 - `game._tick` caps touch devices at 60 fps (90/120 Hz screens).
-- **Picture self-check** (`Game._checkPicture`, `pictureIsWhite` in
-  `renderer.js`): on the 30th frame of Full graphics the game reads 16 pixels;
-  white all over (Full on a Pixel 10, PowerVR, did that) steps down and saves
-  `settings.gfxFix`: 1 = shadows off (live), 2 = also no MSAA (restart),
-  3 = Light (restart). `SHADOWS` / `MSAA` in `quality.js` read it; Settings
-  shows a note; choosing Full again resets 3. `e2e/gfxcheck.mjs` fakes it.
-  Not confirmed on the Pixel 10 itself yet.
+- **Broken drivers.** The Pixel 10 (PowerVR D-Series DXT, Android 17) breaks
+  three.js: shaders fail to link, shadows first, then MeshStandardMaterial,
+  then the context is lost and Chrome blocks WebGL for the site until it is
+  fully restarted (three.js issue #34311, closed: a driver bug). Light works.
+  `SHADOWS` is off on that chip even in Full. `Game._watchGraphics` catches
+  `onShaderError`, `webglcontextlost` and a white picture (`_checkPicture`,
+  `pictureIsWhite`), and `_graphicsFailed` steps down and saves
+  `settings.gfxFix`: 1 = shadows off, 2 = also no MSAA, 3 = Light (restart;
+  white turns shadows off live first). A context loss after 90 s or while
+  hidden just restarts. `SHADOWS` / `MSAA` in `quality.js` read it; Settings
+  shows a note; choosing Full again resets 3. `UI.noWebGL` says to restart
+  the app fully. `e2e/gfxcheck.mjs` fakes each failure.
 - **Graphics test page**: `?gfxtest` (any build; for a phone, open
   `https://raw.githack.com/GAMINGZIYADX/sunday-night/vX.Y.Z/dist/index.html?gfxtest`
-  in Chrome). `src/gfxtest.js` runs the game ten times in an iframe with
-  `?probe=1` plus flags from `quality.js` (`shadows`, `msaa`, `tonemap`,
-  `ratio`, `webgl1`); `Game._probeFrame` posts back a snapshot, fps and
-  whether it was white. Results copy as text. Its words are inline (an
-  author's tool, like debug.js). `e2e/gfxtest.mjs` covers it.
+  in Chrome, then tap "Open the page"). `src/gfxtest.js` runs the game 8
+  times, safest first, in an iframe with `?probe=1` plus flags from
+  `quality.js` (`shadows`, `msaa`, `tonemap`, `ratio`, `webgl1`);
+  `Game._probeFrame` posts back a snapshot, fps, errors and whether it was
+  white, or that 3D was lost. Progress is saved (`sundayNight.gfxtest.v1`), so
+  after a crash the page asks for a browser restart and carries on. Results
+  copy as text. Its words are inline (an author's tool, like debug.js).
+  `e2e/gfxtest.mjs` covers it.
 - `WEBGL1=1` makes the browser tests run without WebGL 2;
   `e2e/oldphones.mjs` covers all of the above.
 
