@@ -257,7 +257,7 @@ export const TRUNK_ORDER_WORDS = ['First', 'Then', 'Then', 'Last'];
 export const TRUNK_ANSWER = ['cookie', 'star', 'tulip', 'mouse']; // when RANDOMIZE is off
 // The photo in the trunk: put one picture (jpg, png or webp) in src/photo/ and
 // it is built into the game. The caption is optional, written under the photo.
-export const PHOTO = { caption: '' };
+export const PHOTO = { caption: "I mistake your beauty for the sun's." };
 
 // -----------------------------------------------------------------------------
 //  Clue cards (short printed cards next to puzzles; kept in the journal)
