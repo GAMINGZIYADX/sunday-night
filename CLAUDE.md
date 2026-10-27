@@ -33,6 +33,7 @@ npm run e2e            # builds both, then runs every browser test
 node e2e/<name>.mjs    # one browser test (needs the debug build first)
 npm run app            # the Windows desktop app from source (Electron)
 npm run build:app      # -> dist-app/Sunday-Night-Setup-X.Y.Z.exe + latest.yml
+npm run build:apk      # -> dist-apk/Sunday-Night-vX.Y.Z.apk (Android, Capacitor)
 ```
 
 Browser tests use `playwright-core` + Chromium with software rendering, so they
@@ -139,11 +140,20 @@ tests stay offline) and in the desktop app. The repo must stay public.
   The preload sets `window.sundayNightApp.desktop` so the game's own checks
   stay off. The app has its own saves. Unsigned (SmartScreen warning).
   `three` is a devDependency so the installer only ships `electron-updater`.
+- **Android app** (`android/`, Capacitor 6, `capacitor.config.json`): the built
+  `dist/` in a WebView served from `https://localhost`, landscape and full
+  screen (`MainActivity.java`). The game's own update check and self-update
+  work there unchanged, so installed apps get Update now.
+  `scripts/build-apk.mjs` syncs and runs Gradle; versionName and versionCode
+  (major·10000 + minor·100 + patch) come from package.json. Release signing
+  reads `%USERPROFILE%\.sunday-night\keystore.properties` (never in the repo;
+  losing it means the next APK can't install over the old one). Capacitor 6
+  because the machine has JDK 17; the SDK is in `%LOCALAPPDATA%\Android\Sdk`.
 
 Publish with `npm run release -- patch|minor|major "notes"`
 (`scripts/release.mjs`): it bumps, tests, builds, commits, tags, pushes, runs
-`gh release create` with the HTML, then builds the installer and uploads it
-with `latest.yml`. Don't bump the version by hand in a normal commit. The full
+`gh release create` with the HTML, then builds and uploads the Windows
+installer with `latest.yml`, then the Android APK. Don't bump the version by hand in a normal commit. The full
 "Restart now" cycle of the desktop app can only be checked across two real
 releases (install one, release the next).
 

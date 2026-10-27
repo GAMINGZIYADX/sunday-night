@@ -2,3 +2,6 @@ node_modules/
 dist-debug/
 *.zip
 dist-app/
+dist-apk/
+*.jks
+keystore.properties

@@ -31,8 +31,25 @@ tablet. Hold the phone sideways; it goes full screen when you start.
 - If it stutters, set Pause → Settings → **Graphics** to **Light** (see below).
 - Leaving the app pauses and saves the game.
 
-**Getting it onto the phone.** Phones are bad at opening HTML files saved on
-the phone itself (saving progress may not work), so give it a web link instead:
+**Getting it onto the phone: the Android app (easiest).** Every release has
+`Sunday-Night-vX.Y.Z.apk`. Open the release page on the phone, download the
+APK and tap it. Android asks to allow installing apps from the browser (allow
+it once); Play Protect may warn about an app it doesn't know, because it isn't
+from the Play Store: choose _Install anyway_. The app opens straight into the
+game, full screen and sideways. It updates itself like the game file: when a
+new release is out, the main menu offers **Update now**. The app keeps its own
+save, separate from the browser's.
+
+To build it yourself: `npm run build:apk` (into `dist-apk/`). It needs the
+Android SDK (`ANDROID_HOME`, or `%LOCALAPPDATA%\Android\Sdk`), JDK 17, and the
+release key: `release.jks` and `keystore.properties` in
+`%USERPROFILE%\.sunday-night\`. **Back those two files up.** A new APK only
+installs over the old one if it is signed with the same key; without it,
+people would have to uninstall first and lose their save. (Thanks to Update
+now, a new APK is rarely needed anyway.)
+
+**Or a web link.** Phones are bad at opening HTML files saved on the phone
+itself (saving progress may not work), so a link works better than the file:
 
 1. Go to <https://app.netlify.com/drop> on a computer.
 2. Drag the `dist` folder onto the page. You get a link like
@@ -136,7 +153,7 @@ Everything you'd want to change is in **`src/config.js`**, with comments:
 | Oven dial riddles                                         | `DIAL_RIDDLES` (text, answer, middle hint). Each riddle's rule is in `DIAL_RULES` in `src/puzzles/dials.js`; `npm test` checks every riddle has exactly one answer              |
 | Randomiser on or off                                      | `RANDOMIZE`                                                                                                                                                                     |
 | Little finds                                              | `FINDS`                                                                                                                                                                         |
-| The attic                                                 | `ATTIC_NAME`, `PIANO_KEYS`, `PIANO_START`, `PIANO_LENGTH`, `TRUNK_PICTURES`, `TRUNK_RIDDLE`, `PHOTO` (the photo itself goes in `src/photo/`)                                  |
+| The attic                                                 | `ATTIC_NAME`, `PIANO_KEYS`, `PIANO_START`, `PIANO_LENGTH`, `TRUNK_PICTURES`, `TRUNK_RIDDLE`, `PHOTO` (the photo itself goes in `src/photo/`)                                    |
 | Sudoku (6×6)                                              | `SUDOKU_GIVENS` (keep it to one solution: run `npm test` to check)                                                                                                              |
 | Vase patterns, rug, constellation, hiding spots           | `VASE_VARIANTS`, `RUG_SHOWN`, `CONSTELLATION_LABELS`, `CONSTELLATION_DECOYS`, `HIDING_SPOTS`                                                                                    |
 | Hints (3 per puzzle)                                      | `HINTS`                                                                                                                                                                         |

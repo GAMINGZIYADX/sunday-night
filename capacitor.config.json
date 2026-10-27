@@ -1,0 +1,8 @@
+{
+  "appId": "com.gamingziyadx.sundaynight",
+  "appName": "Sunday Night",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#2b1f22"
+  }
+}
