@@ -80,7 +80,17 @@ export class Game {
     this.maxDt = 0.05; // frame-time cap (debug tests raise it for slow software rendering)
     this.clock = new THREE.Clock();
     this._fwd = new THREE.Vector3();
-    this.renderer.setAnimationLoop(() => this._frame());
+    this._nextFrame = 0;
+    this.renderer.setAnimationLoop((now) => this._tick(now));
+  }
+
+  // Phones with 90 or 120 Hz screens: draw at most 60 frames a second. Twice
+  // the frames barely looks smoother but doubles the work (and the heat), and
+  // that headroom is what lets a mid-range phone keep the full graphics.
+  _tick(now) {
+    if (device.touch && now < this._nextFrame - 2) return;
+    this._nextFrame = Math.max(this._nextFrame + 1000 / 60, now);
+    this._frame();
   }
 
   _makeCtx() {

@@ -1,9 +1,17 @@
 import * as THREE from 'three';
-import { LIGHT } from './quality.js';
+import { LIGHT, WEBGL2 } from './quality.js';
 
 export function createRenderer(container) {
   // Light graphics skips edge smoothing (MSAA) and shadows: both cost a lot on weak chips.
-  const renderer = new THREE.WebGLRenderer({ antialias: !LIGHT, powerPreference: 'high-performance' });
+  const opts = { antialias: !LIGHT, powerPreference: 'high-performance' };
+  // Older phones only have WebGL 1: hand three.js that context straight away
+  // (it would first try WebGL 2 and log an error).
+  if (!WEBGL2) {
+    const canvas = document.createElement('canvas');
+    opts.canvas = canvas;
+    opts.context = canvas.getContext('webgl', { ...opts, alpha: false, stencil: false }) || canvas.getContext('experimental-webgl', opts);
+  }
+  const renderer = new THREE.WebGLRenderer(opts);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;

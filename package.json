@@ -15,16 +15,20 @@
     "e2e": "npm run build && npm run build:debug && node e2e/run-all.mjs",
     "app": "vite build && electron .",
     "build:app": "vite build && electron-builder --win --publish never",
+    "build:apk": "node scripts/build-apk.mjs",
     "release": "node scripts/release.mjs"
   },
   "dependencies": {
     "electron-updater": "^6.8.11"
   },
   "devDependencies": {
+    "@capacitor/android": "^6.2.2",
+    "@capacitor/cli": "^6.2.2",
+    "@capacitor/core": "^6.2.2",
     "electron": "44.5.1",
     "electron-builder": "^26.18.0",
     "playwright-core": "^1.56.1",
-    "three": "^0.180.0",
+    "three": "0.162.0",
     "vite": "^6.4.4",
     "vite-plugin-singlefile": "^2.3.4",
     "vitest": "^3.2.7"

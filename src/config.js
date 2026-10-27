@@ -404,6 +404,8 @@ export const UI = {
   graphicsRestart: 'The game restarts to change the graphics, right where you are now. Your progress is saved.',
   graphicsOffer:
     'This device is finding the full graphics hard work. Switch to light graphics? It looks a little simpler and runs much smoother. The game restarts right where you are.',
+  noWebGL:
+    'This device can’t show the 3D house: its browser has no 3D graphics (WebGL), or they are switched off. On Android, updating “Android System WebView” and Chrome in the Play Store often fixes it.',
   graphicsSwitch: 'Switch to light',
   graphicsKeep: 'Keep full',
 };

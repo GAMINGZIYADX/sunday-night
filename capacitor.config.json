@@ -3,6 +3,7 @@
   "appName": "Sunday Night",
   "webDir": "dist",
   "android": {
-    "backgroundColor": "#2b1f22"
+    "backgroundColor": "#2b1f22",
+    "minWebViewVersion": 80
   }
 }

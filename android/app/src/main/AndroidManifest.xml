@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Android 5.0 (2013-14 phones). Capacitor's Cordova layer says 5.1, but
+         it is only used by Cordova plugins, and this app has none. -->
+    <uses-sdk tools:overrideLibrary="org.apache.cordova" />
 
     <application
         android:allowBackup="true"

@@ -4,4 +4,8 @@
     <string name="title_activity_main">Sunday Night</string>
     <string name="package_name">com.gamingziyadx.sundaynight</string>
     <string name="custom_url_scheme">com.gamingziyadx.sundaynight</string>
+    <string name="webview_old_title">One quick update first</string>
+    <string name="webview_old_message">Sunday Night needs a newer \"Android System WebView\" than this phone has. It\'s a free update in the Play Store. Update it, then open the game again.</string>
+    <string name="webview_update">Open the Play Store</string>
+    <string name="webview_anyway">Try anyway</string>
 </resources>

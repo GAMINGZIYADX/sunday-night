@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { COLORS } from '../config.js';
+import { WEBGL2 } from './quality.js';
 
 // All textures are painted on canvases at start-up. No image files.
 
@@ -19,9 +20,16 @@ export function canvasTexture(canvas, { repeat = null, srgb = true, anisotropy =
   if (repeat) {
     t.wrapS = t.wrapT = THREE.RepeatWrapping;
     t.repeat.set(repeat[0], repeat[1]);
+  } else if (!WEBGL2 && !(isPow2(canvas.width) && isPow2(canvas.height))) {
+    // WebGL 1 only mipmaps power-of-two sizes, and three.js would shrink the
+    // canvas to one (blurring the writing on cards), so skip mipmaps instead.
+    t.generateMipmaps = false;
+    t.minFilter = THREE.LinearFilter;
   }
   return t;
 }
+
+const isPow2 = (n) => (n & (n - 1)) === 0;
 
 export function paint(w, h, fn, opts) {
   const c = makeCanvas(w, h);

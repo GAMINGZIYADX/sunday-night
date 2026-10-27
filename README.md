@@ -40,6 +40,13 @@ game, full screen and sideways. It updates itself like the game file: when a
 new release is out, the main menu offers **Update now**. The app keeps its own
 save, separate from the browser's.
 
+It runs on Android 5.0 and newer, so phones from 2013-14 on. An old phone
+also needs its **Android System WebView** brought up to date in the Play
+Store (version 80 or newer, free); if it is older, the app says so and opens
+the Play Store page. Phones whose graphics chip only has WebGL 1 (most cheap
+phones from before about 2015) play with Light graphics. A phone with no 3D
+support at all gets a short explanation instead of a blank screen.
+
 To build it yourself: `npm run build:apk` (into `dist-apk/`). It needs the
 Android SDK (`ANDROID_HOME`, or `%LOCALAPPDATA%\Android\Sdk`), JDK 17, and the
 release key: `release.jks` and `keystore.properties` in
@@ -74,8 +81,15 @@ There are two graphics settings, under Settings → **Graphics**:
 **Auto** (the default) picks Light by itself on weak hardware:
 
 - Intel HD/UHD graphics, Atom, Celeron and Pentium chips
-- budget Android graphics chips
+- budget and older Android graphics chips (Adreno 616 and below, Mali-400,
+  T-series and G31–G57, PowerVR), and any chip with only WebGL 1
 - devices with 4 processor cores or fewer, or 4 GB of memory or less
+
+Mid-range phones get **Full**, even when they report 4 GB: Adreno 618 and up
+(for example the Redmi Note 12 Pro 4G), Mali-G68 and up, Samsung Xclipse.
+On phones the game draws at most 60 frames a second, even on 90 and 120 Hz
+screens. Twice the frames would barely look smoother, but would double the
+work and the heat; this headroom is what keeps Full smooth there.
 
 If Full still runs slowly, the game offers to switch to Light. Changing the
 setting restarts the game exactly where you were, and nothing is lost.
@@ -179,8 +193,10 @@ npm run e2e          # builds both versions, then runs the browser tests
 `npm run e2e` drives Chromium through Playwright, including a run on an
 emulated Android phone held sideways (`e2e/touch.mjs`), a 2-in-1 PC
 (`e2e/hybrid.mjs`), the graphics switching (`e2e/quality.mjs`), every little
-interaction and find (`e2e/cozy.mjs`) and a walk through the hedge maze
-(`e2e/maze.mjs`). It uses the Chromium that
+interaction and find (`e2e/cozy.mjs`), a walk through the hedge maze
+(`e2e/maze.mjs`) and older phones: WebGL 1, the 60 fps cap and no WebGL at all
+(`e2e/oldphones.mjs`; `WEBGL1=1 node e2e/playthrough.mjs` plays the whole game
+on WebGL 1). It uses the Chromium that
 `playwright-core` finds. In a normal setup, run `npx playwright-core install chromium`
 once first, or set `CHROME_PATH` to a Chromium you already have.
 

@@ -26,7 +26,7 @@ works from `file://`. Read `README.md` for the player-facing description.
 ```
 npm install
 npm run dev            # dev server, debug tools on
-npm test               # vitest: puzzles, randomiser, saves, updates, attic (76 tests)
+npm test               # vitest: puzzles, randomiser, saves, updates, attic, quality (80 tests)
 npm run build          # -> dist/index.html (the shippable file)
 npm run build:debug    # -> dist-debug/index.html (used by the browser tests)
 npm run e2e            # builds both, then runs every browser test
@@ -149,6 +149,29 @@ tests stay offline) and in the desktop app. The repo must stay public.
   reads `%USERPROFILE%\.sunday-night\keystore.properties` (never in the repo;
   losing it means the next APK can't install over the old one). Capacitor 6
   because the machine has JDK 17; the SDK is in `%LOCALAPPDATA%\Android\Sdk`.
+  minSdk is 21 (Android 5.0; the manifest overrides Cordova's 22, unused).
+  `android.minWebViewVersion` is 80: older, `MainActivity` asks for the Play
+  Store update. Emulators there: `sundaynight` (API 34) and `lollipop` (API
+  21, WebView 37, so it shows that prompt).
+
+## Old and mid-range phones
+
+- **three.js is pinned to 0.162.0**, the last release that still runs on
+  WebGL 1 (r163 dropped it). Many 2013-15 phone chips (Mali-400, PowerVR
+  SGX) have no WebGL 2. Don't upgrade three without a plan for those.
+  `renderer.js` hands three a WebGL 1 context itself when there is no WebGL 2;
+  `textures.js` turns off mipmaps on non-power-of-two canvases there (else
+  three shrinks them and the card writing blurs). No WebGL at all: `main.js`
+  shows `UI.noWebGL`.
+- **Oldest browser: Chrome 80** (`build.target` / `cssTarget` in
+  `vite.config.js`). esbuild lowers syntax and `inset`, but not newer APIs or
+  CSS such as `aspect-ratio` (use explicit heights) or `Array.at`.
+- `quality.js`: `pickQuality()` is the 'auto' rule (`tests/quality.test.js`).
+  No WebGL 2 or a `WEAK_GPU` means Light; `GOOD_PHONE_GPU` (Adreno 618+: the phone
+  the game is meant for is a Redmi Note 12 Pro 4G) means Full even at 4 GB.
+- `game._tick` caps touch devices at 60 fps (90/120 Hz screens).
+- `WEBGL1=1` makes the browser tests run without WebGL 2;
+  `e2e/oldphones.mjs` covers all of the above.
 
 Publish with `npm run release -- patch|minor|major "notes"`
 (`scripts/release.mjs`): it bumps, tests, builds, commits, tags, pushes, runs
@@ -177,8 +200,9 @@ releases (install one, release the next).
 
 ## Status
 
-All unit tests (76) and browser tests (prod, props, playthrough, continue,
-collision, touch, quality, hybrid, cozy, maze, selfupdate, attic) pass as of the last commit. The
+All unit tests (80) and browser tests (prod, props, playthrough, continue,
+collision, touch, quality, hybrid, cozy, maze, selfupdate, attic, oldphones)
+pass as of the last commit, and the playthrough passes on WebGL 1. The
 playthrough also passes with random scrambles. Ideas not done: a Cozy/Brainy
 difficulty choice, personal photos in the bedroom frames, a spectator mode for
 the author. The attic is built and waiting for the author's photo (and an

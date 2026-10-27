@@ -13,6 +13,7 @@ const tests = [
   'maze.mjs',
   'selfupdate.mjs',
   'attic.mjs',
+  'oldphones.mjs',
 ];
 let failed = 0;
 for (const t of tests) {

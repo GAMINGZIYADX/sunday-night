@@ -151,7 +151,7 @@ export class CatDirector {
       let w = Math.random();
       if (n.zone === cat.zone) w += 0.6;
       if (n.zone === playerZone) w += 0.5; // cats like company
-      if (other.node === n || other.path.at(-1) === n) w -= 2;
+      if (other.node === n || other.path[other.path.length - 1] === n) w -= 2;
       if (avoid) w += Math.min(2, Math.hypot(n.x - avoid.x, n.z - avoid.z)) * 0.8;
       return [w, n];
     });

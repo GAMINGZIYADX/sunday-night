@@ -855,8 +855,9 @@ textarea.code {
 }
 .slide-board {
   position: relative;
+  /* height, not aspect-ratio: older phone browsers (Chrome 80) lack it */
   width: min(calc(92vh - 230px), 78vw, 420px);
-  aspect-ratio: 1;
+  height: min(calc(92vh - 230px), 78vw, 420px);
   margin: 0 auto;
   background: #3a2d3a;
   border-radius: 16px;
@@ -917,7 +918,7 @@ textarea.code {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   width: min(calc(92vh - 260px), 74vw, 340px);
-  aspect-ratio: 1;
+  height: min(calc(92vh - 260px), 74vw, 340px);
   margin: 0 auto;
   background: #2f4a3e;
   border-radius: 16px;
@@ -1019,7 +1020,7 @@ textarea.code {
 .sky-wrap {
   position: relative;
   width: min(80vw, 640px, calc((92vh - 210px) * 1.25));
-  aspect-ratio: 1.25;
+  height: min(64vw, 512px, calc(92vh - 210px));
   margin: 0 auto;
   border-radius: 50%;
   overflow: hidden;
@@ -1331,6 +1332,7 @@ textarea.code {
 /* 6x6 sudoku */
 .sudoku.n6 {
   width: min(calc(92vh - 270px), 80vw, 400px);
+  height: min(calc(92vh - 270px), 80vw, 400px);
   gap: 3px;
 }
 .sudoku.n6 .cell {
@@ -1607,9 +1609,11 @@ body.touch .toast {
   .sudoku,
   .sudoku.n6 {
     width: min(calc(100vh - 44px), 52vw);
+    height: min(calc(100vh - 44px), 52vw);
   }
   .sky-wrap {
     width: min(calc((100vh - 84px) * 1.25), 56vw);
+    height: min(calc(100vh - 84px), 44.8vw);
     margin: 14px;
   }
   /* Settings in two columns: sliders, then switches. */
@@ -1874,4 +1878,17 @@ body.touch .seg-b {
 }
 .finds-list li.link b {
   text-decoration: underline dotted;
+}
+
+/* Shown instead of the game when the device has no WebGL (main.js). */
+.no-webgl {
+  max-width: 560px;
+  margin: 18vh auto 0;
+  padding: 28px 30px;
+  background: var(--paper);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  font-size: 18px;
+  line-height: 1.5;
+  text-align: center;
 }

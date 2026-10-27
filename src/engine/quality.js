@@ -14,35 +14,57 @@ const WEAK_GPU = [
   /intel.*\b(hd|uhd)\b(?!.*\bxe\b)/i, // Intel HD / UHD (not Iris Xe)
   /intel.*(atom|celeron|pentium|bay ?trail|cherry ?trail|gemini ?lake|apollo ?lake|jasper ?lake)/i,
   /mali-(4|t|g[1-5]\d\b)/i, // Mali-400/T-series/G31..G57
-  /adreno[^0-9]*([2-5]\d\d|6[0-3]\d)\b/i, // Adreno 200-639
+  /adreno[^0-9]*([2-5]\d\d|60\d|61[0-6])\b/i, // Adreno 200-616
   /powervr|vivante|videocore|imagination/i,
 ];
 
-export function gpuName() {
+// Phone graphics chips that handle the full look at phone resolution (with
+// the 60 fps cap in game.js), even though the phone may report only 4 GB:
+// Adreno 618 and up (Redmi Note 12 Pro 4G, Pixel 4a...), Mali-G68/G7x,
+// Mali-G610 and newer, Samsung Xclipse.
+const GOOD_PHONE_GPU = [/adreno[^0-9]*(61[7-9]|6[2-9]\d|[7-9]\d\d)(?!\d)/i, /mali-g(6[89]|[7-9]\d)\b/i, /mali-g(6[1-9]\d|[7-9]\d\d)|immortalis|xclipse/i];
+
+// One look at the graphics chip at startup: its name, and whether it has
+// WebGL 2 (phones from before about 2015 often only have WebGL 1) or any
+// WebGL at all.
+function probe() {
   try {
     const c = document.createElement('canvas');
-    const gl = c.getContext('webgl2') || c.getContext('webgl');
-    if (!gl) return '';
+    const gl2 = c.getContext('webgl2');
+    const gl = gl2 || c.getContext('webgl') || c.getContext('experimental-webgl');
+    if (!gl) return { name: '', webgl: false, webgl2: false };
     const ext = gl.getExtension('WEBGL_debug_renderer_info');
     const name = String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
     gl.getExtension('WEBGL_lose_context')?.loseContext();
-    return name;
+    return { name, webgl: true, webgl2: !!gl2 };
   } catch {
-    return '';
+    return { name: '', webgl: false, webgl2: false };
   }
+}
+const GPU = probe();
+export const WEBGL = GPU.webgl;
+export const WEBGL2 = GPU.webgl2;
+
+export function gpuName() {
+  return GPU.name;
 }
 
 // What 'auto' picks on this device.
 export function autoQuality() {
-  const gpu = gpuName();
-  if (WEAK_GPU.some((re) => re.test(gpu))) return 'light';
-  const cores = navigator.hardwareConcurrency || 8;
-  const memory = navigator.deviceMemory || 8; // Chrome only; others report nothing
+  // deviceMemory is Chrome only; others report nothing.
+  return pickQuality({ gpu: gpuName(), webgl2: WEBGL2, cores: navigator.hardwareConcurrency || 8, memory: navigator.deviceMemory || 8 });
+}
+
+// The rule itself (tests/quality.test.js).
+export function pickQuality({ gpu, webgl2, cores, memory }) {
+  if (!webgl2 || WEAK_GPU.some((re) => re.test(gpu))) return 'light';
+  if (GOOD_PHONE_GPU.some((re) => re.test(gpu))) return memory <= 2 ? 'light' : 'full';
   if (cores <= 4 || memory <= 4) return 'light';
   return 'full';
 }
 
 function decide() {
+  if (typeof location === 'undefined') return 'full'; // unit tests
   const q = new URLSearchParams(location.search).get('quality');
   if (q === 'light' || q === 'full') return q;
   const saved = readJSON(SETTINGS_KEY)?.graphics;

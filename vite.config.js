@@ -20,8 +20,12 @@ export default defineConfig(({ command, mode }) => {
     base: './',
     define: { __DEBUG__: JSON.stringify(debug), __APP_VERSION__: JSON.stringify(pkg.version) },
     plugins: [versionMeta, viteSingleFile()],
+    // Chrome 80 is the oldest browser the game supports: an Android 5 phone
+    // from 2013-14 with its system WebView updated reaches it. The Android app
+    // asks for that update when the WebView is older.
     build: {
-      target: 'es2020',
+      target: ['es2020', 'chrome80'],
+      cssTarget: 'chrome80',
       assetsInlineLimit: 100000000,
       chunkSizeWarningLimit: 4000,
       cssCodeSplit: false,
