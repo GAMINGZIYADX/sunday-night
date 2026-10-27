@@ -26,7 +26,25 @@ for (const r of ROOMS) {
 // Zone boundaries sit in the middle of each hallway.
 export const ZONE_BOUNDS = [0, 1, 2, 3, 4].map((i) => (ROOMS[i].zN + ROOMS[i + 1].zS) / 2);
 
+// The attic is built apart from the house, well south of the bedroom where no
+// window looks: the ladder in the bedroom ceiling fades you up into it. Under a
+// pitched roof: the ridge runs along Z at x = 0, the roof comes down to short
+// knee walls at x0 / x1.
+export const ATTIC_ZONE = 6;
+export const ATTIC = { id: 'attic', w: 6.4, zS: 25, zN: 18, ridge: 3.0, knee: 0.9 };
+ATTIC.x0 = -ATTIC.w / 2;
+ATTIC.x1 = ATTIC.w / 2;
+ATTIC.cz = (ATTIC.zS + ATTIC.zN) / 2;
+ATTIC.d = ATTIC.zS - ATTIC.zN;
+// The hatch in the bedroom ceiling (the ladder unfolds from its south edge
+// down to the floor), and the opening it comes up through in the attic floor.
+export const HATCH = { x0: 1.25, x1: 1.95, z0: -2.25, z1: -1.25 };
+export const ATTIC_HOLE = { x0: 0.55, x1: 1.25, z0: 23.6, z1: 24.6 };
+// Roof height above the floor at a given x.
+export const atticRoofY = (x) => ATTIC.ridge - ((ATTIC.ridge - ATTIC.knee) * Math.abs(x)) / ATTIC.x1;
+
 export function zoneAt(z) {
+  if (z > 12) return ATTIC_ZONE;
   let zone = 0;
   for (const b of ZONE_BOUNDS) if (z < b) zone++;
   return zone;

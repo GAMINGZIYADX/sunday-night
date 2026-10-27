@@ -1,5 +1,6 @@
 import { Emitter } from './emitter.js';
-import { createPuzzles, PUZZLE_IDS } from '../puzzles/index.js';
+import { createPuzzles, PUZZLE_IDS, ALL_IDS, ATTIC_IDS } from '../puzzles/index.js';
+import { ATTIC } from '../puzzles/piano.js';
 import { LOCK_CODE, NOTES, FINDS, CLUES, RANDOMIZE } from '../config.js';
 
 export const SAVE_VERSION = 2; // 2: harder puzzles (old saves are ignored)
@@ -8,7 +9,9 @@ export const ROOM_COUNT = 5;
 // The one source of truth for progress. Save/load, the journal and the HUD all
 // read from here and listen to its events:
 //   'puzzle'        { puzzle, justSolved }   any puzzle change
-//   'solved'        { puzzle }               a puzzle was just solved
+//   'solved'        { puzzle }               a key puzzle was just solved
+//   'atticSolved'   { puzzle }               an attic puzzle was just solved
+//   'ladder'        {}                       the attic ladder came down
 //   'door'          { room }                 a door was opened
 //   'digit'         { room, digit }          a memory-tulip digit was collected
 //   'note'          { index }                a note was read (first time)
@@ -22,11 +25,13 @@ export class GameState extends Emitter {
   constructor() {
     super();
     this.puzzles = createPuzzles();
-    for (const id of PUZZLE_IDS) {
+    for (const id of ALL_IDS) {
+      const attic = ATTIC_IDS.includes(id);
       this.puzzles[id].onChange((puzzle, justSolved) => {
         this.emit('puzzle', { puzzle, justSolved });
         if (justSolved) {
-          this.emit('solved', { puzzle });
+          // Only the ten room puzzles give keys; the attic's are just for fun.
+          this.emit(attic ? 'atticSolved' : 'solved', { puzzle });
           this.emit('autosave', { reason: 'solved' });
         }
       });
@@ -40,16 +45,17 @@ export class GameState extends Emitter {
       room: 0,
       player: { x: 0, z: 1.4, yaw: 0, pitch: 0 },
       doors: [false, false, false, false, false],
-      visited: [true, false, false, false, false],
+      visited: [true, false, false, false, false, false, false],
       notes: [],
       clues: [],
       finds: [],
       maze: { best: 0, done: false },
+      attic: { ladder: false },
       hintTier: {},
       finished: false,
       playTime: 0,
     };
-    for (const id of PUZZLE_IDS) this.puzzles[id].newGame(rng);
+    for (const id of ALL_IDS) this.puzzles[id].newGame(rng);
     // The hedge maze is built from this number (the same number, the same maze).
     this.data.mazeSeed = RANDOMIZE ? Math.floor(rng() * 2 ** 31) : 20070;
     this.syncText();
@@ -59,6 +65,7 @@ export class GameState extends Emitter {
   syncText() {
     CLUES.cipherCard.text = this.puzzles.r3a.encoded;
     CLUES.recipe.text = this.puzzles.r3b.recipe;
+    CLUES.atticRiddle.text = this.puzzles.trunk.riddle;
   }
 
   puzzleIdFor(room, kind) {
@@ -135,6 +142,15 @@ export class GameState extends Emitter {
     return this.data.finds.includes(id);
   }
 
+  // The attic ladder (pulled down once, it stays down).
+  lowerLadder() {
+    if (this.data.attic.ladder) return false;
+    this.data.attic.ladder = true;
+    this.emit('ladder', {});
+    this.emit('autosave', { reason: 'ladder' });
+    return true;
+  }
+
   // Hints: returns the next tier text for a puzzle (stays on tier 3).
   nextHint(id) {
     const cur = this.data.hintTier[id] ?? -1;
@@ -164,7 +180,7 @@ export class GameState extends Emitter {
   // ---- serialisation ----------------------------------------------------
   serialize() {
     const puzzles = {};
-    for (const id of PUZZLE_IDS) puzzles[id] = this.puzzles[id].getState();
+    for (const id of ALL_IDS) puzzles[id] = this.puzzles[id].getState();
     return JSON.parse(JSON.stringify({ ...this.data, puzzles }));
   }
 
@@ -174,7 +190,7 @@ export class GameState extends Emitter {
     this.reset();
     const d = this.data;
     const num = (v, def) => (typeof v === 'number' && Number.isFinite(v) ? v : def);
-    d.room = Math.max(0, Math.min(ROOM_COUNT, num(obj.room, 0) | 0));
+    d.room = Math.max(0, Math.min(ATTIC, num(obj.room, 0) | 0));
     if (obj.player) {
       d.player = {
         x: num(obj.player.x, d.player.x),
@@ -191,12 +207,14 @@ export class GameState extends Emitter {
     if (obj.hintTier && typeof obj.hintTier === 'object') d.hintTier = { ...obj.hintTier };
     d.finished = !!obj.finished;
     d.playTime = num(obj.playTime, 0);
-    for (const id of PUZZLE_IDS) if (obj.puzzles && obj.puzzles[id]) this.puzzles[id].setState(obj.puzzles[id]);
+    // Saves from before the attic have no attic puzzles: those stay as new.
+    for (const id of ALL_IDS) if (obj.puzzles && obj.puzzles[id]) this.puzzles[id].setState(obj.puzzles[id]);
     // Doors can only be open if their keys exist (repairs hand-edited saves).
     d.doors = d.doors.map((open, r) => open && this.hasKey(r, 'gold') && this.hasKey(r, 'silver'));
     // The hedge maze layout (saves from before the maze keep the new one).
     if (Number.isInteger(obj.mazeSeed) && obj.mazeSeed >= 0) d.mazeSeed = obj.mazeSeed;
     if (obj.maze && typeof obj.maze === 'object') d.maze = { best: num(obj.maze.best, 0), done: !!obj.maze.done };
+    if (obj.attic && typeof obj.attic === 'object') d.attic = { ladder: !!obj.attic.ladder };
     this.syncText();
     this.emit('loaded', {});
     return true;

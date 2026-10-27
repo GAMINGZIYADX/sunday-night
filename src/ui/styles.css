@@ -75,6 +75,9 @@ body {
 .fade.on {
   opacity: 1;
 }
+.fade.quick {
+  transition: opacity 0.6s ease;
+}
 
 /* Crosshair */
 .crosshair {
@@ -1764,4 +1767,111 @@ body.touch .seg-b {
 .finds-list li.locked {
   display: inline-block;
   opacity: 0.45;
+}
+
+/* Attic: the old piano */
+.piano {
+  position: relative;
+  display: flex;
+  gap: 4px;
+  padding: 14px 14px 12px;
+  border-radius: 18px;
+  background: linear-gradient(#4a3530, #2f221f);
+  width: min(78vw, 470px);
+  height: min(46vh, 230px);
+  box-sizing: border-box;
+}
+.pkey {
+  flex: 1;
+  border: 0;
+  border-radius: 0 0 10px 10px;
+  background: linear-gradient(#fffaf0, #efe4d0);
+  box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 12px;
+  font-family: var(--round);
+  font-size: 18px;
+  color: #7a6658;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition:
+    background 0.12s ease,
+    transform 0.08s ease;
+}
+.pkey:active,
+.pkey.lit {
+  background: linear-gradient(#ffe3a8, #f6c66f);
+  transform: translateY(2px);
+  color: #4a3530;
+}
+.pkey.lit {
+  box-shadow:
+    inset 0 -6px 0 rgba(0, 0, 0, 0.12),
+    0 0 22px rgba(255, 210, 120, 0.9);
+}
+.piano.busy .pkey {
+  cursor: default;
+}
+.pblack {
+  position: absolute;
+  top: 14px;
+  width: 9%;
+  height: 52%;
+  border-radius: 0 0 6px 6px;
+  background: linear-gradient(#3a2c2a, #171112);
+  pointer-events: none;
+}
+
+/* Attic: the picture lock */
+.picture-lock .pic {
+  width: 84px;
+  height: 84px;
+  border-radius: 16px;
+  background: linear-gradient(#fbf3e2, #efe0c4);
+  box-shadow:
+    inset 0 0 0 3px #c9a256,
+    0 2px 6px rgba(0, 0, 0, 0.15);
+}
+.picture-lock .pic.cur {
+  box-shadow:
+    inset 0 0 0 3px #6f9be0,
+    0 0 12px rgba(111, 155, 224, 0.6);
+}
+.picture-lock .wheel .btn {
+  width: 84px;
+}
+
+/* Attic: the photo */
+.photo {
+  background: #fffdf8;
+  padding: 18px 18px 22px;
+  border-radius: 4px;
+  box-shadow: var(--shadow);
+  transform: rotate(-1.4deg);
+  animation: paperIn 0.45s ease;
+  max-width: min(88vw, 620px);
+}
+.photo-pic canvas {
+  display: block;
+  max-width: min(84vw, 580px);
+  max-height: min(68vh, 600px);
+  width: auto;
+  height: auto;
+  margin: 0 auto;
+  border-radius: 2px;
+}
+.photo-caption {
+  font-family: var(--hand);
+  font-size: 22px;
+  color: #3f2f2a;
+  text-align: center;
+  margin: 14px 0 0;
+}
+.finds-list li.link {
+  cursor: pointer;
+}
+.finds-list li.link b {
+  text-decoration: underline dotted;
 }

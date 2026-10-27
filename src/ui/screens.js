@@ -1,7 +1,9 @@
 import { el, button, TULIP_SVG } from './dom.js';
 import { card } from './manager.js';
 import { GAME_TITLE, UI, NOTES, NOTE_PLACES, PUZZLE_NAMES, ROOM_NAMES, CLUES, FINDS } from '../config.js';
-import { PUZZLE_IDS } from '../puzzles/index.js';
+import { ALL_IDS, PUZZLE_IDS, ATTIC_IDS } from '../puzzles/index.js';
+import { photoOverlay } from './overlays.js';
+import { ATTIC_ZONE } from '../engine/layout.js';
 import { KEY_SVG } from './dom.js';
 import { exportCode, importCode } from '../engine/save.js';
 import { LABELS, TOASTS } from '../config.js';
@@ -292,9 +294,11 @@ export function journal(game) {
   gs.collectedDigits().forEach((d) => digits.append(el(`div.digit${d === null ? '.empty' : ''}`, d === null ? '?' : d)));
   // Puzzles with hints
   const plist = el('ul.plist');
-  for (const id of PUZZLE_IDS) {
+  let solved = 0;
+  for (const id of ALL_IDS) {
     const p = gs.puzzles[id];
     if (!gs.data.visited[p.room]) continue;
+    if (p.isSolved()) solved++;
     const hintBox = el('div.hint-inline.hidden');
     const li = el(`li${p.isSolved() ? '.done' : ''}`, [
       el('span.nm', `${PUZZLE_NAMES[id]} `),
@@ -321,7 +325,9 @@ export function journal(game) {
   // Little finds: found ones with their story, the rest as question marks.
   const finds = el('ul.finds-list');
   for (const f of FINDS) {
-    if (gs.hasFind(f.id)) finds.append(el('li', [el('b', f.name.charAt(0).toUpperCase() + f.name.slice(1)), el('span', f.text)]));
+    // The photo opens again from here.
+    const open = f.id === 'photo' ? { onclick: () => photoOverlay(game), class: 'link' } : {};
+    if (gs.hasFind(f.id)) finds.append(el('li', open, [el('b', f.name.charAt(0).toUpperCase() + f.name.slice(1)), el('span', f.text)]));
     else finds.append(el('li.locked', '?'));
   }
   const clues = el('ul.notes-list');
@@ -349,7 +355,7 @@ export function journal(game) {
               )
             : null,
         ]),
-        el('section', [el('h3', `${LABELS.puzzles}  ${gs.solvedCount()}/10`), plist]),
+        el('section', [el('h3', `${LABELS.puzzles}  ${solved}/${PUZZLE_IDS.length + (gs.data.visited[ATTIC_ZONE] ? ATTIC_IDS.length : 0)}`), plist]),
       ]),
     ],
     { wide: true, icon: TULIP_SVG('#6f9be0', 26), onClose: () => game.modals.close(m) },

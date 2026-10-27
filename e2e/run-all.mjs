@@ -12,6 +12,7 @@ const tests = [
   'cozy.mjs',
   'maze.mjs',
   'selfupdate.mjs',
+  'attic.mjs',
 ];
 let failed = 0;
 for (const t of tests) {

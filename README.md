@@ -2,8 +2,8 @@
 
 A small, cosy first-person puzzle house. Five rooms, two puzzles each, two cats
 (Tchobin and Zizo), no timers, no fail states. About 20 minutes, plus a hedge
-maze and little things to find. Every new game changes several puzzles and
-grows a new maze.
+maze, an attic with a photo in it, and little things to find. Every new game
+changes several puzzles and grows a new maze.
 
 ## Play it
 
@@ -75,15 +75,32 @@ Separately, the resolution always lowers itself a little when frames get slow.
   - put the kettle on
   - open the kitchen window to hear the crickets
   - spin the study globe
-- **Five little finds**, kept in the journal:
+- **Six little finds**, kept in the journal:
   - a paper star in the bedroom dresser's top drawer
   - a toy mouse under a sofa cushion
   - a cookie in the kitchen cookie jar
   - a pressed tulip in the little book on the study desk
   - a jar of fireflies in the middle of the hedge maze
+  - a photo in the attic trunk
 - **The hedge maze:** go through the gap in the garden's east wall. A new maze
   grows every new game. Reaching the middle records your time (the best one is
   kept in the journal), and **H** shows a short firefly trail.
+- **The attic:** pull the cord in the bedroom ceiling and a ladder comes down.
+  Up there, under the roof, an old piano plays the start of a tune and lights
+  its keys: play it back and it adds a note, until the whole tune is played
+  (a wrong key just plays that part again). It gives a card that names four
+  of the little finds in some order; those are the four pictures that open the
+  trunk under the round window. Inside is a photo. It is all optional, and
+  open from the very start.
+
+### Your photo in the trunk
+
+Put one picture (jpg, png or webp) in **`src/photo/`** and rebuild: it is built
+into the game file, so `dist/index.html` still works on its own. Keep it under
+about 500 KB (a phone photo resized to 1600 px on its long side is plenty), as
+it makes the game file that much bigger. Without a picture, a drawing of the two
+cats at a window stands in. An optional caption under it: `PHOTO.caption` in
+`src/config.js`.
 
 ## Every game is different
 
@@ -97,6 +114,7 @@ With `RANDOMIZE = true` in `src/config.js` (the default), each new game picks:
 | Sudoku         | a reshuffle of `SUDOKU_GIVENS` (rows, columns and numbers moved around): same difficulty, still one solution    |
 | Telescope      | where the decoy stars are, and their letters                                                                    |
 | Hedge maze     | the whole layout                                                                                                |
+| Attic          | the piano's tune and the order of the four pictures on the trunk                                                |
 
 These were already random: the frame order, the sliding picture, the book
 order and where the cats hide. The lock code, the notes and the letter never
@@ -118,6 +136,7 @@ Everything you'd want to change is in **`src/config.js`**, with comments:
 | Oven dial riddles                                         | `DIAL_RIDDLES` (text, answer, middle hint). Each riddle's rule is in `DIAL_RULES` in `src/puzzles/dials.js`; `npm test` checks every riddle has exactly one answer              |
 | Randomiser on or off                                      | `RANDOMIZE`                                                                                                                                                                     |
 | Little finds                                              | `FINDS`                                                                                                                                                                         |
+| The attic                                                 | `ATTIC_NAME`, `PIANO_KEYS`, `PIANO_START`, `PIANO_LENGTH`, `TRUNK_PICTURES`, `TRUNK_RIDDLE`, `PHOTO` (the photo itself goes in `src/photo/`)                                  |
 | Sudoku (6×6)                                              | `SUDOKU_GIVENS` (keep it to one solution: run `npm test` to check)                                                                                                              |
 | Vase patterns, rug, constellation, hiding spots           | `VASE_VARIANTS`, `RUG_SHOWN`, `CONSTELLATION_LABELS`, `CONSTELLATION_DECOYS`, `HIDING_SPOTS`                                                                                    |
 | Hints (3 per puzzle)                                      | `HINTS`                                                                                                                                                                         |

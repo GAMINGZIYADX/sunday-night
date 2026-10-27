@@ -117,7 +117,7 @@ export function ceilingMesh(w, d, material, { x = 0, z = 0, h = WALL_H } = {}) {
   return mesh(scaledPlane(w, d, 2, 2), material, { rot: [Math.PI / 2, 0, 0], pos: [x, h, z], cast: false, receive: false });
 }
 
-// style: { wall, wallAccent, pattern, lower, floor, ceiling, hallWall }
+// style: { wall, wallAccent, pattern, lower, floor, ceiling, hallWall, ceilingHole: {x0, x1, z0, z1} }
 export function buildRoomShell(ctx, index, style) {
   const r = ROOMS[index];
   const g = ctx.roomGroup(index);
@@ -127,7 +127,17 @@ export function buildRoomShell(ctx, index, style) {
   const floorTex = woodPlanks(style.floor ?? COLORS.wood, { repeat: [1, 1] });
   const floorMat = mat(0xffffff, { map: floorTex, rough: 0.7 });
   g.add(floorMesh(r.w, r.d, floorMat, { z: r.cz }));
-  g.add(ceilingMesh(r.w, r.d, mat(style.ceiling ?? COLORS.cream, { rough: 1, emissive: 0x3a2c26, ei: 1 }), { z: r.cz }));
+  const ceilMat = mat(style.ceiling ?? COLORS.cream, { rough: 1, emissive: 0x3a2c26, ei: 1 });
+  if (style.ceilingHole) {
+    // Four pieces around an opening (the attic hatch): north, south, west, east.
+    const h = style.ceilingHole;
+    const piece = (x0, x1, z0, z1) =>
+      x1 - x0 > 0.001 && z1 - z0 > 0.001 && g.add(ceilingMesh(x1 - x0, z1 - z0, ceilMat, { x: (x0 + x1) / 2, z: (z0 + z1) / 2 }));
+    piece(r.x0, r.x1, r.zN, h.z0);
+    piece(r.x0, r.x1, h.z1, r.zS);
+    piece(r.x0, h.x0, h.z0, h.z1);
+    piece(h.x1, r.x1, h.z0, h.z1);
+  } else g.add(ceilingMesh(r.w, r.d, ceilMat, { z: r.cz }));
   // Ceiling beams for warmth.
   if (style.beams) {
     const bm = mat(COLORS.woodDark, { rough: 0.8 });

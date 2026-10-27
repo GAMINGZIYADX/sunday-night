@@ -226,6 +226,40 @@ export const HIDING_SPOTS = [
 ];
 
 // -----------------------------------------------------------------------------
+//  The attic (optional, up the ladder in the bedroom ceiling): an old piano that
+//  plays a tune to play back, then a picture lock on a trunk that keeps a photo.
+// -----------------------------------------------------------------------------
+export const ATTIC_NAME = 'Attic';
+export const ATTIC_TITLE = 'Kept Things';
+// One octave of white keys. The tune starts with PIANO_START notes and grows by
+// one each time it is played back, up to PIANO_LENGTH.
+export const PIANO_KEYS = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+export const PIANO_START = 3;
+export const PIANO_LENGTH = 6;
+export const PIANO_TUNE = [2, 4, 0, 5, 3, 1]; // when RANDOMIZE is off: E G C A F D
+// The trunk's picture lock: four wheels of these pictures. The answer is the
+// four little finds, in the order the card from the piano names them.
+export const TRUNK_PICTURES = [
+  { id: 'star', name: 'the paper star' },
+  { id: 'mouse', name: 'the toy mouse' },
+  { id: 'cookie', name: 'the cookie' },
+  { id: 'tulip', name: 'the tulip' },
+  { id: 'moon', name: 'the moon' },
+  { id: 'heart', name: 'the heart' },
+];
+export const TRUNK_RIDDLE = {
+  star: 'what the dresser drawer keeps',
+  mouse: 'what Tchobin hides under a cushion',
+  cookie: 'what waits in the kitchen jar',
+  tulip: 'what the little book is pressing',
+};
+export const TRUNK_ORDER_WORDS = ['First', 'Then', 'Then', 'Last'];
+export const TRUNK_ANSWER = ['cookie', 'star', 'tulip', 'mouse']; // when RANDOMIZE is off
+// The photo in the trunk: put one picture (jpg, png or webp) in src/photo/ and
+// it is built into the game. The caption is optional, written under the photo.
+export const PHOTO = { caption: '' };
+
+// -----------------------------------------------------------------------------
 //  Clue cards (short printed cards next to puzzles; kept in the journal)
 // -----------------------------------------------------------------------------
 export const CLUES = {
@@ -239,6 +273,8 @@ export const CLUES = {
   telescope: { title: 'A card on the telescope', text: 'A year of us.\nOne star for every month.' },
   recipe: { title: 'Recipe card', text: DIAL_RECIPE },
   gate: { title: 'A note on the gate', text: 'Remember what each room gave you.' },
+  // Written from the trunk's answer when a game starts (see puzzles/trunk.js).
+  atticRiddle: { title: 'A card from the piano', text: '' },
 };
 
 // -----------------------------------------------------------------------------
@@ -296,6 +332,16 @@ export const HINTS = {
     'January, February, March... Letters repeat, and some stars are not part of it. Each month sits right next to the one before it, so follow the shape.',
     'Start at the J at the bottom point of the heart, next to the F. Go up the left side: J F M A M J, over the top: J A S O N D. Wrong stars just fade.',
   ],
+  piano: [
+    'Press Listen and watch which keys light up, then play them back in the same order. Each time it adds one more note. A wrong key only plays that part again.',
+    'The tune starts {START}. Every key has its letter on it.',
+    'The whole tune: {TUNE}.',
+  ],
+  trunk: [
+    'The lock wants four pictures. The old piano knows more: play its tune back and it gives you a card.',
+    'Each line of the card is one of the little finds around the house: the dresser drawer keeps the paper star, the cushion hides the toy mouse, the kitchen jar holds the cookie, the little book presses the tulip.',
+    'Set the wheels, left to right, to {ANSWER}, then Open.',
+  ],
 };
 
 export const PUZZLE_NAMES = {
@@ -309,6 +355,8 @@ export const PUZZLE_NAMES = {
   r4b: 'The chalkboard sudoku',
   r5a: 'The gate lock',
   r5b: 'The telescope',
+  piano: 'The old piano',
+  trunk: 'The picture lock',
 };
 
 // -----------------------------------------------------------------------------
@@ -429,6 +477,15 @@ export const PROMPTS = {
   jar: 'Open the jar of fireflies',
   jarOpened: 'The fireflies are out',
   envelopeAgain: 'Read the letter again',
+  // the attic
+  atticCord: 'Pull the cord',
+  atticUp: 'Climb up to the attic',
+  atticDown: 'Climb down',
+  piano: 'Play the old piano',
+  riddleCard: 'Read the card',
+  trunk: 'Open the old trunk',
+  photoTake: 'Take the photo',
+  photoLook: 'Look at the photo',
 };
 
 // Little messages that pop up at the top of the screen.
@@ -461,6 +518,7 @@ export const TOASTS = {
   mazeBest: 'The middle again, in {TIME}: a new best time.',
   mazeAgain: 'The middle again, in {TIME} (best {BEST}).',
   mazeHint: 'The fireflies show you the way, just for a moment.',
+  ladder: 'A ladder unfolds from the ceiling.',
 };
 
 // Words on buttons, menus and puzzle screens.
@@ -573,17 +631,33 @@ export const LABELS = {
   graphicsAuto: 'Auto ({Q})',
   graphicsFull: 'Full',
   graphicsLight: 'Light',
+  // the attic
+  pianoListen: 'Listen',
+  pianoIntro: 'Press Listen. Watch the keys light up, then play them back.',
+  pianoYourTurn: 'Your turn: {N} notes.',
+  pianoWrong: 'Not quite. Listen again.',
+  pianoMore: 'Yes. One more note this time.',
+  pianoSolved: 'That was the whole tune. Something drops out from under the lid.',
+  pianoFree: 'Play anything you like.',
+  pianoHelp: 'Click the keys, or press 1 to 7.',
+  trunkOpen: 'Open',
+  trunkStart: 'Four wheels of little pictures.',
+  trunkNotQuite: 'The lock does not move.',
+  trunkOpened: 'Click. The lid lifts a little.',
+  trunkHelp: 'Turn each wheel with the arrows, then Open.',
+  photoTitle: 'A photo',
 };
 
 // Little finds: small things hidden around the house (in a drawer, under a
-// cushion, in the cookie jar, in a book, and in the middle of the garden
-// maze). They are optional and kept in the journal.
+// cushion, in the cookie jar, in a book, in the middle of the garden maze, and
+// in the attic's trunk). They are optional and kept in the journal.
 export const FINDS = [
   { id: 'star', room: 0, name: 'a paper star', text: 'Folded very carefully from a page of a notebook. Someone kept it.' },
   { id: 'mouse', room: 1, name: 'a toy mouse', text: "Tchobin's favourite toy. It has clearly been through a lot." },
   { id: 'cookie', room: 2, name: 'a cookie shaped like a cat', text: 'The ears came out a little burnt. Still perfect.' },
   { id: 'tulip', room: 3, name: 'a pressed tulip', text: 'Flattened between two pages, still a little blue.' },
   { id: 'fireflies', room: 4, name: 'a jar of fireflies', text: 'Waiting in the middle of the hedge maze.' },
+  { id: 'photo', room: 6, name: 'a photo', text: 'Kept in the old trunk in the attic.' },
 ];
 
 // On phones and tablets these replace the keyboard-and-mouse wording above.
@@ -608,6 +682,7 @@ export const TOUCH_TEXT = {
     lockJournal: 'Journal',
     lockNotYet: 'Not yet. Your journal has the digits from each door.',
     lockHelp: 'Tap the arrows to set each digit, then Open.',
+    pianoHelp: 'Tap the keys.',
     readFaster: 'tap to read faster',
   },
   TOASTS: {

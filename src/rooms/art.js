@@ -1,4 +1,4 @@
-import { drawTulip, hex, roundRect, HAND_FONT, ROUND_FONT } from '../engine/textures.js';
+import { drawTulip, drawHeart, hex, roundRect, HAND_FONT, ROUND_FONT } from '../engine/textures.js';
 import { COLORS } from '../config.js';
 import { WORLD_TEXT } from '../config.js';
 import { shape } from '../puzzles/sudokuMath.js';
@@ -581,4 +581,122 @@ export function drawChalkboard(g, w, h, puzzle) {
   g.lineTo(cx + h * 0.045, cy - h * 0.1);
   g.lineTo(cx + h * 0.015, cy - h * 0.06);
   g.stroke();
+}
+
+// ------------------------------------------------------- the attic trunk lock
+// One picture of the trunk's picture lock, centred at (x, y), about s across.
+// Drawn on canvas so the lock screen and the 3D trunk share the same art.
+export function drawLockPicture(g, id, x, y, s) {
+  const ink = '#4a3a3a';
+  g.save();
+  g.translate(x, y);
+  g.lineJoin = 'round';
+  g.lineCap = 'round';
+  if (id === 'star') {
+    // A folded paper star: five points, a crease down each one.
+    const pts = [];
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + (i * Math.PI) / 5;
+      const r = i % 2 ? s * 0.2 : s * 0.46;
+      pts.push([Math.cos(a) * r, Math.sin(a) * r]);
+    }
+    g.fillStyle = '#f4d77a';
+    g.beginPath();
+    pts.forEach(([px, py], i) => (i ? g.lineTo(px, py) : g.moveTo(px, py)));
+    g.closePath();
+    g.fill();
+    g.strokeStyle = 'rgba(150,110,40,0.55)';
+    g.lineWidth = Math.max(1, s * 0.025);
+    g.stroke();
+    for (let i = 0; i < 10; i += 2) {
+      g.beginPath();
+      g.moveTo(0, 0);
+      g.lineTo(pts[i][0], pts[i][1]);
+      g.stroke();
+    }
+  } else if (id === 'mouse') {
+    // A toy mouse: round body, two ears, a long curly tail.
+    g.strokeStyle = '#b98f9a';
+    g.lineWidth = Math.max(1, s * 0.04);
+    g.beginPath();
+    g.moveTo(s * 0.3, s * 0.12);
+    g.bezierCurveTo(s * 0.55, s * 0.1, s * 0.5, s * 0.38, s * 0.3, s * 0.36);
+    g.stroke();
+    g.fillStyle = '#a9a0a8';
+    g.beginPath();
+    g.ellipse(0, s * 0.08, s * 0.33, s * 0.22, 0, 0, Math.PI * 2);
+    g.fill();
+    g.beginPath();
+    g.moveTo(-s * 0.3, s * 0.02);
+    g.lineTo(-s * 0.46, s * 0.1);
+    g.lineTo(-s * 0.28, s * 0.2);
+    g.fill();
+    for (const ex of [-s * 0.16, s * 0.02]) {
+      g.fillStyle = '#a9a0a8';
+      g.beginPath();
+      g.arc(ex, -s * 0.14, s * 0.11, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = '#f2b8c2';
+      g.beginPath();
+      g.arc(ex, -s * 0.14, s * 0.06, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.fillStyle = ink;
+    g.beginPath();
+    g.arc(-s * 0.25, s * 0.04, s * 0.03, 0, Math.PI * 2);
+    g.fill();
+    g.fillStyle = '#e88aa0';
+    g.beginPath();
+    g.arc(-s * 0.45, s * 0.1, s * 0.035, 0, Math.PI * 2);
+    g.fill();
+  } else if (id === 'cookie') {
+    // A cookie shaped like a cat's head, with chocolate chips.
+    g.fillStyle = '#d9a35f';
+    g.beginPath();
+    g.moveTo(-s * 0.36, -s * 0.05);
+    g.lineTo(-s * 0.32, -s * 0.42);
+    g.lineTo(-s * 0.1, -s * 0.24);
+    g.lineTo(s * 0.1, -s * 0.24);
+    g.lineTo(s * 0.32, -s * 0.42);
+    g.lineTo(s * 0.36, -s * 0.05);
+    g.arc(0, s * 0.02, s * 0.37, -0.2, Math.PI + 0.2);
+    g.closePath();
+    g.fill();
+    g.strokeStyle = '#b07a3c';
+    g.lineWidth = Math.max(1, s * 0.03);
+    g.stroke();
+    g.fillStyle = '#6b4128';
+    for (const [cx, cy] of [
+      [-s * 0.15, -s * 0.02],
+      [s * 0.15, -s * 0.02],
+      [0, s * 0.15],
+      [-s * 0.2, s * 0.2],
+      [s * 0.21, s * 0.19],
+    ]) {
+      g.beginPath();
+      g.arc(cx, cy, s * 0.045, 0, Math.PI * 2);
+      g.fill();
+    }
+  } else if (id === 'tulip') {
+    drawTulip(g, 0, -s * 0.12, s * 0.62, BLUE, { stemColor: hex(COLORS.stem) });
+  } else if (id === 'moon') {
+    // A crescent, cut out on its own little canvas so it never erases what
+    // is behind it.
+    const n = Math.max(8, Math.ceil(s));
+    const c = document.createElement('canvas');
+    c.width = c.height = n;
+    const m = c.getContext('2d');
+    m.fillStyle = '#f3e4b0';
+    m.beginPath();
+    m.arc(n / 2, n / 2, n * 0.36, 0, Math.PI * 2);
+    m.fill();
+    m.globalCompositeOperation = 'destination-out';
+    m.beginPath();
+    m.arc(n / 2 + n * 0.17, n / 2 - n * 0.1, n * 0.3, 0, Math.PI * 2);
+    m.fill();
+    g.drawImage(c, -s / 2, -s / 2, s, s);
+  } else if (id === 'heart') {
+    drawHeart(g, 0, s * 0.06, s * 0.62, '#e98b9c');
+  }
+  g.restore();
 }

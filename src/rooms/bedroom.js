@@ -37,6 +37,7 @@ import { N as SLIDE_N } from '../puzzles/sliding.js';
 import { PROMPTS } from '../config.js';
 import { placeNote } from './notes.js';
 import { lampSwitch, musicBox, openableDrawer, paperStar } from './cozy.js';
+import { HATCH } from '../engine/layout.js';
 
 const C = COLORS;
 
@@ -45,7 +46,7 @@ export function buildBedroom(ctx) {
   const g = ctx.roomGroup(ROOM);
   const col = ctx.collision;
   const gs = ctx.gs;
-  buildRoomShell(ctx, ROOM, { wall: C.blush, wallAccent: C.cream, pattern: 'tulips', lower: 0xe9d3c0, floor: C.wood });
+  buildRoomShell(ctx, ROOM, { wall: C.blush, wallAccent: C.cream, pattern: 'tulips', lower: 0xe9d3c0, floor: C.wood, ceilingHole: HATCH });
 
   // ---------------------------------------------------------------- the bed
   const bed = group([], { pos: [-1.6, 0, 2.45] });

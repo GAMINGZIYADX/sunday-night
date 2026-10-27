@@ -2,8 +2,9 @@
 
 A cosy first-person puzzle game built as a **personal gift** (for "H", from the
 author, who signs the letter "Zizou"). Three.js + Vite + vanilla JS, everything
-procedural (no asset files, no CDN), built into **one file**, `dist/index.html`,
-that works from `file://`. Read `README.md` for the player-facing description.
+procedural (no asset files, no CDN; the one exception is the author's photo in
+`src/photo/`, inlined by Vite), built into **one file**, `dist/index.html`, that
+works from `file://`. Read `README.md` for the player-facing description.
 
 ## Rules that matter
 
@@ -25,7 +26,7 @@ that works from `file://`. Read `README.md` for the player-facing description.
 ```
 npm install
 npm run dev            # dev server, debug tools on
-npm test               # vitest: puzzles, randomiser, saves, updates (62 tests)
+npm test               # vitest: puzzles, randomiser, saves, updates, attic (76 tests)
 npm run build          # -> dist/index.html (the shippable file)
 npm run build:debug    # -> dist-debug/index.html (used by the browser tests)
 npm run e2e            # builds both, then runs every browser test
@@ -57,8 +58,12 @@ argument to some tests to save screenshots. Debug URL flags: `?debug=1`,
 - `rooms/`: one file per room (bedroom, living, kitchen, study, garden,
   clearing) + `shell.js` (walls/halls), `door.js`, `art.js` (canvas drawings),
   `notes.js` (the five notes), `cozy.js` (lamps, music box, kettle, window,
-  drawer, cushion, cookie jar, book, the little finds), `maze.js` (hedge maze).
-- `puzzles/`: one pure-logic module per puzzle extending `Puzzle` in `base.js`:
+  drawer, cushion, cookie jar, book, the little finds), `maze.js` (hedge maze),
+  `attic.js` (the attic and the bedroom ladder), `photo.js` (the attic photo
+  from `src/photo/`, or a drawn stand-in).
+- `puzzles/`: one pure-logic module per puzzle extending `Puzzle` in `base.js`
+  (`PUZZLE_IDS` are the ten key puzzles, `ATTIC_IDS` the attic's `piano` and
+  `trunk`, `ALL_IDS` both):
   `getState/setState/isSolved/hint(tier)/newGame(rng)`. Hints are 3 tiers in
   `HINTS` with `{PLACEHOLDER}` variables filled by `hintVars()`.
 - `cats/`: `catModel.js` (rig), `tail.js` (tube tail), `catDirector.js`
@@ -82,10 +87,22 @@ Two cats: Tchobin (tabby), Zizo (tuxedo).
 | Study   | Hide and seek (cats move after each wrong guess) | 6x6 sudoku                           |
 | Garden  | 4-digit gate lock (the memory digits)            | Constellation of month letters       |
 
-Extras: 5 optional **little finds** (paper star in the dresser drawer, toy mouse
+Extras: 6 optional **little finds** (paper star in the dresser drawer, toy mouse
 under the striped sofa cushion, cookie in the kitchen jar, pressed tulip in the
-study book, jar of fireflies in the middle of the **hedge maze**), kept in the
-journal; the maze is east of the garden.
+study book, jar of fireflies in the middle of the **hedge maze**, the photo in
+the **attic** trunk), kept in the journal; the maze is east of the garden.
+
+**The attic** (zone/room index 6, optional, open from the start): a cord in
+the bedroom ceiling (`HATCH` in `layout.js`) brings a ladder down
+(`gs.data.attic.ladder`, saved). The attic is built apart from the house at
+z 18-25 (`ATTIC`; `zoneAt` returns 6 south of z 12) and `game.travel()` fades
+the player between the two; `_cull` shows only the attic while in it. Its
+puzzles give no keys: they emit `atticSolved`, not `solved`. The piano
+(`piano.js`) plays a growing tune to play back (a wrong key only replays);
+solved, it shows the `atticRiddle` clue, whose text `syncText` writes from the
+trunk's answer. The trunk (`trunk.js`) is a picture lock: four wheels, the
+answer is the four finds in the card's order. Inside is the photo (find
+`photo`), shown full size by `photoOverlay` and again from the journal.
 
 ## The randomiser (`RANDOMIZE` in config.js)
 
@@ -150,8 +167,9 @@ releases (install one, release the next).
 
 ## Status
 
-All unit tests (62) and browser tests (prod, props, playthrough, continue,
-collision, touch, quality, hybrid, cozy, maze, selfupdate) pass as of the last commit. The
+All unit tests (76) and browser tests (prod, props, playthrough, continue,
+collision, touch, quality, hybrid, cozy, maze, selfupdate, attic) pass as of the last commit. The
 playthrough also passes with random scrambles. Ideas not done: a Cozy/Brainy
 difficulty choice, personal photos in the bedroom frames, a spectator mode for
-the author.
+the author. The attic is built and waiting for the author's photo (and an
+optional caption in `PHOTO.caption`; the caption is the author's to write).

@@ -12,6 +12,7 @@ const THEMES = [
   { root: 57, bpm: 62, prog: [0, 5, 3, 6], arp: [0, 4, 2, 0], lift: 12, density: 0.5, minor: true }, // study, A minor
   { root: 63, bpm: 58, prog: [0, 3, 0, 4], arp: [0, 4, 7, 4], lift: 24, density: 0.5 }, // garden, Eb
   { root: 63, bpm: 52, prog: [0, 5, 3, 4], arp: [0, 4, 7, 9], lift: 24, density: 0.42 }, // ending
+  { root: 62, bpm: 56, prog: [0, 3, 5, 4], arp: [0, 2, 4, 2], lift: 12, density: 0.4 }, // attic, D
 ];
 const MAJOR = [0, 2, 4, 5, 7, 9, 11];
 const MINOR = [0, 2, 3, 5, 7, 8, 10];
@@ -398,6 +399,18 @@ export class AudioEngine {
     const out = this._out('sfx', 0.5);
     const scale = [72, 74, 76, 79, 81, 84, 86, 88, 91, 93, 96, 98];
     this._tine(out, t, NOTE(scale[step % scale.length]), 0.7, 1.6);
+  }
+
+  // One note of the attic's old piano: k is a white key, 0 (C) to 6 (B).
+  pianoNote(k) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const out = this._out('sfx', 0.45);
+    const f = NOTE(60 + [0, 2, 4, 5, 7, 9, 11][k]);
+    this._tone(out, t, f, 1.7, { type: 'triangle', gain: 0.17, attack: 0.004 });
+    this._tone(out, t, f * 2, 0.9, { gain: 0.05, attack: 0.003 });
+    this._tone(out, t, f * 3.01, 0.35, { gain: 0.022, attack: 0.002 });
+    this._noiseBurst(out, t, 0.035, { type: 'bandpass', freq: 2600, q: 1.2, gain: 0.025 }); // the hammer
   }
 
   click() {

@@ -1,9 +1,10 @@
 import { el, button, TULIP_SVG } from './dom.js';
 import { card } from './manager.js';
-import { drawTulipField, drawStarField } from '../rooms/art.js';
+import { drawTulipField, drawStarField, drawLockPicture } from '../rooms/art.js';
+import { photoImage, sizeOf } from '../rooms/photo.js';
 import { heartStars } from '../puzzles/constellation.js';
 import { N as SN } from '../puzzles/sliding.js';
-import { PUZZLE_NAMES, COLORS, CLUES } from '../config.js';
+import { PUZZLE_NAMES, COLORS, CLUES, PIANO_KEYS, TRUNK_PICTURES, PHOTO } from '../config.js';
 import { hex } from '../engine/textures.js';
 import { LABELS } from '../config.js';
 import { fill } from '../engine/text.js';
@@ -601,3 +602,215 @@ export function cipherOverlay(game, puzzle) {
 }
 
 export { CLUES };
+
+// ------------------------------------------------------------ attic: piano
+// Seven white keys with their letters (and the black keys painted between).
+// It plays the current part of the tune, lighting each key; then it is your
+// turn. Once solved it is just a piano. opts.onSolved runs after it closes.
+export function pianoOverlay(game, puzzle, { onSolved } = {}) {
+  const keys = PIANO_KEYS.map((name, k) =>
+    el('button.pkey', { type: 'button', 'data-key': k, 'aria-label': name, onpointerdown: (e) => (e.preventDefault(), press(k)) }, [
+      el('span', name),
+    ]),
+  );
+  const blacks = [0, 1, 3, 4, 5].map((k) => el('i.pblack', { style: { left: `calc(${((k + 1) / 7) * 100}% - 4.5%)` } }));
+  const board = el('div.piano', [...keys, ...blacks]);
+  const msg = el('div.pz-msg', puzzle.isSolved() ? LABELS.pianoFree : LABELS.pianoIntro);
+  let busy = false; // the piano is playing (or about to): keys wait
+  const setBusy = (on) => {
+    busy = on;
+    board.classList.toggle('busy', on);
+  };
+  let timers = [];
+  const later = (fn, ms) => timers.push(setTimeout(fn, ms));
+  const light = (k, ms = 360) => {
+    keys[k].classList.add('lit');
+    setTimeout(() => keys[k].classList.remove('lit'), ms);
+  };
+  const play = () => {
+    timers.forEach(clearTimeout);
+    timers = [];
+    puzzle.restart();
+    const notes = puzzle.isSolved() ? puzzle.tune : puzzle.current();
+    setBusy(true);
+    msg.textContent = '…';
+    notes.forEach((k, i) =>
+      later(
+        () => {
+          game.audio.pianoNote(k);
+          light(k, 420);
+        },
+        350 + i * 620,
+      ),
+    );
+    later(
+      () => {
+        setBusy(false);
+        msg.textContent = puzzle.isSolved() ? LABELS.pianoFree : fill(LABELS.pianoYourTurn, { N: notes.length });
+      },
+      350 + notes.length * 620,
+    );
+  };
+  const press = (k) => {
+    if (busy) return;
+    game.audio.pianoNote(k);
+    light(k);
+    const r = puzzle.press(k);
+    if (r === 'wrong') {
+      msg.textContent = LABELS.pianoWrong;
+      board.classList.remove('lock-shake');
+      void board.offsetWidth;
+      board.classList.add('lock-shake');
+      setBusy(true);
+      later(play, 1100);
+    } else if (r === 'round') {
+      msg.textContent = LABELS.pianoMore;
+      setBusy(true);
+      later(play, 1000);
+    } else if (r === 'solved') {
+      msg.textContent = LABELS.pianoSolved;
+      board.classList.add('solved-glow');
+      setBusy(true);
+      later(() => {
+        if (game.modals.top() === m) close();
+        if (onSolved) onSolved();
+      }, 1900);
+    }
+  };
+  let m;
+  const close = () => game.modals.close(m);
+  const c = card(
+    null,
+    [
+      el('div.pz-main', [board]),
+      el('div.pz-side', [
+        header(PUZZLE_NAMES.piano),
+        msg,
+        el('div.pz-tools', [
+          button(LABELS.pianoListen, () => !busy && play(), 'primary'),
+          puzzle.isSolved() ? null : button(LABELS.hint, () => game.showHint('piano'), 'small'),
+          button(LABELS.close, close, 'small'),
+        ]),
+        el('p.note-small', { style: { textAlign: 'center' } }, LABELS.pianoHelp),
+      ]),
+    ],
+    { onClose: close, cls: 'pz' },
+  );
+  m = game.modals.show(c, {
+    name: 'piano',
+    onClose: () => timers.forEach(clearTimeout),
+    onKey: (e) => {
+      if (hintKey(game, 'piano', e)) return true;
+      const d = /^(Digit|Numpad)([1-7])$/.exec(e.code);
+      if (d) press(Number(d[2]) - 1);
+      if (e.code === 'Space' || e.code === 'KeyL') !busy && play();
+      return true;
+    },
+  });
+  if (!puzzle.isSolved()) {
+    setBusy(true);
+    later(play, 500);
+  }
+  return m;
+}
+
+// ------------------------------------------------------- attic: the trunk
+// Four wheels of little pictures; Open tries the lock.
+export function trunkOverlay(game, puzzle) {
+  const faces = [];
+  const lock = el('div.lock.picture-lock');
+  const msg = el('div.pz-msg', LABELS.trunkStart);
+  let cursor = 0;
+  const draw = (i) => {
+    const cv = faces[i];
+    const x = cv.getContext('2d');
+    x.clearRect(0, 0, cv.width, cv.height);
+    drawLockPicture(x, puzzle.picture(i), cv.width / 2, cv.height / 2, cv.width * 0.86);
+    cv.setAttribute('aria-label', TRUNK_PICTURES[puzzle.wheels[i]].name);
+  };
+  for (let i = 0; i < 4; i++) {
+    const cv = el('canvas.pic', { width: 120, height: 120, role: 'img' });
+    faces.push(cv);
+    lock.appendChild(el('div.wheel', [button('▲', () => spin(i, 1), 'small'), cv, button('▼', () => spin(i, -1), 'small')]));
+  }
+  const spin = (i, d) => {
+    puzzle.spin(i, d);
+    game.audio.click();
+  };
+  const render = () => faces.forEach((_, i) => draw(i));
+  const tryIt = () => {
+    if (puzzle.tryOpen()) return;
+    game.audio.soft();
+    lock.classList.remove('lock-shake');
+    void lock.offsetWidth;
+    lock.classList.add('lock-shake');
+    msg.textContent = LABELS.trunkNotQuite;
+  };
+  let m;
+  const close = () => game.modals.close(m);
+  const c = card(
+    null,
+    [
+      el('div.pz-main', [lock]),
+      el('div.pz-side', [
+        header(PUZZLE_NAMES.trunk),
+        msg,
+        el('div.pz-tools', [
+          button(LABELS.trunkOpen, tryIt, 'primary'),
+          button(LABELS.lockJournal, () => game.openJournal(), 'small'),
+          button(LABELS.hint, () => game.showHint('trunk'), 'small'),
+          button(LABELS.close, close, 'small'),
+        ]),
+        el('p.note-small', { style: { textAlign: 'center' } }, LABELS.trunkHelp),
+      ]),
+    ],
+    { onClose: close, cls: 'pz' },
+  );
+  const off = puzzle.onChange((p, just) => {
+    render();
+    if (just) {
+      msg.textContent = LABELS.trunkOpened;
+      game.audio.keyTurn();
+      lock.classList.add('solved-glow');
+      setTimeout(() => game.modals.top() === m && close(), 1300);
+    }
+  });
+  m = game.modals.show(c, {
+    name: 'trunk',
+    onClose: off,
+    onKey: (e) => {
+      if (hintKey(game, 'trunk', e)) return true;
+      if (e.code === 'Tab') {
+        game.openJournal();
+        return true;
+      }
+      if (e.code === 'ArrowLeft') cursor = (cursor + 3) % 4;
+      if (e.code === 'ArrowRight') cursor = (cursor + 1) % 4;
+      if (e.code === 'ArrowUp') spin(cursor, 1);
+      if (e.code === 'ArrowDown') spin(cursor, -1);
+      if (e.code === 'Enter') tryIt();
+      faces.forEach((f, i) => f.classList.toggle('cur', i === cursor));
+      return true;
+    },
+  });
+  render();
+  return m;
+}
+
+// --------------------------------------------------------- attic: the photo
+export function photoOverlay(game) {
+  game.audio.pageFlip();
+  const holder = el('div.photo-pic');
+  photoImage().then((img) => {
+    const [w, h] = sizeOf(img);
+    const cv = el('canvas', { width: w, height: h, role: 'img', 'aria-label': LABELS.photoTitle });
+    cv.getContext('2d').drawImage(img, 0, 0);
+    holder.appendChild(cv);
+  });
+  let m;
+  const close = () => game.modals.close(m);
+  const polaroid = el('div.photo', [holder, PHOTO.caption ? el('p.photo-caption', PHOTO.caption) : null]);
+  const wrap = el('div.paper-wrap', [polaroid, el('div.paper-actions', [button(LABELS.okay, close)])]);
+  m = game.modals.show(wrap, { name: 'photo', backdropClose: true });
+  return m;
+}

@@ -10,7 +10,7 @@ import { KeyFx } from './keyfx.js';
 import { Settings } from './settings.js';
 import { GameState } from './gamestate.js';
 import { saveGame, loadSave, hasSave, clearSave } from './save.js';
-import { zoneAt, ROOMS } from './layout.js';
+import { zoneAt, ROOMS, ATTIC_ZONE } from './layout.js';
 import { Hud } from '../ui/hud.js';
 import { Modals } from '../ui/manager.js';
 import { clickToStart, mainMenu, pauseMenu, journal, showNote, showClue, HintCard, confirmBox } from '../ui/screens.js';
@@ -18,7 +18,7 @@ import { playLetter } from '../ui/letter.js';
 import { CatDirector } from '../cats/catDirector.js';
 import { buildWorld } from '../rooms/world.js';
 import { INTRO_LINE, UI } from '../config.js';
-import { PUZZLE_IDS } from '../puzzles/index.js';
+import { PUZZLE_IDS, ALL_IDS } from '../puzzles/index.js';
 import { TOASTS } from '../config.js';
 import { fill } from './text.js';
 import { device, enterFullscreen, setTouchMode, onTouchModeChange } from './device.js';
@@ -75,7 +75,7 @@ export class Game {
     this._applySettings();
     this._applyResolution();
     this.settings.onChange(() => this._applySettings());
-    this.player.onStep = (slow) => this.audio.footstep(this.zone >= 4 ? 'grass' : 'wood', slow);
+    this.player.onStep = (slow) => this.audio.footstep(this.zone === 4 || this.zone === 5 ? 'grass' : 'wood', slow);
 
     this.maxDt = 0.05; // frame-time cap (debug tests raise it for slow software rendering)
     this.clock = new THREE.Clock();
@@ -348,12 +348,12 @@ export class Game {
   }
 
   _nearestPuzzle() {
-    const room = Math.min(this.zone, 4);
+    const room = this.zone === ATTIC_ZONE ? ATTIC_ZONE : Math.min(this.zone, 4);
     const r = this.rooms[room];
     if (!r?.anchors) return null;
     let best = null;
     let bd = Infinity;
-    for (const id of PUZZLE_IDS) {
+    for (const id of ALL_IDS) {
       const p = this.gs.puzzles[id];
       if (p.room !== room || p.isSolved() || !r.anchors[id]) continue;
       const d = this.camera.position.distanceTo(r.anchors[id]);
@@ -426,7 +426,7 @@ export class Game {
       setTimeout(() => this.toast(fill(UI.memoryTulip, { D: digit }), { ms: 5200 }), 300);
     });
     this.gs.on('room', ({ room, first }) => {
-      if (first && room <= 4) this.hud.showBanner(room);
+      if (first && (room <= 4 || room === ATTIC_ZONE)) this.hud.showBanner(room);
     });
   }
 
@@ -594,14 +594,39 @@ export class Game {
     this.hints.hide();
   }
 
-  // Show the current room and its neighbours only.
+  // Show the current room and its neighbours only. The attic stands apart:
+  // it is shown only while you are in it, and hides the whole house.
   _cull() {
     const z = this.state === 'playing' ? this.zone : 0;
     this.roomGroups.forEach((g, i) => {
       if (!g) return;
       // Room i also owns the hallway north of it.
-      g.visible = i >= z - 1 && i <= z + 1;
+      if (i === ATTIC_ZONE || z === ATTIC_ZONE) g.visible = i === z;
+      else g.visible = i >= z - 1 && i <= z + 1;
     });
+  }
+
+  // The attic ladder: a quick fade out, a few creaky rungs, and back in
+  // somewhere else.
+  travel(x, z, yaw) {
+    if (this._traveling || this.state !== 'playing') return;
+    this._traveling = true;
+    this.input.enabled = false;
+    this.interact.setHover(null);
+    this.hud.setFade(true, true);
+    for (let i = 0; i < 4; i++) setTimeout(() => this.audio.footstep('wood', true), 120 + i * 170);
+    setTimeout(() => {
+      this.player.place(x, z, yaw, 0);
+      const zone = zoneAt(z);
+      if (zone !== this.zone) this._enterZone(zone);
+      this.lights.apply(this.rooms[zone].rig);
+      this._cull();
+      setTimeout(() => {
+        this.hud.setFade(false, true);
+        this.input.enabled = !this.modals.open;
+        this._traveling = false;
+      }, 150);
+    }, 650);
   }
 
   roomBounds(i) {

@@ -4,15 +4,16 @@ import { buildKitchen } from './kitchen.js';
 import { buildStudy } from './study.js';
 import { buildGarden } from './garden.js';
 import { buildClearing } from './clearing.js';
+import { buildAttic } from './attic.js';
 import { buildHallway } from './shell.js';
 import { mergeStatic } from '../engine/merge.js';
 import { ROOMS } from '../engine/layout.js';
 import { COLORS } from '../config.js';
 
-// Builds the whole house, garden and clearing, and joins the cats' paths
-// through every doorway.
+// Builds the whole house, garden and clearing (rooms 0-5), the attic (6), and
+// joins the cats' paths through every doorway.
 export function buildWorld(ctx) {
-  const builders = [buildBedroom, buildLiving, buildKitchen, buildStudy, buildGarden, buildClearing];
+  const builders = [buildBedroom, buildLiving, buildKitchen, buildStudy, buildGarden, buildClearing, buildAttic];
   builders.forEach((b, i) => (ctx.rooms[i] = b(ctx)));
   const hallColors = [COLORS.sage, COLORS.blush, 0xcfd9e8, COLORS.sage];
   hallColors.forEach((wall, i) => buildHallway(ctx, i, { wall }));
