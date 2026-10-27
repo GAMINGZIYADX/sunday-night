@@ -10,7 +10,13 @@ const CANDIDATES = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome', '/opt/
 // chips of older phones.
 export async function launch({ webgl1 = !!process.env.WEBGL1, args: extra = [] } = {}) {
   const executablePath = process.env.CHROME_PATH || CANDIDATES.find((p) => existsSync(p) && !p.endsWith('chromium')) || undefined;
-  const args = ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required', ...extra];
+  const args = [
+    '--use-angle=swiftshader',
+    '--enable-unsafe-swiftshader',
+    '--ignore-gpu-blocklist',
+    '--autoplay-policy=no-user-gesture-required',
+    ...extra,
+  ];
   return chromium.launch({ executablePath, args: webgl1 ? [...args, '--disable-webgl2'] : args });
 }
 
@@ -24,6 +30,7 @@ export async function openGame(browser, url, { width = 1280, height = 720 } = {}
   const problems = [];
   page.on('console', (m) => {
     if (m.text().includes('WebGL 1 support was deprecated')) return; // three.js r162 on WebGL 1, expected
+    if (m.text().includes('GPU stall due to ReadPixels')) return; // the one-time picture check (Game._checkPicture)
     if (m.type() === 'error' || m.type() === 'warning') problems.push(`[${m.type()}] ${m.text()}`);
   });
   page.on('pageerror', (e) => problems.push(`[pageerror] ${e.message}`));

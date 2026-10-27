@@ -12,7 +12,10 @@ console.log('Older phones');
 
 let browser = await launch({ webgl1: true });
 try {
-  const { page, problems } = await openGame(browser, fileUrl('dist-debug/index.html', '?debug=1&nolock=1&dtmax=0.25&touch=1'), { width: 873, height: 393 });
+  const { page, problems } = await openGame(browser, fileUrl('dist-debug/index.html', '?debug=1&nolock=1&dtmax=0.25&touch=1'), {
+    width: 873,
+    height: 393,
+  });
   await startNew(page);
   await page.waitForTimeout(1500);
   const info = await page.evaluate(() => {

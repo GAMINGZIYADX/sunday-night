@@ -218,7 +218,8 @@ function graphicsChoice(game) {
       ),
     );
   render(cur);
-  return el('div.setting.graphics', [el('span', LABELS.graphics), row]);
+  const fixed = LABELS.graphicsFixed[game.settings.data.gfxFix] || '';
+  return el('div.setting.graphics', [el('span', LABELS.graphics), row, fixed ? el('p.note-small.gfx-fixed', fixed) : null].filter(Boolean));
 }
 
 // --------------------------------------------------------------- backup code

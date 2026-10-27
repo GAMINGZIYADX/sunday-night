@@ -22,7 +22,11 @@ const WEAK_GPU = [
 // the 60 fps cap in game.js), even though the phone may report only 4 GB:
 // Adreno 618 and up (Redmi Note 12 Pro 4G, Pixel 4a...), Mali-G68/G7x,
 // Mali-G610 and newer, Samsung Xclipse.
-const GOOD_PHONE_GPU = [/adreno[^0-9]*(61[7-9]|6[2-9]\d|[7-9]\d\d)(?!\d)/i, /mali-g(6[89]|[7-9]\d)\b/i, /mali-g(6[1-9]\d|[7-9]\d\d)|immortalis|xclipse/i];
+const GOOD_PHONE_GPU = [
+  /adreno[^0-9]*(61[7-9]|6[2-9]\d|[7-9]\d\d)(?!\d)/i,
+  /mali-g(6[89]|[7-9]\d)\b/i,
+  /mali-g(6[1-9]\d|[7-9]\d\d)|immortalis|xclipse/i,
+];
 
 // One look at the graphics chip at startup: its name, and whether it has
 // WebGL 2 (phones from before about 2015 often only have WebGL 1) or any
@@ -42,8 +46,14 @@ function probe() {
   }
 }
 const GPU = probe();
+
+// Graphics test flags (they work in every build; src/gfxtest.js uses them):
+// ?shadows=0|1 ?msaa=0|1 ?tonemap=0 ?ratio=1 ?webgl1=1 ?probe=1
+export const FLAGS = new URLSearchParams(typeof location === 'undefined' ? '' : location.search);
+const flag = (k) => (FLAGS.get(k) === '1' ? true : FLAGS.get(k) === '0' ? false : null);
+
 export const WEBGL = GPU.webgl;
-export const WEBGL2 = GPU.webgl2;
+export const WEBGL2 = GPU.webgl2 && !FLAGS.has('webgl1');
 
 export function gpuName() {
   return GPU.name;
@@ -69,8 +79,20 @@ function decide() {
   if (q === 'light' || q === 'full') return q;
   const saved = readJSON(SETTINGS_KEY)?.graphics;
   if (saved === 'light' || saved === 'full') return saved;
+  if (readJSON(SETTINGS_KEY)?.gfxFix >= 3) return 'light';
   return autoQuality();
 }
 
 export const QUALITY = decide();
 export const LIGHT = QUALITY === 'light';
+
+// Some phone drivers draw parts of the full look wrong (a Pixel 10 showed a
+// white screen). Game._checkPicture notices and steps down, remembering the
+// step for this device in the settings: 1 = no shadows, 2 = also no edge
+// smoothing (MSAA), 3 = the full look doesn't work here, so light graphics.
+export const GFX_FIX = typeof location === 'undefined' ? 0 : Number(readJSON(SETTINGS_KEY)?.gfxFix) || 0;
+export const SHADOWS = flag('shadows') ?? (!LIGHT && GFX_FIX < 1);
+export const MSAA = flag('msaa') ?? (!LIGHT && GFX_FIX < 2);
+export const TONEMAP = flag('tonemap') ?? true;
+export const MAX_RATIO = Number(FLAGS.get('ratio')) || 0; // 0: the usual caps (game.js)
+export const PROBE = FLAGS.has('probe');

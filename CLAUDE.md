@@ -119,7 +119,8 @@ redrawn from the current puzzle (`GameState.syncText`). When adding a variant,
 ## Updates
 
 `src/engine/updateCheck.js` asks the GitHub releases API for the latest tag
-(cached a day in `sundayNight.update.v1`) and the main menu offers it if it is
+(cached an hour in `sundayNight.update.v1`; a day before 1.3.1, so older
+copies can take that long to notice a release) and the main menu offers it if it is
 newer than `__APP_VERSION__` (package.json's version, baked in by
 `vite.config.js`, which also stamps `<meta name="sunday-night-version">`).
 `updatesEnabled()` is off in debug builds unless `?updatecheck=1` (browser
@@ -170,6 +171,20 @@ tests stay offline) and in the desktop app. The repo must stay public.
   No WebGL 2 or a `WEAK_GPU` means Light; `GOOD_PHONE_GPU` (Adreno 618+: the phone
   the game is meant for is a Redmi Note 12 Pro 4G) means Full even at 4 GB.
 - `game._tick` caps touch devices at 60 fps (90/120 Hz screens).
+- **Picture self-check** (`Game._checkPicture`, `pictureIsWhite` in
+  `renderer.js`): on the 30th frame of Full graphics the game reads 16 pixels;
+  white all over (Full on a Pixel 10, PowerVR, did that) steps down and saves
+  `settings.gfxFix`: 1 = shadows off (live), 2 = also no MSAA (restart),
+  3 = Light (restart). `SHADOWS` / `MSAA` in `quality.js` read it; Settings
+  shows a note; choosing Full again resets 3. `e2e/gfxcheck.mjs` fakes it.
+  Not confirmed on the Pixel 10 itself yet.
+- **Graphics test page**: `?gfxtest` (any build; for a phone, open
+  `https://raw.githack.com/GAMINGZIYADX/sunday-night/vX.Y.Z/dist/index.html?gfxtest`
+  in Chrome). `src/gfxtest.js` runs the game ten times in an iframe with
+  `?probe=1` plus flags from `quality.js` (`shadows`, `msaa`, `tonemap`,
+  `ratio`, `webgl1`); `Game._probeFrame` posts back a snapshot, fps and
+  whether it was white. Results copy as text. Its words are inline (an
+  author's tool, like debug.js). `e2e/gfxtest.mjs` covers it.
 - `WEBGL1=1` makes the browser tests run without WebGL 2;
   `e2e/oldphones.mjs` covers all of the above.
 
@@ -201,7 +216,8 @@ releases (install one, release the next).
 ## Status
 
 All unit tests (80) and browser tests (prod, props, playthrough, continue,
-collision, touch, quality, hybrid, cozy, maze, selfupdate, attic, oldphones)
+collision, touch, quality, hybrid, cozy, maze, selfupdate, attic, oldphones,
+gfxcheck)
 pass as of the last commit, and the playthrough passes on WebGL 1. The
 playthrough also passes with random scrambles. Ideas not done: a Cozy/Brainy
 difficulty choice, personal photos in the bedroom frames, a spectator mode for

@@ -14,14 +14,14 @@ import { caesarEncode } from './puzzles/cipherMath.js';
 export const GAME_TITLE = 'Sunday Night';
 
 // -----------------------------------------------------------------------------
-//  Updates: the main menu asks GitHub (at most once a day) whether a newer
+//  Updates: the main menu asks GitHub (at most once an hour) whether a newer
 //  release exists and shows a download link if so. Offline it stays quiet.
 //  To publish an update: `npm run release -- patch` (see README).
 // -----------------------------------------------------------------------------
 export const UPDATES = {
   check: true,
   repo: 'GAMINGZIYADX/sunday-night',
-  everyHours: 24,
+  everyHours: 1,
 };
 
 // -----------------------------------------------------------------------------
@@ -406,6 +406,7 @@ export const UI = {
     'This device is finding the full graphics hard work. Switch to light graphics? It looks a little simpler and runs much smoother. The game restarts right where you are.',
   noWebGL:
     'This device can’t show the 3D house: its browser has no 3D graphics (WebGL), or they are switched off. On Android, updating “Android System WebView” and Chrome in the Play Store often fixes it.',
+  graphicsFixing: 'The graphics didn’t draw properly on this device. Adjusting them…',
   graphicsSwitch: 'Switch to light',
   graphicsKeep: 'Keep full',
 };
@@ -633,6 +634,13 @@ export const LABELS = {
   graphicsAuto: 'Auto ({Q})',
   graphicsFull: 'Full',
   graphicsLight: 'Light',
+  // Shown under Graphics when the full look had to be adjusted (gfxFix 1..3).
+  graphicsFixed: [
+    '',
+    'Adjusted for this device: no shadows.',
+    'Adjusted for this device: no shadows or edge smoothing.',
+    'Full graphics don’t draw properly on this device, so it uses Light.',
+  ],
   // the attic
   pianoListen: 'Listen',
   pianoIntro: 'Press Listen. Watch the keys light up, then play them back.',

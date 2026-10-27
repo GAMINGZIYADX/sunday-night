@@ -14,6 +14,8 @@ const tests = [
   'selfupdate.mjs',
   'attic.mjs',
   'oldphones.mjs',
+  'gfxcheck.mjs',
+  'gfxtest.mjs',
 ];
 let failed = 0;
 for (const t of tests) {

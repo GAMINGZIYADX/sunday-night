@@ -10,11 +10,13 @@ export const UPDATE_KEY = 'sundayNight.update.v1';
 export const releasesUrl = (repo = UPDATES.repo) => `https://github.com/${repo}/releases/latest`;
 const apiUrl = (repo) => `https://api.github.com/repos/${repo}/releases/latest`;
 
-// Off in the desktop app (it updates itself) and in debug builds (browser tests,
-// npm run dev) unless ?updatecheck is set.
+// Off in the desktop app (it updates itself), in the graphics test's runs
+// (?probe) and in debug builds (browser tests, npm run dev) unless
+// ?updatecheck is set.
 export function updatesEnabled() {
-  if (!UPDATES.check || globalThis.sundayNightApp?.desktop) return false;
-  return !__DEBUG__ || new URLSearchParams(globalThis.location?.search ?? '').has('updatecheck');
+  const q = new URLSearchParams(globalThis.location?.search ?? '');
+  if (!UPDATES.check || globalThis.sundayNightApp?.desktop || q.has('probe')) return false;
+  return !__DEBUG__ || q.has('updatecheck');
 }
 
 // 'v1.2.3' or '1.2.3' -> [1, 2, 3]; anything else -> null.

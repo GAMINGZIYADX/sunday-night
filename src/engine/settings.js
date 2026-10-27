@@ -10,6 +10,7 @@ export const DEFAULT_SETTINGS = {
   reducedMotion: false,
   muted: false,
   graphics: 'auto', // 'auto', 'full' or 'light' (see quality.js)
+  gfxFix: 0, // what this device's driver needs taken out of Full (GFX_FIX in quality.js)
 };
 
 export class Settings {

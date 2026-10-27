@@ -1716,6 +1716,10 @@ body.touch .toggle.on::after {
 .setting.graphics {
   grid-template-columns: 1fr auto;
 }
+.setting.graphics .gfx-fixed {
+  grid-column: 1 / -1;
+  margin: 0;
+}
 .seg {
   display: flex;
   background: #eadfcf;

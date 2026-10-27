@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createRenderer, LightPool } from './renderer.js';
+import { createRenderer, LightPool, pictureIsWhite } from './renderer.js';
 import { Collision } from './collision.js';
 import { Input } from './input.js';
 import { Player } from './player.js';
@@ -22,11 +22,23 @@ import { PUZZLE_IDS, ALL_IDS } from '../puzzles/index.js';
 import { TOASTS } from '../config.js';
 import { fill } from './text.js';
 import { device, enterFullscreen, setTouchMode, onTouchModeChange } from './device.js';
-import { QUALITY, LIGHT, autoQuality } from './quality.js';
+import { QUALITY, LIGHT, autoQuality, MAX_RATIO, PROBE, FLAGS } from './quality.js';
 
 export const START = { x: -0.25, z: 1.55, yaw: 0.35 };
 // Set just before a graphics restart, so the game carries on after the reload.
 const RESUME_KEY = 'sundayNight.resume';
+
+// A graphics test run (?probe) reports the errors and warnings it saw, such
+// as a shader the graphics driver would not compile.
+const probeErrors = [];
+if (PROBE)
+  for (const k of ['error', 'warn']) {
+    const orig = console[k];
+    console[k] = (...a) => {
+      if (probeErrors.length < 8) probeErrors.push(a.map(String).join(' ').slice(0, 500));
+      orig.apply(console, a);
+    };
+  }
 
 export class Game {
   constructor(container) {
@@ -81,6 +93,8 @@ export class Game {
     this.clock = new THREE.Clock();
     this._fwd = new THREE.Vector3();
     this._nextFrame = 0;
+    this._check = LIGHT || PROBE ? null : { frames: 0 };
+    this._probe = PROBE ? { frames: 0, times: [] } : null;
     this.renderer.setAnimationLoop((now) => this._tick(now));
   }
 
@@ -296,7 +310,7 @@ export class Game {
   // Resolution cap: phones start a little lower than computers, light
   // graphics lower still. The frame-rate watcher can go down from there.
   _applyResolution() {
-    const cap = LIGHT ? 1 : device.touch ? 1.25 : 1.5;
+    const cap = MAX_RATIO || (LIGHT ? 1 : device.touch ? 1.25 : 1.5);
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, cap));
     this._perf = null;
   }
@@ -312,19 +326,55 @@ export class Game {
     }
     const go = () => {
       this.settings.set('graphics', choice);
-      if (this.state === 'playing') {
-        this.saveNow('quiet');
-        try {
-          sessionStorage.setItem(RESUME_KEY, '1');
-        } catch {
-          /* no session storage: they press Continue themselves */
-        }
-      }
-      location.reload();
+      // Asking for Full again after it failed here: try it afresh.
+      if (want === 'full' && this.settings.data.gfxFix >= 3) this.settings.set('gfxFix', 0);
+      this._reloadGraphics();
     };
     if (ask) confirmBox(this, UI.graphicsRestart, go, { onNo: onCancel });
     else go();
     return true;
+  }
+
+  _reloadGraphics() {
+    if (this.state === 'playing') {
+      this.saveNow('quiet');
+      try {
+        sessionStorage.setItem(RESUME_KEY, '1');
+      } catch {
+        /* no session storage: they press Continue themselves */
+      }
+    }
+    location.reload();
+  }
+
+  // Some phone drivers draw the full look as a white screen (a Pixel 10 did).
+  // A moment after the start, look at the picture: white all over means step
+  // down (shadows off, then edge smoothing off, then light graphics) and
+  // remember the step for this device (GFX_FIX in quality.js).
+  _checkPicture() {
+    const c = this._check;
+    if (++c.frames < 30) return;
+    this._check = null;
+    if (!pictureIsWhite(this.renderer)) return;
+    const fix = this.settings.data.gfxFix || 0;
+    this.toast(UI.graphicsFixing, { ms: 3000 });
+    if (fix < 1 && this.renderer.shadowMap.enabled) {
+      // Shadows go without a restart; then look again.
+      this.settings.set('gfxFix', 1);
+      this.renderer.shadowMap.enabled = false;
+      this.lights.spot.castShadow = false;
+      this.scene.traverse((o) => {
+        for (const m of [].concat(o.material || [])) m.needsUpdate = true;
+      });
+      this._check = { frames: 0 };
+      return;
+    }
+    if (fix < 2) this.settings.set('gfxFix', 2);
+    else {
+      this.settings.set('gfxFix', 3);
+      this.settings.set('graphics', 'light');
+    }
+    setTimeout(() => this._reloadGraphics(), 1500);
   }
 
   // Full graphics, but the frame rate stays low even at the lowest
@@ -593,6 +643,47 @@ export class Game {
     this.particles.update(dt);
     this._cull();
     this.renderer.render(this.scene, this.camera);
+    if (this._check) this._checkPicture();
+    if (this._probe) this._probeFrame();
+  }
+
+  // ?probe=1, one run of the graphics test (src/gfxtest.js): skip 20 frames,
+  // time 60, then send the test page a small copy of the picture and stop.
+  _probeFrame() {
+    const p = this._probe;
+    if (++p.frames > 20) p.times.push(performance.now());
+    if (p.frames < 80) return;
+    this._probe = null;
+    const c = document.createElement('canvas');
+    c.width = 320;
+    c.height = 180;
+    const g = c.getContext('2d');
+    g.drawImage(this.renderer.domElement, 0, 0, 320, 180);
+    const px = g.getImageData(0, 0, 320, 180).data;
+    const mean = [0, 0, 0];
+    for (let i = 0; i < px.length; i += 4) for (let k = 0; k < 3; k++) mean[k] += px[i + k] / (px.length / 4);
+    const t = p.times;
+    const gl = this.renderer.getContext();
+    parent.postMessage(
+      {
+        gfxProbe: location.search,
+        errors: probeErrors,
+        white: pictureIsWhite(this.renderer),
+        mean: mean.map(Math.round),
+        fps: Math.round(((t.length - 1) * 1000) / (t[t.length - 1] - t[0])),
+        image: c.toDataURL('image/jpeg', 0.8),
+        size: [gl.drawingBufferWidth, gl.drawingBufferHeight],
+        webgl2: this.renderer.capabilities.isWebGL2,
+        antialias: gl.getContextAttributes().antialias,
+        shadows: this.renderer.shadowMap.enabled,
+        quality: QUALITY,
+      },
+      '*',
+    );
+    this.renderer.setAnimationLoop(null);
+    // Give the drawing context back at once (browsers allow only a few), unless
+    // the test page keeps this run on screen.
+    if (!FLAGS.has('keep')) this.renderer.forceContextLoss();
   }
 
   _enterZone(z) {

@@ -91,6 +91,12 @@ On phones the game draws at most 60 frames a second, even on 90 and 120 Hz
 screens. Twice the frames would barely look smoother, but would double the
 work and the heat; this headroom is what keeps Full smooth there.
 
+Some phones' graphics drivers draw parts of Full wrong (a Pixel 10 showed a
+white screen). A moment after starting, the game looks at its own picture;
+if it is white all over, it turns off shadows, then edge smoothing, then
+switches to Light, restarting where needed, and remembers what this device
+needed. Settings → Graphics then says what was adjusted.
+
 If Full still runs slowly, the game offers to switch to Light. Changing the
 setting restarts the game exactly where you were, and nothing is lost.
 Separately, the resolution always lowers itself a little when frames get slow.
@@ -203,7 +209,7 @@ once first, or set `CHROME_PATH` to a Chromium you already have.
 ## Updates
 
 The main menu shows the game's version. When a copy is online, it asks GitHub
-(at most once a day) for the newest release of
+(at most once an hour) for the newest release of
 `GAMINGZIYADX/sunday-night`. Offline, or if GitHub can't be reached, nothing
 shows and the game plays as usual. The repo has to stay public for this to
 work.

@@ -71,15 +71,15 @@ describe('update check: asking GitHub', () => {
     expect(await checkForUpdate({ current: '1.0.0', fetchFn: hang, now: 0, timeoutMs: 20 })).toBe(null);
   });
 
-  it('asks at most once a day and remembers the answer', async () => {
+  it('asks at most once an hour and remembers the answer', async () => {
     const fetchFn = fakeFetch('v1.2.0');
     await checkForUpdate({ current: '1.0.0', fetchFn, now: 0 });
-    const again = await checkForUpdate({ current: '1.0.0', fetchFn, now: 5 * HOUR });
+    const again = await checkForUpdate({ current: '1.0.0', fetchFn, now: 0.5 * HOUR });
     expect(fetchFn.calls.length).toBe(1);
     expect(again?.version).toBe('1.2.0'); // still shown from the cache
-    await checkForUpdate({ current: '1.0.0', fetchFn, now: 25 * HOUR });
+    await checkForUpdate({ current: '1.0.0', fetchFn, now: 1.5 * HOUR });
     expect(fetchFn.calls.length).toBe(2);
-    expect(readJSON(UPDATE_KEY)).toEqual({ at: 25 * HOUR, version: '1.2.0' });
+    expect(readJSON(UPDATE_KEY)).toEqual({ at: 1.5 * HOUR, version: '1.2.0' });
   });
 
   it('a cached notice disappears once the player has the new build', async () => {

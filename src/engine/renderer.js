@@ -1,9 +1,11 @@
 import * as THREE from 'three';
-import { LIGHT, WEBGL2 } from './quality.js';
+import { WEBGL2, SHADOWS, MSAA, TONEMAP } from './quality.js';
 
 export function createRenderer(container) {
-  // Light graphics skips edge smoothing (MSAA) and shadows: both cost a lot on weak chips.
-  const opts = { antialias: !LIGHT, powerPreference: 'high-performance' };
+  // Light graphics skips edge smoothing (MSAA) and shadows: both cost a lot on
+  // weak chips. Full can lose them too, on a device whose driver draws them
+  // wrong (see Game._checkPicture).
+  const opts = { antialias: MSAA, powerPreference: 'high-performance' };
   // Older phones only have WebGL 1: hand three.js that context straight away
   // (it would first try WebGL 2 and log an error).
   if (!WEBGL2) {
@@ -15,9 +17,9 @@ export function createRenderer(container) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMapping = TONEMAP ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
   renderer.toneMappingExposure = 1.05;
-  renderer.shadowMap.enabled = !LIGHT;
+  renderer.shadowMap.enabled = SHADOWS;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   container.appendChild(renderer.domElement);
   renderer.domElement.id = 'game-canvas';
@@ -40,6 +42,22 @@ export function createRenderer(container) {
   return { renderer, scene, camera, onResize };
 }
 
+// True when the frame just drawn is near-white all over (16 points sampled).
+// No room in the house ever looks like that; a broken driver does. Call it
+// right after render(), while the picture is still in the buffer.
+export function pictureIsWhite(renderer) {
+  const gl = renderer.getContext();
+  const w = gl.drawingBufferWidth;
+  const h = gl.drawingBufferHeight;
+  const px = new Uint8Array(4);
+  for (let i = 1; i <= 4; i++)
+    for (let j = 1; j <= 4; j++) {
+      gl.readPixels(Math.floor((w * i) / 5), Math.floor((h * j) / 5), 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      if (px[0] < 235 || px[1] < 235 || px[2] < 235) return false;
+    }
+  return true;
+}
+
 // A fixed pool of lights that is re-dressed for whichever room the player is
 // in. Keeping the light count constant means shaders never recompile, and the
 // GPU only ever pays for 3 point lights + 1 shadowed spot + 1 hemisphere.
@@ -54,7 +72,7 @@ export class LightPool {
       return l;
     });
     this.spot = new THREE.SpotLight(0xffe0b0, 0, 0, Math.PI / 3, 0.6, 2);
-    this.spot.castShadow = !LIGHT;
+    this.spot.castShadow = SHADOWS;
     this.spot.shadow.mapSize.set(1024, 1024);
     this.spot.shadow.bias = -0.0006;
     this.spot.shadow.normalBias = 0.02;
