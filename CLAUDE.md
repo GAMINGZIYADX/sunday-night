@@ -13,7 +13,8 @@ works from `file://`. Read `README.md` for the player-facing description.
   ends with `— Zizou`. The gate lock code is random every game (the author
   asked for nothing fixed; it was `2007`): `LockPuzzle.code`, saved with it.
 - **The coupon** at the end of the treasure hunt (`HUNT_COUPON.text`) is the
-  author's to write. Until it has words the hunt does not appear.
+  author's own words, like the letter: never rewrite it. Empty, the hunt
+  does not appear.
 - **All text, answers, colours and tuning live in `src/config.js`.** Add new
   strings there (`PROMPTS`, `TOASTS`, `LABELS`, `UI`), not inline.
 - **Debug code must never ship.** `__DEBUG__` is a build-time flag (true only
@@ -261,4 +262,4 @@ collision, touch, quality, hybrid, cozy, maze, selfupdate, attic, oldphones,
 gfxcheck, gfxtest, siderooms) pass as of the last commit, and the playthrough passes on WebGL 1. The
 playthrough also passes with random scrambles. Ideas not done: a Cozy/Brainy
 difficulty choice, personal photos in the bedroom frames, a spectator mode for
-the author. The coupon (`HUNT_COUPON.text`) is waiting for the author's words.
+the author. The coupon (`HUNT_COUPON.text`) has the author's words: never rewrite them.

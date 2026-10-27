@@ -3,6 +3,7 @@
 // little find, and come back. Then the random lock code, and the treasure
 // hunt from the envelope to the coupon. Answers come from window.__game.
 import { launch, fileUrl, openGame, startNew } from './lib.mjs';
+import { HUNT_COUPON } from '../src/config.js';
 
 const SHOTS = process.argv[2] || null;
 const log = (...a) => console.log('  ·', ...a);
@@ -215,10 +216,9 @@ try {
   await ev(() => window.__game.closeModals());
 
   // ---- the treasure hunt
-  await ev(() => {
-    window.__game.setCoupon('Good for one test.');
-    window.__game.gs.finish();
-  });
+  // The coupon has the author's words, so the hunt opens after the letter.
+  if (!HUNT_COUPON.text.trim()) fail('HUNT_COUPON has no words: the hunt would stay hidden');
+  await ev(() => window.__game.gs.finish());
   const spots = await ev(() => window.__game.gs.data.hunt.spots);
   log(`hunt order this game: ${spots.join(' → ')}`);
   const where = (id) =>
@@ -240,7 +240,7 @@ try {
     if (last) await opened('coupon');
     else await opened('clue');
     const text = await page.locator(last ? '.coupon' : '.paper.clue').textContent();
-    if (last && !text.includes('Good for one test.')) fail('the coupon has the wrong words');
+    if (last && !HUNT_COUPON.text.split(/\r?\n/).every((line) => text.includes(line))) fail(`the coupon says: ${text}`);
     if (!last && !text.includes('The ')) fail(`note ${k + 1} says: ${text}`);
     await ev(() => window.__game.closeModals());
   }

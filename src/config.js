@@ -338,7 +338,7 @@ export const PAIR_PICTURES = [
 //  chain of notes around the house, in a new order every game. The last one
 //  holds HUNT_COUPON. Write it here (until it has words, the hunt stays away).
 // -----------------------------------------------------------------------------
-export const HUNT_COUPON = { title: 'A coupon', text: '' };
+export const HUNT_COUPON = { title: 'A coupon', text: 'free unlimited kisses for the next month\nuse carefully and with care' };
 export const HUNT_LENGTH = 5; // places to visit; the last one keeps the coupon
 // Where a note can hide (by which puzzle), and how the note before it says so.
 export const HUNT_RIDDLES = {
