@@ -171,11 +171,13 @@ tests stay offline) and in the desktop app. The repo must stay public.
   No WebGL 2 or a `WEAK_GPU` means Light; `GOOD_PHONE_GPU` (Adreno 618+: the phone
   the game is meant for is a Redmi Note 12 Pro 4G) means Full even at 4 GB.
 - `game._tick` caps touch devices at 60 fps (90/120 Hz screens).
-- **Broken drivers.** The Pixel 10 (PowerVR D-Series DXT, Android 17) breaks
-  three.js: shaders fail to link, shadows first, then MeshStandardMaterial,
-  then the context is lost and Chrome blocks WebGL for the site until it is
-  fully restarted (three.js issue #34311, closed: a driver bug). Light works.
-  `SHADOWS` is off on that chip even in Full. `Game._watchGraphics` catches
+- **Broken drivers.** The Pixel 10 (PowerVR D-Series DXT, Android 17) loses
+  the WebGL context as soon as a shadow map is drawn, in Full or Light, and
+  Chrome then blocks WebGL for the site until it is fully restarted (three.js
+  issue #34311, closed: a driver bug). The author's `?gfxtest` on it: Full
+  without shadows draws fine at ~58 fps (with or without MSAA); WebGL 1 came
+  out far too dark (unused there). So `SHADOW_BUG` turns shadows off on that
+  chip and auto picks Full (`GOOD_PHONE_GPU`; older PowerVR stays Light). `Game._watchGraphics` catches
   `onShaderError`, `webglcontextlost` and a white picture (`_checkPicture`,
   `pictureIsWhite`), and `_graphicsFailed` steps down and saves
   `settings.gfxFix`: 1 = shadows off, 2 = also no MSAA, 3 = Light (restart;

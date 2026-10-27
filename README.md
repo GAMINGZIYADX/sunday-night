@@ -92,9 +92,9 @@ screens. Twice the frames would barely look smoother, but would double the
 work and the heat; this headroom is what keeps Full smooth there.
 
 Some phones' graphics drivers break parts of Full. The Pixel 10 on Android 17
-is one: its driver fails on shadows and on the realistic materials, and then
-3D stops altogether (a known driver bug, three.js issue #34311). Light works
-there, and auto picks it. If Full fails anyway (a white picture, shaders that
+is one: its driver crashes 3D whenever shadows are drawn (a known driver bug,
+three.js issue #34311). Everything else in Full works there at a full 60
+frames a second, so on that chip auto picks Full and leaves the shadows out. If Full fails anyway (a white picture, shaders that
 fail, or 3D lost), the game turns off shadows, then edge smoothing, then
 switches to Light, restarting as needed, and remembers what this device
 needed. Settings → Graphics then says what was adjusted. If the screen says

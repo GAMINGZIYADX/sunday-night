@@ -15,17 +15,20 @@ const WEAK_GPU = [
   /intel.*(atom|celeron|pentium|bay ?trail|cherry ?trail|gemini ?lake|apollo ?lake|jasper ?lake)/i,
   /mali-(4|t|g[1-5]\d\b)/i, // Mali-400/T-series/G31..G57
   /adreno[^0-9]*([2-5]\d\d|60\d|61[0-6])\b/i, // Adreno 200-616
-  /powervr|vivante|videocore|imagination/i,
+  /vivante|videocore/i,
+  /(powervr|imagination)(?!.*(d-series|dxt))/i, // older PowerVR (not the Pixel 10's)
 ];
 
 // Phone graphics chips that handle the full look at phone resolution (with
 // the 60 fps cap in game.js), even though the phone may report only 4 GB:
 // Adreno 618 and up (Redmi Note 12 Pro 4G, Pixel 4a...), Mali-G68/G7x,
-// Mali-G610 and newer, Samsung Xclipse.
+// Mali-G610 and newer, Samsung Xclipse, PowerVR D-Series (Pixel 10: Full
+// without shadows ran at the 60 fps cap in ?gfxtest; see SHADOW_BUG).
 const GOOD_PHONE_GPU = [
   /adreno[^0-9]*(61[7-9]|6[2-9]\d|[7-9]\d\d)(?!\d)/i,
   /mali-g(6[89]|[7-9]\d)\b/i,
   /mali-g(6[1-9]\d|[7-9]\d\d)|immortalis|xclipse/i,
+  /powervr.*(d-series|dxt)/i,
 ];
 
 // One look at the graphics chip at startup: its name, and whether it has

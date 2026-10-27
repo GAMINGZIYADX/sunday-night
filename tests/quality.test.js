@@ -13,6 +13,8 @@ describe('auto graphics quality', () => {
     expect(phone('Adreno (TM) 730', 8)).toBe('full');
     expect(phone('Mali-G68 MC4')).toBe('full');
     expect(phone('Mali-G610 MC6')).toBe('full');
+    // Pixel 10 (its shadows are off: SHADOW_BUG in quality.js)
+    expect(phone('ANGLE (Imagination Technologies, PowerVR D-Series DXT-48-1536, OpenGL ES 3.2)', 8)).toBe('full');
   });
 
   it('keeps weak and old chips on light graphics', () => {
@@ -22,6 +24,8 @@ describe('auto graphics quality', () => {
     expect(phone('Mali-400 MP')).toBe('light');
     expect(phone('Mali-G52 MC2')).toBe('light');
     expect(phone('PowerVR SGX 544MP')).toBe('light');
+    expect(phone('PowerVR Rogue GE8320')).toBe('light');
+    expect(phone('ANGLE (Imagination Technologies, PowerVR Rogue GE8322, OpenGL ES 3.2)')).toBe('light');
     expect(phone('Adreno (TM) 618', 2)).toBe('light'); // a good chip but 2 GB
   });
 
