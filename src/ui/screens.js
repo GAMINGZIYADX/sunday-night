@@ -3,6 +3,7 @@ import { card } from './manager.js';
 import { GAME_TITLE, UI, NOTES, NOTE_PLACES, PUZZLE_NAMES, ROOM_NAMES, CLUES, FINDS } from '../config.js';
 import { ALL_IDS, PUZZLE_IDS, EXTRA_IDS } from '../puzzles/index.js';
 import { photoOverlay } from './overlays.js';
+import { recipeCard } from './recipeCard.js';
 import { KEY_SVG } from './dom.js';
 import { exportCode, importCode } from '../engine/save.js';
 import { LABELS, TOASTS } from '../config.js';
@@ -406,6 +407,8 @@ export function showNote(game, index) {
 export function showClue(game, id, { mono = false } = {}) {
   const clue = CLUES[id];
   if (!clue) return;
+  // The shortcake recipe has its own card (two columns, ticked steps).
+  if (id === 'bake') return recipeCard(game);
   game.audio.pageFlip();
   game.gs.readClue(id);
   let m;

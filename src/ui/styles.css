@@ -2277,3 +2277,213 @@ canvas.pipes {
     margin-top: 6px;
   }
 }
+
+/* The shortcake's recipe card (ui/recipeCard.js): an index card, ingredients
+   on the left, the method on the right; it scrolls inside, never past the
+   screen. */
+.recipe-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: min(94vw, 840px);
+  max-height: 90vh;
+  padding: 34px 34px 18px;
+  border-radius: 14px;
+  background:
+    repeating-linear-gradient(90deg, rgba(226, 74, 90, 0.85) 0 12px, rgba(255, 255, 255, 0.85) 12px 24px) top / 100% 12px no-repeat,
+    repeating-linear-gradient(transparent 0 27px, rgba(111, 155, 224, 0.13) 27px 28px),
+    #fffaf0;
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  animation: paperIn 0.45s ease;
+  transform: rotate(-0.6deg);
+}
+.recipe-card .close-x {
+  top: 18px;
+}
+.rc-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-bottom: 10px;
+  border-bottom: 2px dashed rgba(226, 74, 90, 0.35);
+  padding-bottom: 8px;
+}
+.rc-head h2 {
+  margin: 0;
+  font-family: var(--hand);
+  font-size: 30px;
+}
+.rc-meta {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+.rc-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr);
+  gap: 26px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 6px;
+}
+.rc-cols h3 {
+  margin: 4px 0 6px;
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #c2414f;
+}
+.rc-group h4 {
+  margin: 10px 0 4px;
+  font-family: var(--hand);
+  font-size: 17px;
+  font-weight: normal;
+}
+.rc-group ul,
+.rc-method ol {
+  margin: 0;
+  padding: 0;
+}
+.rc-group li {
+  list-style: none;
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 8px;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.rc-amt {
+  font-weight: bold;
+  white-space: nowrap;
+}
+.rc-amt small {
+  font-weight: normal;
+  color: var(--ink-soft);
+}
+.rc-method ol {
+  counter-reset: step;
+}
+.rc-method li {
+  list-style: none;
+  counter-increment: step;
+  position: relative;
+  padding: 3px 6px 3px 34px;
+  margin-bottom: 4px;
+  font-size: 14.5px;
+  line-height: 1.45;
+  border-radius: 8px;
+}
+.rc-method li::before {
+  content: counter(step);
+  position: absolute;
+  left: 4px;
+  top: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #f6dcdc;
+  color: #b8323f;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  line-height: 22px;
+}
+.rc-method li.done {
+  color: var(--ink-soft);
+}
+.rc-method li.done::before {
+  content: '✓';
+  background: #cfe6c4;
+  color: #4f8a3c;
+}
+.rc-method li.now {
+  background: rgba(255, 211, 138, 0.35);
+}
+.recipe-card .paper-actions {
+  margin-top: 10px;
+}
+@media (max-height: 520px) {
+  .recipe-card {
+    max-height: calc(100vh - 16px);
+    padding: 22px 22px 10px;
+    width: min(96vw, 820px);
+  }
+  .recipe-card .close-x {
+    top: 10px;
+  }
+  .rc-head {
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+  }
+  .rc-head h2 {
+    font-size: 22px;
+  }
+  .rc-meta {
+    font-size: 12px;
+  }
+  .rc-cols {
+    gap: 18px;
+  }
+  .rc-group h4 {
+    margin-top: 6px;
+    font-size: 15px;
+  }
+  .rc-group li {
+    grid-template-columns: 78px 1fr;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .rc-method li {
+    font-size: 12.5px;
+    line-height: 1.35;
+    padding-left: 30px;
+    margin-bottom: 2px;
+  }
+  .rc-method li::before {
+    width: 19px;
+    height: 19px;
+    line-height: 19px;
+    font-size: 11px;
+  }
+  .recipe-card .paper-actions {
+    margin-top: 6px;
+  }
+}
+@media (max-width: 620px) {
+  .rc-cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* The baking screen's motion: a new step slides in, lifted things float. */
+.bk-svg.bk-nocursor {
+  cursor: none;
+}
+.bk-in {
+  animation: bkIn 0.45s ease;
+}
+@keyframes bkIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.bk-item.lifted {
+  filter: drop-shadow(0 6px 4px rgba(60, 30, 20, 0.35));
+}
+.bk-tool,
+.bk-item,
+.bk-knob {
+  cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bk-in {
+    animation: none;
+  }
+}

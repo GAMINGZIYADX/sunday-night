@@ -380,18 +380,21 @@ export const HUNT_TEXT = {
 //  button that is pressed too early shows `early`).
 // -----------------------------------------------------------------------------
 export const BAKE_INGREDIENTS = [
-  { id: 'berries', name: 'strawberries', metric: '500 g', us: '1 lb' },
-  { id: 'berrySugar', name: 'sugar, for the berries', metric: '2 tbsp', us: '2 tbsp', scoops: 2 },
-  { id: 'flour', name: 'plain flour', metric: '250 g', us: '2 cups', amount: 250, unit: 'g' },
-  { id: 'bakingPowder', name: 'baking powder', metric: '1 tbsp', us: '1 tbsp', scoops: 1 },
-  { id: 'sugar', name: 'sugar, for the dough', metric: '2 tbsp', us: '2 tbsp', scoops: 2 },
-  { id: 'salt', name: 'salt', metric: '½ tsp', us: '½ tsp', scoops: 1 },
-  { id: 'butter', name: 'cold butter', metric: '85 g', us: '6 tbsp' },
-  { id: 'milk', name: 'cold milk', metric: '180 ml', us: '¾ cup', amount: 180, unit: 'ml' },
-  { id: 'cream', name: 'cold double cream', metric: '240 ml', us: '1 cup', amount: 240, unit: 'ml' },
-  { id: 'creamSugar', name: 'sugar, for the cream', metric: '2 tbsp', us: '2 tbsp', scoops: 2 },
-  { id: 'vanilla', name: 'vanilla extract', metric: '1 tsp', us: '1 tsp', scoops: 1 },
+  { id: 'berries', group: 'berries', name: 'strawberries', metric: '500 g', us: '1 lb' },
+  { id: 'berrySugar', group: 'berries', name: 'sugar, for the berries', metric: '2 tbsp', us: '2 tbsp', scoops: 2 },
+  { id: 'flour', group: 'biscuits', name: 'plain flour', metric: '250 g', us: '2 cups', amount: 250, unit: 'g' },
+  { id: 'bakingPowder', group: 'biscuits', name: 'baking powder', metric: '1 tbsp', us: '1 tbsp', scoops: 1 },
+  { id: 'sugar', group: 'biscuits', name: 'sugar, for the dough', metric: '2 tbsp', us: '2 tbsp', scoops: 2 },
+  { id: 'salt', group: 'biscuits', name: 'salt', metric: '½ tsp', us: '½ tsp', scoops: 1 },
+  { id: 'butter', group: 'biscuits', name: 'cold butter', metric: '85 g', us: '6 tbsp' },
+  { id: 'milk', group: 'biscuits', name: 'cold milk', metric: '180 ml', us: '¾ cup', amount: 180, unit: 'ml' },
+  { id: 'cream', group: 'cream', name: 'cold double cream', metric: '240 ml', us: '1 cup', amount: 240, unit: 'ml' },
+  { id: 'creamSugar', group: 'cream', name: 'sugar, for the cream', metric: '2 tbsp', us: '2 tbsp', scoops: 2 },
+  { id: 'vanilla', group: 'cream', name: 'vanilla extract', metric: '1 tsp', us: '1 tsp', scoops: 1 },
 ];
+// The recipe card's headings (BAKE_INGREDIENTS' groups) and its top line.
+export const BAKE_GROUPS = { berries: 'For the berries', biscuits: 'For the biscuits', cream: 'For the cream' };
+export const BAKE_CARD = { makes: 'Makes 6', time: '12 to 15 min', ingredients: 'You need', method: 'Method', done: 'done' };
 export const BAKE_OVEN = { c: 220, f: 425, minutes: 12 };
 export const BAKE_STEPS = [
   {

@@ -5,6 +5,7 @@
 //   node e2e/bake.mjs [screenshot dir] [--phone]   (--phone: 800x360, touch)
 import { launch, fileUrl, openGame, startNew } from './lib.mjs';
 import { BAKE_STEPS, FINDS } from '../src/config.js';
+import { tapsFor } from '../src/bake/recipe.js';
 
 const args = process.argv.slice(2);
 const PHONE = args.includes('--phone');
@@ -60,8 +61,17 @@ const hand = {
 };
 
 // The middle of an element on screen.
+// (The scene redraws while things move, so look again if it was swapped.)
 async function mid(sel, i = 0) {
-  const b = await page.locator(sel).nth(i).boundingBox();
+  let b = null;
+  for (let tries = 0; tries < 5 && !b; tries++) {
+    b = await page
+      .locator(sel)
+      .nth(i)
+      .boundingBox({ timeout: 2000 })
+      .catch(() => null);
+    if (!b) await page.waitForTimeout(150);
+  }
   if (!b) fail(`nothing at ${sel}`);
   return { x: b.x + b.width / 2, y: b.y + b.height / 2, w: b.width, h: b.height };
 }
@@ -124,9 +134,9 @@ async function doTask(stepIndex, taskIndex) {
       }
       break;
     case 'taps':
-      for (let i = 0; i < (t.count ?? 2) + 1 && (await where()) === before; i++) {
+      for (let i = 0; i < tapsFor(t); i++) {
         await tap(`${svg} [data-k="tool"]`);
-        await page.waitForTimeout(120);
+        await page.waitForTimeout(250);
       }
       break;
     case 'tapEach':
@@ -137,6 +147,10 @@ async function doTask(stepIndex, taskIndex) {
       await hand.move(p.x, p.y);
       await hand.down();
       const target = Number(t.label.match(/(\d+)/)[1]);
+      if (SHOTS) {
+        await page.waitForTimeout(900);
+        await shot(`pouring-${t.id}`);
+      }
       await waitFor(([v]) => Number(document.querySelector('.bk-readout')?.getAttribute('data-value')) >= v, [target - t.tolerance / 2], 30000);
       await hand.up();
       break;
@@ -147,6 +161,7 @@ async function doTask(stepIndex, taskIndex) {
       await hand.move(b.x + r, b.y);
       await hand.down();
       for (let n = 0; n < 60 && (await where()) === before; n++) {
+        if (n === 2) await shot(`stirring-${t.id}`);
         for (let a = 1; a <= 12; a++) await hand.move(b.x + Math.cos((a / 12) * Math.PI * 2) * r, b.y + Math.sin((a / 12) * Math.PI * 2) * r * 0.5);
       }
       await hand.up();
@@ -236,7 +251,10 @@ try {
       log(`reloaded after ${half} steps: carries on at "${line}"`);
     }
     for (let k = 0; k < BAKE_STEPS[i].tasks.length; k++) {
-      if (k === 0) await shot(BAKE_STEPS[i].id);
+      if (k === 0 && SHOTS) {
+        await page.waitForTimeout(700); // the step slides in
+        await shot(BAKE_STEPS[i].id);
+      }
       await doTask(i, k);
     }
     log(`${i + 1}. ${BAKE_STEPS[i].title}`);
@@ -277,7 +295,14 @@ try {
   await page.waitForTimeout(800);
   await shot('table');
   await openBench('recipe');
-  await waitFor(() => window.__game.modal() !== null);
+  await waitFor(() => window.__game.modal() === 'recipe');
+  await page.waitForTimeout(600);
+  await shot('recipe-card');
+  const fits = await ev(() => {
+    const r = document.querySelector('.recipe-card').getBoundingClientRect();
+    return r.top >= 0 && r.bottom <= innerHeight && r.left >= 0 && r.right <= innerWidth;
+  });
+  if (!fits) fail('the recipe card does not fit on the screen');
   await ev(() => window.__game.closeModals());
   // The journal counts it.
   await ev(() => window.__game.game.openJournal());
