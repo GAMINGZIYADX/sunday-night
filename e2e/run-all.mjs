@@ -17,6 +17,7 @@ const tests = [
   'gfxcheck.mjs',
   'gfxtest.mjs',
   'siderooms.mjs',
+  'perf.mjs',
 ];
 let failed = 0;
 for (const t of tests) {

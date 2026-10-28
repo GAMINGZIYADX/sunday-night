@@ -53,7 +53,8 @@ argument to some tests to save screenshots. Debug URL flags: `?debug=1`,
 ## Architecture (src/)
 
 - `engine/`: renderer + light pool (3 point lights, 1 shadowed spot, 1
-  hemisphere, re-dressed per room), `input.js` (mouse/pointer lock, touch stick
+  hemisphere, re-dressed per room), `shadows.js` (the spot's shadow map is
+  drawn again only when something on screen moved), `input.js` (mouse/pointer lock, touch stick
   and taps), `device.js` (touch vs mouse, switches live on 2-in-1 PCs and swaps
   wording from `TOUCH_TEXT`), `quality.js` (Full vs Light graphics, chosen at
   startup), `interact.js` (centre raycast + tap picking), `collision.js` (2D
@@ -218,8 +219,23 @@ releases (install one, release the next).
   clickable (`sprite.raycast = () => {}`).
 - Light graphics swaps materials at startup, so changing quality reloads the
   page (the game resumes where you were). Test both with `?quality=`.
-- Keep the draw-call count modest (roughly 200-450 per frame); batch small
-  things (fairy-light glows are one `Points` per string).
+- Keep the draw-call count modest (roughly 200-450 per frame, shadow pass
+  included: three.js's `renderer.info` does not count it; `e2e/perf.mjs`
+  measures both); batch small things (fairy-light glows are one `Points` per
+  string) and give a box one material, not one per face (each face would be a
+  draw call: see `faceBox` for the fridge magnets).
+- **Culling** (`Game._cull`): a next room is drawn only when its door is open
+  and the doorway is on screen (or from the hallway), and then only the parts
+  in view through the doorway; the rest go on layer `BEYOND` (the shadow pass
+  draws every layer). Walls are one-sided, so this only works because rooms
+  join through doorways alone: a new window or opening between two rooms
+  needs `_canSee` to know about it.
+- **Shadows are cached** (`ShadowCache`): the map is drawn again when a caster
+  on screen moves more than 6 mm, the set of visible casters changes, the
+  spot moves, or every 3 s. A change that alters a shadow without moving,
+  showing or hiding a mesh (say a new `alphaTest`) needs
+  `game.shadows.invalidate()`. `scene.matrixWorldAutoUpdate` is off:
+  `ShadowCache.update` updates every matrix once, just before `render()`.
 - The e2e tests read each game's randomised answers from `window.__game`; never
   hard-code a puzzle answer in a test.
 - Prettier is configured (`.prettierrc`, width 150); run `npx prettier --write`
@@ -259,7 +275,7 @@ and checks every spot can be reached.
 
 All unit tests (100) and browser tests (prod, props, playthrough, continue,
 collision, touch, quality, hybrid, cozy, maze, selfupdate, attic, oldphones,
-gfxcheck, gfxtest, siderooms) pass as of the last commit, and the playthrough passes on WebGL 1. The
+gfxcheck, gfxtest, siderooms, perf) pass as of the last commit, and the playthrough passes on WebGL 1. The
 playthrough also passes with random scrambles. Ideas not done: a Cozy/Brainy
 difficulty choice, personal photos in the bedroom frames, a spectator mode for
 the author. The coupon (`HUNT_COUPON.text`) has the author's words: never rewrite them.

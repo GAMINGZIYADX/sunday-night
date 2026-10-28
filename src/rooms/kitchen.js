@@ -33,6 +33,20 @@ import { fill } from '../engine/text.js';
 const C = COLORS;
 const MAGNET_COLORS = [0xe57373, 0x64b5f6, 0xffd54f, 0x81c784, 0xba68c8, 0xffb74d, 0x4db6ac, 0xf48fb1];
 
+// A thin box drawn with one texture, so one draw call instead of six: the +X
+// face shows the left 96 pixels of a 128-wide texture, the other faces the
+// plain strip on its right.
+function faceBox(w, h, d) {
+  const geo = new THREE.BoxGeometry(w, h, d);
+  const uv = geo.attributes.uv;
+  for (let i = 0; i < uv.count; i++) {
+    if (i < 4) uv.setX(i, uv.getX(i) * 0.75);
+    else uv.setXY(i, 0.875, 0.5);
+  }
+  geo.clearGroups();
+  return geo;
+}
+
 export function buildKitchen(ctx) {
   const ROOM = 2;
   const R = ROOMS[ROOM];
@@ -254,7 +268,7 @@ export function buildKitchen(ctx) {
     );
   });
   const pzA = gs.puzzles.r3a;
-  const magGeo = new THREE.BoxGeometry(0.012, 0.065, 0.055);
+  const magGeo = faceBox(0.012, 0.065, 0.055);
   const letterMats = {};
   const letterMat = (ch) =>
     (letterMats[ch] ||= mat(0xffffff, { map: magnetTexture(ch, MAGNET_COLORS[ch.charCodeAt(0) % MAGNET_COLORS.length]), rough: 0.4 }));
@@ -263,8 +277,7 @@ export function buildKitchen(ctx) {
     const ch = String.fromCharCode(65 + i);
     const row = Math.floor(i / 7);
     const colI = i % 7;
-    const mg = mesh(magGeo, [mat(0xeeeeee), mat(0xeeeeee), mat(0xeeeeee), mat(0xeeeeee), mat(0xeeeeee), mat(0xeeeeee)], { cast: false });
-    mg.material[0] = letterMat(ch); // +X face shows the letter
+    const mg = mesh(magGeo, letterMat(ch), { cast: false }); // +X face shows the letter
     const z = fridgeZ + 0.3 - colI * 0.095 + rr(-0.012, 0.012);
     const y = 1.62 - row * 0.1 + rr(-0.012, 0.012);
     mg.position.set(frontX + 0.006, y, z);
@@ -341,20 +354,19 @@ export function buildKitchen(ctx) {
     drawWheel();
   });
   // Eraser magnet: takes the last letter off.
-  const eraserC = makeCanvas(96, 96);
+  const eraserC = makeCanvas(128, 96); // see faceBox
   const ex = eraserC.getContext('2d');
   ex.fillStyle = '#9c8b80';
-  ex.fillRect(0, 0, 96, 96);
+  ex.fillRect(0, 0, 128, 96);
   ex.fillStyle = '#fff';
   ex.font = `bold 58px ${ROUND_FONT}`;
   ex.textAlign = 'center';
   ex.textBaseline = 'middle';
   ex.fillText('←', 48, 52);
-  const eraser = mesh(
-    new THREE.BoxGeometry(0.012, 0.07, 0.07),
-    [mat(0xffffff, { map: canvasTexture(eraserC) }), mat(0x9c8b80), mat(0x9c8b80), mat(0x9c8b80), mat(0x9c8b80), mat(0x9c8b80)],
-    { pos: [frontX + 0.006, 1.08, fridgeZ - 0.345], cast: false },
-  );
+  const eraser = mesh(faceBox(0.012, 0.07, 0.07), mat(0xffffff, { map: canvasTexture(eraserC) }), {
+    pos: [frontX + 0.006, 1.08, fridgeZ - 0.345],
+    cast: false,
+  });
   g.add(eraser);
   ctx.interact.add(eraser, {
     zones: [ROOM],

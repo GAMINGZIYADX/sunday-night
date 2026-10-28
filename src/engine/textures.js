@@ -467,16 +467,20 @@ export function paperTexture(
   });
 }
 
-// A small "letter tile" texture for fridge magnets.
-export function magnetTexture(ch, color) {
-  return paint(96, 96, (g, w, h) => {
-    g.fillStyle = hex(color);
+// A small "letter tile" texture for fridge magnets. The left 96 pixels are the
+// letter; the strip on the right is the colour of the magnet's sides (see
+// faceBox in rooms/kitchen.js: one material for the whole magnet).
+export function magnetTexture(ch, color, side = 0xeeeeee) {
+  return paint(128, 96, (g, w, h) => {
+    g.fillStyle = hex(side);
     g.fillRect(0, 0, w, h);
+    g.fillStyle = hex(color);
+    g.fillRect(0, 0, 96, h);
     g.fillStyle = '#ffffff';
     g.font = `bold 70px ${ROUND_FONT}`;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
-    g.fillText(ch, w / 2, h / 2 + 4);
+    g.fillText(ch, 48, h / 2 + 4);
   });
 }
 

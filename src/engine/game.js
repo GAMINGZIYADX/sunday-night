@@ -10,7 +10,8 @@ import { KeyFx } from './keyfx.js';
 import { Settings } from './settings.js';
 import { GameState } from './gamestate.js';
 import { saveGame, loadSave, hasSave, clearSave } from './save.js';
-import { zoneAt, ROOMS, isSideZone } from './layout.js';
+import { zoneAt, inHallway, ROOMS, isSideZone, DOOR_W, DOOR_H } from './layout.js';
+import { ShadowCache } from './shadows.js';
 import { Hud } from '../ui/hud.js';
 import { Modals } from '../ui/manager.js';
 import { clickToStart, mainMenu, pauseMenu, journal, showNote, showClue, HintCard, confirmBox } from '../ui/screens.js';
@@ -25,6 +26,8 @@ import { device, enterFullscreen, setTouchMode, onTouchModeChange } from './devi
 import { QUALITY, LIGHT, autoQuality, MAX_RATIO, PROBE } from './quality.js';
 
 export const START = { x: -0.25, z: 1.55, yaw: 0.35 };
+// The layer of the parts of a next room its doorway hides (see _cull).
+const BEYOND = 1;
 // Set just before a graphics restart, so the game carries on after the reload.
 const RESUME_KEY = 'sundayNight.resume';
 
@@ -48,6 +51,7 @@ export class Game {
     this.scene = scene;
     this.camera = camera;
     this.lights = new LightPool(scene);
+    this.shadows = new ShadowCache(renderer, scene, camera, this.lights.spot);
     this.collision = new Collision();
     this.settings = new Settings();
     this.input = new Input(renderer.domElement);
@@ -92,6 +96,16 @@ export class Game {
     this.maxDt = 0.05; // frame-time cap (debug tests raise it for slow software rendering)
     this.clock = new THREE.Clock();
     this._fwd = new THREE.Vector3();
+    this._frustum = new THREE.Frustum();
+    this._viewProj = new THREE.Matrix4();
+    this._doorway = new THREE.Box3();
+    this._through = new Map(); // room group -> the view through its doorway, this frame
+    this._portals = [new THREE.Frustum(), new THREE.Frustum()];
+    this._beyond = new Set(); // room groups with parts on layer BEYOND
+    this._spheres = new WeakMap();
+    this._corners = [0, 1, 2, 3].map(() => new THREE.Vector3());
+    this._farPoint = new THREE.Vector3();
+    this._catSphere = new THREE.Sphere();
     this._nextFrame = 0;
     this._check = LIGHT || PROBE ? null : { frames: 0 };
     this._probe = PROBE ? { frames: 0, times: [] } : null;
@@ -689,6 +703,7 @@ export class Game {
     this.keyfx.update(dt);
     this.particles.update(dt);
     this._cull();
+    this.shadows.update(dt);
     this.renderer.render(this.scene, this.camera);
     if (this._check) this._checkPicture();
     if (this._probe) this._probeFrame();
@@ -742,17 +757,105 @@ export class Game {
     this.hints.hide();
   }
 
-  // Show the current room and its neighbours only. The side rooms (attic,
-  // greenhouse, basement, balcony) stand apart: each is shown only while you
-  // are in it, and hides the whole house.
+  // Show the current room and its neighbours only, and a neighbour only when
+  // it can be seen (see _canSee), and then only what its doorway shows. The
+  // side rooms (attic, greenhouse, basement, balcony) stand apart: each is
+  // shown only while you are in it, and hides the whole house. A cat in a
+  // hidden room, or out of the doorway's view, is hidden with it.
   _cull() {
     const z = this.state === 'playing' ? this.zone : 0;
+    this._viewProj.multiplyMatrices(this.camera.projectionMatrix, this.camera.matrixWorldInverse);
+    this._frustum.setFromProjectionMatrix(this._viewProj);
+    const hall = inHallway(this.camera.position.z);
+    this._through.clear();
     this.roomGroups.forEach((g, i) => {
       if (!g) return;
       // Room i also owns the hallway north of it.
-      if (isSideZone(i) || isSideZone(z)) g.visible = i === z;
-      else g.visible = i >= z - 1 && i <= z + 1;
+      let see = false;
+      if (isSideZone(i) || isSideZone(z)) see = i === z;
+      else if (i >= z - 1 && i <= z + 1) see = this._canSee(z, i, hall);
+      g.visible = !!see;
+      if (see === 'doorway') this._throughDoorway(g, this._seenAt);
+      else this._showAll(g);
     });
+    for (const c of this.cats.cats) {
+      const root = c.model.root;
+      if (!root.visible) continue;
+      const h = inHallway(root.position.z);
+      const g = this.roomGroups[h >= 0 ? h : zoneAt(root.position.z)];
+      const portal = g && this._through.get(g);
+      if ((g && !g.visible) || (portal && !portal.intersectsSphere(this._catSphere.set(root.position, 0.7)))) root.visible = false;
+    }
+  }
+
+  // Walls are one-sided and rooms only join through their doorways, so a
+  // room next to this one shows only through its doorway ('doorway': when
+  // that is on screen, and its door is open, looking ahead), or all of it
+  // from the hallway between the two. The garden and the clearing are both
+  // outdoors.
+  _canSee(z, i, hall) {
+    if (i === z || (hall >= 0 && (i === hall || i === hall + 1))) return true;
+    const north = Math.max(z, i); // its south doorway joins the two
+    if (north >= 5) return true;
+    if (i > z && !(this.doors[z]?.hinge.rotation.y > 0.01)) return false;
+    const zS = ROOMS[north].zS;
+    this._doorway.min.set(-DOOR_W / 2, 0, zS - 0.15);
+    this._doorway.max.set(DOOR_W / 2, DOOR_H, zS + 0.15);
+    if (!this._frustum.intersectsBox(this._doorway)) return false;
+    // Right at the doorway the view through it is too wide to bother.
+    if (Math.abs(this.camera.position.z - zS) < 0.4) return true;
+    this._seenAt = zS;
+    return 'doorway';
+  }
+
+  // Of a room seen through the doorway at zS, draw only what lies in the
+  // view through it: the rest goes on layer BEYOND, which the camera skips
+  // (the shadow pass still draws it, see ShadowCache, so shadows do not change).
+  _throughDoorway(g, zS) {
+    const c = this.camera.position;
+    const w = DOOR_W / 2 + 0.05;
+    const h = DOOR_H + 0.05;
+    const dir = zS < c.z ? -1 : 1; // the far side of the doorway
+    const corners = this._corners;
+    corners[0].set(-w, 0, zS);
+    corners[1].set(w, 0, zS);
+    corners[2].set(w, h, zS);
+    corners[3].set(-w, h, zS);
+    const far = this._farPoint.set(0, h / 2, zS + dir);
+    const portal = this._portals[this._through.size];
+    const planes = portal.planes;
+    for (let k = 0; k < 4; k++) {
+      planes[k].setFromCoplanarPoints(c, corners[k], corners[(k + 1) % 4]);
+      if (planes[k].distanceToPoint(far) < 0) planes[k].negate();
+    }
+    planes[4].setFromNormalAndCoplanarPoint(this._farPoint.set(0, 0, dir), corners[0]);
+    planes[5].copy(planes[4]);
+    this._through.set(g, portal);
+    this._beyond.add(g);
+    for (const o of g.children) this._setBeyond(o, !portal.intersectsSphere(this._sphereOf(o)));
+  }
+
+  _showAll(g) {
+    if (!this._beyond.delete(g)) return;
+    for (const o of g.children) this._setBeyond(o, false);
+  }
+
+  _setBeyond(o, on) {
+    if (!!o.userData.beyond === on) return;
+    o.userData.beyond = on;
+    o.traverse((m) => m.layers.set(on ? BEYOND : 0));
+  }
+
+  // Where a room's part is (cached: these hardly move), with a margin.
+  _sphereOf(o) {
+    let s = this._spheres.get(o);
+    if (!s) {
+      const box = new THREE.Box3().setFromObject(o);
+      s = box.isEmpty() ? new THREE.Sphere(new THREE.Vector3(), Infinity) : box.getBoundingSphere(new THREE.Sphere());
+      s.radius += 0.3;
+      this._spheres.set(o, s);
+    }
+    return s;
   }
 
   // To and from a side room (the attic ladder, the greenhouse door, the cellar

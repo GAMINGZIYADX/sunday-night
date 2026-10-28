@@ -14,6 +14,12 @@ export function installDebug(game, params) {
     game.input.noLock = true; // automated tests drive the camera directly
   }
   if (params.has('dtmax')) game.maxDt = Number(params.get('dtmax')) || 0.05;
+  // Teleports skip frames: show what the next frame would (rooms seen
+  // through doorways, see Game._cull) before aiming at anything.
+  const sync = () => {
+    game.camera.updateMatrixWorld();
+    game._cull();
+  };
   const api = {
     game,
     gs: game.gs,
@@ -38,17 +44,17 @@ export function installDebug(game, params) {
       game.player.yaw = Math.atan2(-dx, -dz);
       game.player.pitch = Math.atan2(dy, Math.hypot(dx, dz));
       game.player.apply();
-      game.camera.updateMatrixWorld();
+      sync();
       game.interact.zone = game.zone;
       return game.interact.update();
     },
     hovered() {
-      game.camera.updateMatrixWorld();
+      sync();
       const h = game.interact.update();
       return h ? (typeof h.prompt === 'function' ? h.prompt() : h.prompt) : null;
     },
     use(alt = false) {
-      game.camera.updateMatrixWorld();
+      sync();
       const h = game.interact.update();
       if (h && h.onUse) {
         h.onUse(alt);
