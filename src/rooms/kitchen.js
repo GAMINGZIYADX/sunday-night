@@ -28,6 +28,7 @@ import { cipherOverlay } from '../ui/overlays.js';
 import { ROOMS } from '../engine/layout.js';
 import { PROMPTS, TOASTS, WORLD_TEXT } from '../config.js';
 import { placeNote } from './notes.js';
+import { bakingStation, tableShortcake } from './bake.js';
 import { fill } from '../engine/text.js';
 
 const C = COLORS;
@@ -468,6 +469,14 @@ export function buildKitchen(ctx) {
   const hp2 = hangingPlant({ length: 0.45 });
   hp2.position.set(1.6, 2.25, R.zS - 0.7);
   g.add(hp2);
+  // Baking: the ingredients between the jars and the stove, the finished
+  // shortcake on the table (the cats come and sit just south of it).
+  bakingStation(ctx, new THREE.Vector3(cx - 0.07, 0.905, fz - 1.1));
+  const catSpots = [
+    { x: tx - 0.3, z: tz + 0.9 },
+    { x: tx + 0.3, z: tz + 0.9 },
+  ];
+  tableShortcake(ctx, new THREE.Vector3(tx, 0.749, tz + 0.15), catSpots);
   const krug = rugMesh(rug(C.sage, C.cream, C.cream), 2.0, 2.0);
   krug.position.set(tx, 0.006, tz);
   g.add(krug);
@@ -502,6 +511,9 @@ export function buildKitchen(ctx) {
     [-1.9, -20.4, 0, 2],
     [0.9, -21.3],
     [1.9, -16.6],
+    // By the table, where they sit to look at the shortcake.
+    [tx - 0.3, tz + 0.9],
+    [tx + 0.3, tz + 0.9],
   ]);
 
   ctx.addUpdate((dt, t) => {

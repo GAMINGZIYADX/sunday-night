@@ -338,6 +338,25 @@ export class CatDirector {
     }
   }
 
+  // Something worth a look (the shortcake on the kitchen table): each cat that
+  // is roaming and can get there walks over to one of `spots` (on the waypoint
+  // graph of `zone`) and settles there for a while.
+  visit(spots, zone) {
+    if (this.mode !== 'roam') return;
+    const zones = new Set([zone]);
+    this.cats.forEach((cat, i) => {
+      if (cat.state !== 'idle' && cat.state !== 'walk') return;
+      const spot = spots[i % spots.length];
+      const node = this.nearestNode(spot.x, spot.z, zones);
+      const path = node && cat.node && node !== cat.node ? this._path(cat.node, node) : null;
+      if (!path || !path.length) return;
+      cat.follow = 0;
+      cat.path = path;
+      cat.state = 'walk';
+      cat.model.setPose('stand');
+    });
+  }
+
   // After the letter: free roam in the garden and clearing.
   freeRoam() {
     this.mode = 'roam';

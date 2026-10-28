@@ -1,6 +1,6 @@
 import { Emitter } from './emitter.js';
 import { createPuzzles, PUZZLE_IDS, ALL_IDS, EXTRA_IDS } from '../puzzles/index.js';
-import { NOTES, FINDS, CLUES, RANDOMIZE, HUNT_COUPON } from '../config.js';
+import { NOTES, FINDS, CLUES, RANDOMIZE, HUNT_COUPON, BAKE_STEPS } from '../config.js';
 import { BALCONY_ZONE } from './layout.js';
 import { huntSpots, HUNT_SPOT_IDS } from './hunt.js';
 
@@ -14,6 +14,7 @@ export const ROOM_COUNT = 5;
 //   'sideSolved'    { puzzle }               a side-room puzzle was just solved
 //   'ladder'        {}                       the attic ladder came down
 //   'hunt'          { step }                 a treasure-hunt note was found
+//   'bake'          { step, done }           a baking step was finished
 //   'door'          { room }                 a door was opened
 //   'digit'         { room, digit }          a memory-tulip digit was collected
 //   'note'          { index }                a note was read (first time)
@@ -54,6 +55,7 @@ export class GameState extends Emitter {
       maze: { best: 0, done: false },
       attic: { ladder: false },
       cellar: false, // the hatch in the kitchen floor is open
+      bake: { step: 0 }, // baking steps finished (the shortcake, in the kitchen)
       // The treasure hunt after the letter: where its notes are, in order
       // (new every game), and how many are found.
       hunt: { spots: [], found: 0 },
@@ -165,6 +167,20 @@ export class GameState extends Emitter {
     this.emit('autosave', { reason: 'cellar' });
     return true;
   }
+  // The strawberry shortcake: step `n` (0-based) was just finished. Only the
+  // next one counts; the last one bakes the cake (a little find).
+  bakeStep(n) {
+    if (n !== this.data.bake.step || this.bakeDone()) return false;
+    this.data.bake.step++;
+    const done = this.bakeDone();
+    if (done) this.addFind('cake');
+    this.emit('bake', { step: this.data.bake.step, done });
+    this.emit('autosave', { reason: 'bake' });
+    return true;
+  }
+  bakeDone() {
+    return this.data.bake.step >= BAKE_STEPS.length;
+  }
   // Both puzzles of a side room solved (its little find is then out).
   sideDone(room) {
     return ALL_IDS.filter((id) => this.puzzles[id].room === room).every((id) => this.puzzles[id].isSolved());
@@ -256,6 +272,7 @@ export class GameState extends Emitter {
     if (obj.maze && typeof obj.maze === 'object') d.maze = { best: num(obj.maze.best, 0), done: !!obj.maze.done };
     if (obj.attic && typeof obj.attic === 'object') d.attic = { ladder: !!obj.attic.ladder };
     d.cellar = !!obj.cellar;
+    if (obj.bake && typeof obj.bake === 'object') d.bake = { step: Math.max(0, Math.min(BAKE_STEPS.length, num(obj.bake.step, 0) | 0)) };
     // The hunt (saves from before it keep the spots picked for them now).
     const h = obj.hunt;
     if (

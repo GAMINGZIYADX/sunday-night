@@ -186,7 +186,7 @@ describe('attic: in the game state and saves', () => {
     expect(b.data.finds).toEqual(['star']);
   });
 
-  it('the photo is the sixth little find (the other side rooms add three)', () => {
-    expect(FINDS.map((f) => f.id)).toEqual(['star', 'mouse', 'cookie', 'tulip', 'fireflies', 'photo', 'bloom', 'windup', 'wish']);
+  it('the photo is the sixth little find (the other side rooms add three, the baking one)', () => {
+    expect(FINDS.map((f) => f.id)).toEqual(['star', 'mouse', 'cookie', 'tulip', 'fireflies', 'photo', 'bloom', 'windup', 'wish', 'cake']);
   });
 });

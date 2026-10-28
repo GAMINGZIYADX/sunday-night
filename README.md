@@ -123,7 +123,14 @@ Separately, the resolution always lowers itself a little when frames get slow.
   - put the kettle on
   - open the kitchen window to hear the crickets
   - spin the study globe
-- **Nine little finds**, kept in the journal:
+- **Baking:** the ingredients on the kitchen counter (between the jars and the
+  stove) open a hands-on strawberry shortcake: the real recipe, in eleven real
+  steps (heat the oven, slice and sugar the berries, rub in the butter, add
+  the milk, cut the rounds, bake, whip the cream, then build it). Tap, hold to
+  pour, swipe to cut, stir, drag. Nothing can go wrong for good, and finished
+  steps are kept. The cake ends up on the kitchen table, and the cats come to
+  look.
+- **Ten little finds**, kept in the journal:
   - a paper star in the bedroom dresser's top drawer
   - a toy mouse under a sofa cushion
   - a cookie in the kitchen cookie jar
@@ -132,6 +139,7 @@ Separately, the resolution always lowers itself a little when frames get slow.
   - a photo in the attic trunk
   - a tulip in bloom in the greenhouse, a wind-up cat in the basement and a
     wish lantern on the balcony, each once both puzzles there are solved
+  - the strawberry shortcake, once it is baked
 - **The hedge maze:** go through the gap in the garden's east wall. A new maze
   grows every new game. Reaching the middle records your time (the best one is
   kept in the journal), and **H** shows a short firefly trail.
@@ -206,9 +214,9 @@ Everything you'd want to change is in **`src/config.js`**, with comments:
 | Randomiser on or off                                      | `RANDOMIZE`                                                                                                                                                                     |
 | Little finds                                              | `FINDS`                                                                                                                                                                         |
 | The side rooms' names                                     | `SIDE_ROOMS`                                                                                                                                                                    |
-| Greenhouse, basement, balcony                             | `WATER_DAYS`, `WATER_PLANTS`, `FUSE_NAMES`, `FUSE_RULES`, `LANTERN_PICTURES` (each needs one answer: `npm test` checks), `PAIR_PICTURES`                                         |
+| Greenhouse, basement, balcony                             | `WATER_DAYS`, `WATER_PLANTS`, `FUSE_NAMES`, `FUSE_RULES`, `LANTERN_PICTURES` (each needs one answer: `npm test` checks), `PAIR_PICTURES`                                        |
 | The treasure hunt                                         | `HUNT_COUPON` (your coupon), `HUNT_LENGTH`, `HUNT_RIDDLES`, `HUNT_TEXT`                                                                                                         |
-| The attic                                                 | `PIANO_KEYS`, `PIANO_START`, `PIANO_LENGTH`, `TRUNK_PICTURES`, `TRUNK_RIDDLE`, `PHOTO` (the photo itself goes in `src/photo/`)                                    |
+| The attic                                                 | `PIANO_KEYS`, `PIANO_START`, `PIANO_LENGTH`, `TRUNK_PICTURES`, `TRUNK_RIDDLE`, `PHOTO` (the photo itself goes in `src/photo/`)                                                  |
 | Sudoku (6×6)                                              | `SUDOKU_GIVENS` (keep it to one solution: run `npm test` to check)                                                                                                              |
 | Vase patterns, rug, constellation, hiding spots           | `VASE_VARIANTS`, `RUG_SHOWN`, `CONSTELLATION_LABELS`, `CONSTELLATION_DECOYS`, `HIDING_SPOTS`                                                                                    |
 | Hints (3 per puzzle)                                      | `HINTS`                                                                                                                                                                         |

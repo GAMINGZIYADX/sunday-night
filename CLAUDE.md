@@ -30,7 +30,7 @@ works from `file://`. Read `README.md` for the player-facing description.
 ```
 npm install
 npm run dev            # dev server, debug tools on
-npm test               # vitest: puzzles, randomiser, saves, updates, side rooms, quality (100 tests)
+npm test               # vitest: puzzles, randomiser, saves, updates, side rooms, quality, baking (113 tests)
 npm run build          # -> dist/index.html (the shippable file)
 npm run build:debug    # -> dist-debug/index.html (used by the browser tests)
 npm run e2e            # builds both, then runs every browser test
@@ -93,10 +93,25 @@ Two cats: Tchobin (tabby), Zizo (tuxedo).
 | Study   | Hide and seek (cats move after each wrong guess) | 6x6 sudoku                           |
 | Garden  | 4-digit gate lock (the memory digits)            | Constellation of month letters       |
 
-Extras: 6 optional **little finds** (paper star in the dresser drawer, toy mouse
+Extras: 10 optional **little finds** (paper star in the dresser drawer, toy mouse
 under the striped sofa cushion, cookie in the kitchen jar, pressed tulip in the
 study book, jar of fireflies in the middle of the **hedge maze**, the photo in
-the **attic** trunk), kept in the journal; the maze is east of the garden.
+the **attic** trunk, one in each side room, and the baked shortcake), kept in
+the journal; the maze is east of the garden.
+
+**Baking** (optional, kitchen): the ingredients on the counter
+(`rooms/bake.js`, `bakingStation`) open `bakeOverlay` (`ui/bake.js`, drawings
+in `ui/bakeArt.js`): a strawberry shortcake in the **real recipe and real
+steps** (`BAKE_INGREDIENTS`, `BAKE_STEPS` in config.js; the author asked for
+that, so the amounts are the same every game; don't randomise or "game-ify"
+them). Each step is tasks, each task one gesture kind with its rules in
+`bake/recipe.js` (dial, swipe, tapEach, taps, pour, scribble, drag, wait).
+Nothing fails: wrong moves only say so. Finished steps are saved
+(`gs.data.bake.step`, `gs.bakeStep(n)`); the last one gives the find `cake`,
+which shows on the kitchen table (`tableShortcake`) and sends the cats over
+(`CatDirector.visit`). The scene is SVG with real DOM pieces (`data-k`), so
+`e2e/bake.mjs` drives it with real pointer gestures (`--phone`: 800x360 with
+touch events through the DevTools protocol).
 
 **The attic** (zone/room index 6, optional, open from the start): a cord in
 the bedroom ceiling (`HATCH` in `layout.js`) brings a ladder down
@@ -273,9 +288,9 @@ and checks every spot can be reached.
 
 ## Status
 
-All unit tests (100) and browser tests (prod, props, playthrough, continue,
+All unit tests (113) and browser tests (prod, props, playthrough, continue,
 collision, touch, quality, hybrid, cozy, maze, selfupdate, attic, oldphones,
-gfxcheck, gfxtest, siderooms, perf) pass as of the last commit, and the playthrough passes on WebGL 1. The
+gfxcheck, gfxtest, siderooms, perf, bake, bake --phone) pass as of the last commit, and the playthrough passes on WebGL 1. The
 playthrough also passes with random scrambles. Ideas not done: a Cozy/Brainy
 difficulty choice, personal photos in the bedroom frames, a spectator mode for
 the author. The coupon (`HUNT_COUPON.text`) has the author's words: never rewrite them.

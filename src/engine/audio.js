@@ -446,6 +446,20 @@ export class AudioEngine {
     this._noiseBurst(out, t + 0.18, 0.12, { type: 'highpass', freq: 2000, q: 0.5, gain: 0.04 });
   }
 
+  // Baking: something poured (flour, milk, cream), and the oven timer.
+  pour() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const out = this._out('sfx');
+    this._noiseBurst(out, t, 0.9, { type: 'bandpass', freq: 900, q: 0.7, gain: 0.07, freqEnd: 500, attack: 0.08 });
+  }
+  ding() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const out = this._out('sfx', 0.5);
+    this._tine(out, t, NOTE(88), 0.9, 2.4);
+    this._tine(out, t + 0.02, NOTE(100), 0.35, 1.8);
+  }
   sparkle() {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;

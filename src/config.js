@@ -369,6 +369,176 @@ export const HUNT_TEXT = {
 };
 
 // -----------------------------------------------------------------------------
+//  Baking in the kitchen: a strawberry shortcake, the real recipe (makes 6).
+//  The amounts are real on purpose, so they are the same every game.
+//  Each step is a list of tasks done in order, each task one gesture (see
+//  src/bake/recipe.js): 'dial' (turn to a value), 'swipe' (cut across each
+//  one), 'tapEach' (tap each one), 'taps' (tap a tool, `count` times or the
+//  ingredient's `scoops`), 'pour' (hold to pour the ingredient's `amount`),
+//  'scribble' (stir, whisk or rub in; `amount` is how long), 'drag' (move
+//  `items` to their place, in order) and 'wait' (`seconds`; with `action`, a
+//  button that is pressed too early shows `early`).
+// -----------------------------------------------------------------------------
+export const BAKE_INGREDIENTS = [
+  { id: 'berries', name: 'strawberries', metric: '500 g', us: '1 lb' },
+  { id: 'berrySugar', name: 'sugar, for the berries', metric: '2 tbsp', us: '2 tbsp', scoops: 2 },
+  { id: 'flour', name: 'plain flour', metric: '250 g', us: '2 cups', amount: 250, unit: 'g' },
+  { id: 'bakingPowder', name: 'baking powder', metric: '1 tbsp', us: '1 tbsp', scoops: 1 },
+  { id: 'sugar', name: 'sugar, for the dough', metric: '2 tbsp', us: '2 tbsp', scoops: 2 },
+  { id: 'salt', name: 'salt', metric: '½ tsp', us: '½ tsp', scoops: 1 },
+  { id: 'butter', name: 'cold butter', metric: '85 g', us: '6 tbsp' },
+  { id: 'milk', name: 'cold milk', metric: '180 ml', us: '¾ cup', amount: 180, unit: 'ml' },
+  { id: 'cream', name: 'cold double cream', metric: '240 ml', us: '1 cup', amount: 240, unit: 'ml' },
+  { id: 'creamSugar', name: 'sugar, for the cream', metric: '2 tbsp', us: '2 tbsp', scoops: 2 },
+  { id: 'vanilla', name: 'vanilla extract', metric: '1 tsp', us: '1 tsp', scoops: 1 },
+];
+export const BAKE_OVEN = { c: 220, f: 425, minutes: 12 };
+export const BAKE_STEPS = [
+  {
+    id: 'preheat',
+    title: 'Heat the oven',
+    why: 'A hot oven makes the biscuits rise fast and tall.',
+    hint: 'Turn the dial (or use the arrows) until it reads 220 °C.',
+    tasks: [{ kind: 'dial', id: 'oven', label: 'Turn the oven to 220 °C (425 °F).', min: 0, max: 250, step: 10, target: BAKE_OVEN.c, unit: '°C' }],
+  },
+  {
+    id: 'slice',
+    title: 'Hull and slice the strawberries',
+    why: 'Sliced, they soak up the sugar and make their own syrup.',
+    hint: 'Swipe from one side of a strawberry to the other, like a knife.',
+    tasks: [{ kind: 'swipe', id: 'berries', label: 'Swipe the knife across each strawberry.', count: 6 }],
+  },
+  {
+    id: 'macerate',
+    title: 'Sugar the berries',
+    why: 'The sugar draws the juice out while they wait. In a real kitchen, half an hour.',
+    hint: 'Tap the spoon twice, then stir in the bowl.',
+    tasks: [
+      { kind: 'taps', id: 'sugar', ingredient: 'berrySugar', label: 'Two tablespoons of sugar over the berries.' },
+      { kind: 'scribble', id: 'toss', label: 'Stir them gently, then let them sit.', amount: 1.2 },
+    ],
+  },
+  {
+    id: 'dry',
+    title: 'Mix the dry things',
+    why: 'Whisking spreads the baking powder, so every biscuit rises the same.',
+    hint: 'Hold the flour bag and let go when the scale says 250 g.',
+    tasks: [
+      { kind: 'pour', id: 'flour', ingredient: 'flour', label: 'Hold to pour 250 g of flour.', rate: 70, tolerance: 10 },
+      { kind: 'taps', id: 'bakingPowder', ingredient: 'bakingPowder', label: 'A tablespoon of baking powder.' },
+      { kind: 'taps', id: 'sugar', ingredient: 'sugar', label: 'Two tablespoons of sugar.' },
+      { kind: 'taps', id: 'salt', ingredient: 'salt', label: 'Half a teaspoon of salt.' },
+      { kind: 'scribble', id: 'whisk', label: 'Whisk it all together.', amount: 1.6 },
+    ],
+  },
+  {
+    id: 'butter',
+    title: 'Rub in the butter',
+    why: 'Cold butter turns to steam in the oven. That is what makes them flaky.',
+    hint: 'Swipe across the butter three times, then rub it in the bowl until it looks like small peas.',
+    tasks: [
+      { kind: 'swipe', id: 'cubes', label: 'Cut 85 g of cold butter into cubes.', count: 3 },
+      { kind: 'scribble', id: 'rub', label: 'Rub it into the flour until it looks like small peas.', amount: 2.2 },
+    ],
+  },
+  {
+    id: 'milk',
+    title: 'Add the milk',
+    why: 'Stop as soon as it holds together: more stirring makes them tough.',
+    hint: 'Hold the jug and let go at 180 ml, then stir in the bowl.',
+    tasks: [
+      { kind: 'pour', id: 'milk', ingredient: 'milk', label: 'Hold to pour 180 ml of cold milk.', rate: 50, tolerance: 10 },
+      { kind: 'scribble', id: 'stir', label: 'Stir with a fork until it just comes together.', amount: 1.2 },
+    ],
+  },
+  {
+    id: 'shape',
+    title: 'Pat and cut',
+    why: 'Press the cutter straight down, no twisting, and the sides rise straight up.',
+    hint: 'Tap the dough to pat it, then tap six places to cut the rounds.',
+    tasks: [
+      { kind: 'taps', id: 'pat', label: 'Pat the dough out, about 2 cm thick.', count: 3 },
+      { kind: 'tapEach', id: 'rounds', label: 'Cut out six rounds.', count: 6 },
+      { kind: 'taps', id: 'brush', label: 'Brush the tops with a little milk.', count: 1 },
+      { kind: 'taps', id: 'sprinkle', label: 'Sprinkle them with sugar.', count: 1 },
+    ],
+  },
+  {
+    id: 'bake',
+    title: 'Bake',
+    why: '12 to 15 minutes at 220 °C, until the tops are golden.',
+    hint: 'Drag the tray onto the oven, set the timer to 12, and wait for golden.',
+    tasks: [
+      { kind: 'drag', id: 'tray', label: 'Slide the tray into the oven.', items: ['tray'] },
+      { kind: 'dial', id: 'timer', label: 'Set the timer to 12 minutes.', min: 0, max: 30, step: 1, target: BAKE_OVEN.minutes, unit: 'min' },
+      {
+        kind: 'wait',
+        id: 'golden',
+        label: 'Wait until they are golden, then take them out.',
+        seconds: 8,
+        action: 'Take them out',
+        early: 'Not golden yet. A little longer.',
+      },
+    ],
+  },
+  {
+    id: 'cream',
+    title: 'Whip the cream',
+    why: 'Cold cream whips best. Soft peaks: the tips just flop over.',
+    hint: 'Hold the carton and let go at 240 ml, add the sugar and vanilla, then whisk.',
+    tasks: [
+      { kind: 'pour', id: 'cream', ingredient: 'cream', label: 'Hold to pour 240 ml of cold cream.', rate: 70, tolerance: 15 },
+      { kind: 'taps', id: 'sugar', ingredient: 'creamSugar', label: 'Two tablespoons of sugar.' },
+      { kind: 'taps', id: 'vanilla', ingredient: 'vanilla', label: 'A teaspoon of vanilla.' },
+      { kind: 'scribble', id: 'whip', label: 'Whisk until soft peaks.', amount: 2.2 },
+    ],
+  },
+  {
+    id: 'cool',
+    title: 'Cool and split',
+    why: 'Warm is lovely, but too hot melts the cream.',
+    hint: 'Wait a moment, then tap a biscuit to split it.',
+    tasks: [
+      { kind: 'wait', id: 'cool', label: 'Let them cool for a few minutes.', seconds: 4 },
+      { kind: 'taps', id: 'split', label: 'Split a biscuit in half.', count: 1 },
+    ],
+  },
+  {
+    id: 'assemble',
+    title: 'Put it together',
+    why: 'Berries and their juice first, so it soaks into the biscuit.',
+    hint: 'From the bottom up: bottom half, berries, cream, top half, more cream, one whole strawberry.',
+    tasks: [
+      {
+        kind: 'drag',
+        id: 'stack',
+        label: 'Build it on the plate, from the bottom up.',
+        items: ['bottom', 'berries', 'cream', 'top', 'cream2', 'berry'],
+      },
+    ],
+  },
+];
+// What the dragged things are called (the 'drag' tasks' items).
+export const BAKE_ITEMS = {
+  tray: 'the tray',
+  bottom: 'the bottom half',
+  berries: 'the strawberries',
+  cream: 'the cream',
+  top: 'the top half',
+  cream2: 'more cream',
+  berry: 'a whole strawberry',
+};
+// The recipe card (kept in the journal as the 'bake' clue).
+const bakeCard = () =>
+  [
+    'Makes 6.',
+    '',
+    ...BAKE_INGREDIENTS.map((i) => `${i.metric}${i.us !== i.metric ? ` (${i.us})` : ''} ${i.name}`),
+    '',
+    ...BAKE_STEPS.map((s, n) => `${n + 1}. ${s.title}. ${s.why}`),
+  ].join('\n');
+
+// -----------------------------------------------------------------------------
 //  Clue cards (short printed cards next to puzzles; kept in the journal)
 // -----------------------------------------------------------------------------
 export const CLUES = {
@@ -387,6 +557,7 @@ export const CLUES = {
   waterCard: { title: 'A note on the watering can', text: 'Today is Sunday.\nThe thirstiest drink first.' },
   // Written from the fuse puzzle's rules when a game starts (puzzles/fuses.js).
   fuseCard: { title: 'The card on the fuse box', text: '' },
+  bake: { title: 'Strawberry shortcake', text: bakeCard() },
 };
 
 // -----------------------------------------------------------------------------
@@ -621,6 +792,8 @@ export const PROMPTS = {
   cushionLift: 'Lift the cushion',
   cushionDown: 'Put the cushion back',
   cookieJar: 'Peek in the cookie jar',
+  bake: 'Bake a strawberry shortcake',
+  bakeDone: 'Read the shortcake recipe',
   bookOpen: 'Open the little book',
   bookClose: 'Close the book',
   // the hedge maze
@@ -869,6 +1042,16 @@ export const LABELS = {
   pairsSolved: 'Every pair found, in {N} turns.',
   pairsTurns: 'Turns: {N}',
   pairsHelp: 'Click a card to turn it.',
+  // Baking (src/ui/bake.js).
+  bakeStep: 'Step {N} of {TOTAL}',
+  bakeMore: 'A little more.',
+  bakeLess: 'A little too much. Spoon some out.',
+  bakeScoop: 'Spoon some out',
+  bakeRight: 'Just right.',
+  bakeFirst: 'Not yet. First {ITEM}.',
+  bakeDone: 'Your strawberry shortcake is ready.',
+  bakeRecipe: 'Recipe',
+  bakeHelp: 'Click, hold and drag, like in a real kitchen. You can stop any time: finished steps are kept.',
 };
 
 // Little finds: small things hidden around the house (in a drawer, under a
@@ -885,6 +1068,7 @@ export const FINDS = [
   { id: 'bloom', room: 7, name: 'a tulip in bloom', text: 'It opened under the grow lamps once every plant had its drink.' },
   { id: 'windup', room: 8, name: 'a wind-up cat', text: 'Found behind the boiler, still warm. Wind it and it walks in little circles.' },
   { id: 'wish', room: 9, name: 'a wish lantern', text: 'Let go from the balcony. It is still up there somewhere, glowing.' },
+  { id: 'cake', room: 2, name: 'a strawberry shortcake', text: 'Baked from scratch on a Sunday night. The cats would like some.' },
 ];
 
 // On phones and tablets these replace the keyboard-and-mouse wording above.
@@ -916,6 +1100,7 @@ export const TOUCH_TEXT = {
     pipesHelp: 'Tap a piece to turn it.',
     lanternsHelp: 'Tap a lantern to light it or blow it out.',
     pairsHelp: 'Tap a card to turn it.',
+    bakeHelp: 'Tap, hold and drag, like in a real kitchen. You can stop any time: finished steps are kept.',
     readFaster: 'tap to read faster',
   },
   TOASTS: {

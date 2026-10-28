@@ -28,13 +28,17 @@ function tween(ctx, apply, seconds = 0.45) {
 // Marks a find as found (first time only): sparkle, chime and a toast.
 export function foundIt(ctx, id, pos) {
   if (!ctx.gs.addFind(id)) return false;
+  celebrateFind(ctx, id, pos);
+  return true;
+}
+// The sparkle, chime and toast of a find (already added to the game state).
+export function celebrateFind(ctx, id, pos) {
   const f = FINDS.find((x) => x.id === id);
   ctx.audio.sparkle();
   ctx.audio.smallChime(7);
   ctx.particles.burst(pos.clone(), { kind: 'sparkle', count: 16, color: 0xfff0c0, speed: 0.4, size: 0.05, gravity: -0.1, up: 0.5 });
   ctx.hud.toast(fill(TOASTS.found, { NAME: f.name, N: ctx.gs.data.finds.length, TOTAL: FINDS.length }), { ms: 4500 });
   if (ctx.gs.data.finds.length === FINDS.length) setTimeout(() => ctx.hud.toast(TOASTS.allFound, { ms: 5000 }), 1800);
-  return true;
 }
 
 // ----------------------------------------------------------------- lamps

@@ -18,10 +18,13 @@ const tests = [
   'gfxtest.mjs',
   'siderooms.mjs',
   'perf.mjs',
+  'bake.mjs',
+  'bake.mjs --phone',
 ];
 let failed = 0;
 for (const t of tests) {
-  const r = spawnSync(process.execPath, [`e2e/${t}`], { stdio: 'inherit' });
+  const [file, ...args] = t.split(' ');
+  const r = spawnSync(process.execPath, [`e2e/${file}`, ...args], { stdio: 'inherit' });
   if (r.status !== 0) failed++;
 }
 console.log(failed ? `\n${failed} browser test file(s) failed` : '\nAll browser tests passed');

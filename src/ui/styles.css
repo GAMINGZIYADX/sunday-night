@@ -2177,3 +2177,103 @@ canvas.pipes {
     gap: 5px;
   }
 }
+
+/* ---------------------------------------------------------------------------
+   The baking screen (ui/bake.js): the counter scene, the recipe step beside
+   it. Sized with a width and a height (no aspect-ratio: Chrome 80).
+   --------------------------------------------------------------------------- */
+.card.pz.bake {
+  display: grid;
+  grid-template-columns: auto minmax(220px, 280px);
+  column-gap: 20px;
+  align-items: center;
+  width: auto;
+  max-width: 98vw;
+}
+.card.pz.bake > .pz-side {
+  display: flex;
+  flex-direction: column;
+}
+.card.pz.bake .pz-head {
+  order: 0;
+  margin-bottom: 4px;
+}
+.bake-stage {
+  --bw: min(calc(96vw - 350px), 640px, calc((92vh - 80px) * 1.6));
+  width: var(--bw);
+  height: calc(var(--bw) * 0.625);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 3px 10px rgba(40, 20, 30, 0.25);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.bk-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: pointer;
+}
+.bk-text {
+  font-family: inherit;
+  pointer-events: none;
+}
+.bk-step {
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+.bk-title {
+  margin: 2px 0;
+  font-family: var(--hand);
+  font-size: 24px;
+}
+.bk-label {
+  margin: 6px 0 4px;
+  font-size: 16px;
+}
+.bk-why {
+  margin: 2px 0;
+}
+.bk-task-tools:empty {
+  display: none;
+}
+@media (max-height: 520px) {
+  .card.pz.bake {
+    grid-template-columns: auto minmax(170px, 230px);
+    column-gap: 12px;
+    padding: 12px 14px;
+  }
+  .card.pz.bake > .pz-side {
+    padding-right: 22px;
+  }
+  .bake-stage {
+    --bw: min(calc(98vw - 290px), calc((100vh - 30px) * 1.6));
+  }
+  .card.pz.bake .pz-head h2 {
+    font-size: 19px;
+    white-space: nowrap;
+  }
+  .card.pz.bake .pz-head svg {
+    width: 18px;
+    height: 18px;
+  }
+  .bk-title {
+    font-size: 18px;
+  }
+  .bk-label {
+    font-size: 14px;
+    margin: 3px 0 2px;
+  }
+  .card.pz.bake .note-small {
+    font-size: 11px;
+  }
+  /* The help line is the first thing to go on a short screen. */
+  .card.pz.bake .pz-side > p.note-small:last-child {
+    display: none;
+  }
+  .card.pz.bake .pz-tools {
+    margin-top: 6px;
+  }
+}
