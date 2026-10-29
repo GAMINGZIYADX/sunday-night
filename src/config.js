@@ -740,6 +740,7 @@ export const PUZZLE_NAMES = {
 export const UI = {
   subtitle: 'a small house, two cats, ten puzzles',
   clickToStart: 'Click to start',
+  useKey: 'E', // the key shown beside a prompt
   version: 'Version {V}',
   updateReady: 'A new version ({V}) is ready.',
   updateDownload: 'Download it',
@@ -1179,6 +1180,45 @@ export const TOUCH_TEXT = {
     },
     r3b: { 2: 'Set the dials to {DIALS}. Tap a dial to turn it up, or Turn back to turn it down.' },
     r5a: { 1: 'Every door you opened made a memory tulip glow and gave you a digit. Open your journal with the book button, top right.' },
+  },
+};
+
+// A game controller (Xbox / PlayStation layout, read through the Gamepad API).
+// Its words replace the mouse ones while a controller is in use, like
+// TOUCH_TEXT does for fingers.
+export const PAD = {
+  dead: 0.2, // stick dead zone (0..1)
+  lookSpeed: 1150, // right stick fully over: look pixels per second (then Look sensitivity)
+  runAt: 0.92, // the left stick pushed this far runs
+  cursorSpeed: 950, // menus and puzzle screens: cursor pixels per second, stick fully over
+  scrollSpeed: 900, // the right stick scrolls a long card, pixels per second
+};
+export const PAD_TEXT = {
+  UI: {
+    clickToStart: 'Press A to start',
+    useKey: 'A',
+    controls: [
+      ['Left stick', 'walk (all the way, or a trigger, to run)'],
+      ['Right stick', 'look around'],
+      ['A', 'use · X turns back'],
+      ['Y', 'journal'],
+      ['RB', 'hint'],
+      ['Start', 'pause'],
+      ['In menus', 'stick or D-pad points, A presses, B goes back'],
+    ],
+  },
+  LABELS: {
+    hint: 'Hint (RB)',
+    hintMore: 'Press RB for more',
+    lockJournal: 'Journal (Y)',
+    lockNotYet: 'Not yet. Your journal (Y) has the digits from each door.',
+    readFaster: 'press A to read faster',
+  },
+  PROMPTS: {
+    altMouse: 'X turns back',
+  },
+  HINTS: {
+    r5a: { 1: 'Every door you opened made a memory tulip glow and gave you a digit. Open your journal with Y.' },
   },
 };
 

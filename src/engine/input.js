@@ -21,6 +21,7 @@ export class Input {
     this.noLock = false; // tests that drive the camera themselves set this
     this._enabled = false; // gameplay input (movement/look/interact)
     this.stick = null; // { id, ox, oy, x, y } while a thumb is on the stick
+    this.pad = null; // { f, s, mag, run } from a controller's left stick (gamepad.js)
     this.looks = new Map(); // pointerId -> drag-to-look finger
     this.handlers = new Map();
     this.lockListeners = [];
@@ -59,7 +60,8 @@ export class Input {
     this._bindTouch(canvas);
     // Which kind of pointer is in use (anywhere on the page), so 2-in-1 PCs
     // can switch between touch and mouse controls as they are used.
-    document.addEventListener('pointerdown', (e) => this._emit('pointerKind', e.pointerType === 'mouse' ? 'mouse' : 'touch'), true);
+    // (The controller's cursor sends pointer events too: those don't count.)
+    document.addEventListener('pointerdown', (e) => !e.fromPad && this._emit('pointerKind', e.pointerType === 'mouse' ? 'mouse' : 'touch'), true);
   }
 
   get enabled() {
@@ -202,6 +204,8 @@ export class Input {
       s = st.x;
       return { f, s, slow: st.mag < 0.55, run: st.run, analog: true };
     }
+    const p = this.pad;
+    if (p && !f && !s) return { f: p.f, s: p.s, slow: p.mag < 0.45 && !p.run, run: p.run, analog: true };
     return { f, s, slow: false, run };
   }
 

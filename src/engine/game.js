@@ -22,7 +22,8 @@ import { INTRO_LINE, UI } from '../config.js';
 import { PUZZLE_IDS, ALL_IDS } from '../puzzles/index.js';
 import { TOASTS } from '../config.js';
 import { fill } from './text.js';
-import { device, enterFullscreen, setTouchMode, onTouchModeChange } from './device.js';
+import { device, enterFullscreen, setTouchMode, onTouchModeChange, onPadModeChange } from './device.js';
+import { Gamepads } from './gamepad.js';
 import { QUALITY, LIGHT, autoQuality, MAX_RATIO, PROBE } from './quality.js';
 
 export const START = { x: -0.25, z: 1.55, yaw: 0.35 };
@@ -68,6 +69,7 @@ export class Game {
     this.hud = new Hud(this.uiRoot);
     this.modals = new Modals(this.uiRoot, this);
     this.hints = new HintCard(this.uiRoot, this);
+    this.pads = new Gamepads(this);
 
     this.state = 'boot'; // boot -> menu -> playing
     this.zone = 0;
@@ -503,6 +505,10 @@ export class Game {
       this.hud.setClickToLook(false);
       if (this.state === 'playing') this.hud.showControls(8000);
     });
+    onPadModeChange(() => {
+      this.hud.setPad();
+      if (this.state === 'playing' && !this.modals.open) this.hud.showControls(8000);
+    });
     this.hud.actions = {
       use: (alt) => this._use(alt),
       journal: () => this.state === 'playing' && !this.modals.open && journal(this),
@@ -523,7 +529,7 @@ export class Game {
     this.input.onLockChange((locked) => {
       if (this.state !== 'playing') return;
       if (!locked && !this.modals.open && this.input.wasLocked) pauseMenu(this);
-      this.hud.setClickToLook(!locked && !this.modals.open && this.input.lockSupported() && !this.headless);
+      this.hud.setClickToLook(!locked && !this.modals.open && this.input.lockSupported() && !this.headless && !device.pad);
     });
 
     let saveT = null;
@@ -592,7 +598,7 @@ export class Game {
       this.interact.setHover(null);
       this.hud.setClickToLook(false);
     } else {
-      this.input.lock();
+      if (!device.pad) this.input.lock();
       this._flushKeys();
       this._updateKeysHud(false);
     }
@@ -668,6 +674,7 @@ export class Game {
   _frame() {
     const raw = this.clock.getDelta();
     const dt = Math.min(this.maxDt, raw);
+    this.pads.update(Math.min(raw, 0.1));
     if (this.state === 'playing' && !this.headless) this._adaptResolution(Math.min(raw, 0.25));
     this.time += dt;
     if (this.state === 'playing') {

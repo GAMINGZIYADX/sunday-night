@@ -72,6 +72,17 @@ argument to some tests to save screenshots. Debug URL flags: `?debug=1`,
   `trunk`, `ALL_IDS` both):
   `getState/setState/isSolved/hint(tier)/newGame(rng)`. Hints are 3 tiers in
   `HINTS` with `{PLACEHOLDER}` variables filled by `hintVars()`.
+- `engine/gamepad.js`: game controllers (Gamepad API, standard mapping),
+  polled each frame by `Game._frame`. Walking, its sticks feed `input.pad`
+  and the look deltas, and its buttons send the game's keys (synthetic
+  `keydown`s on window: Tab, KeyH, Escape) or `interact`. With a card open it
+  shows `.pad-cursor`: the stick moves it, the D-pad jumps between
+  `TARGETS`, A sends real-looking pointer events (`fromPad`, which
+  `Input`'s pointer-kind check ignores), so screens need no controller
+  code. `device.pad` / `setPadMode` (device.js) swap in `PAD_TEXT` like
+  `TOUCH_TEXT`; real mouse, keyboard or touch input switches back. Tuning
+  in `PAD` (config.js). `e2e/gamepad.mjs` fakes a controller. Not tried with
+  a real controller here: how the sticks feel is a guess.
 - `cats/`: `catModel.js` (rig), `tail.js` (tube tail), `catDirector.js`
   (waypoint graph, hide-and-seek, petting: meow, then purr + slow blink, then
   follow you for 40 s).
@@ -305,6 +316,6 @@ and checks every spot can be reached.
 
 All unit tests (143) and browser tests (prod, props, playthrough, continue,
 collision, touch, quality, hybrid, cozy, maze, selfupdate, attic, oldphones,
-gfxcheck, gfxtest, siderooms, perf, bake, bake --phone) pass as of the last commit, and the playthrough passes on WebGL 1. The
+gfxcheck, gfxtest, siderooms, perf, bake, bake --phone, gamepad) pass as of the last commit, and the playthrough passes on WebGL 1. The
 playthrough also passes with random scrambles. Ideas not done: personal photos in the bedroom frames, a spectator mode for
 the author. The coupon (`HUNT_COUPON.text`) has the author's words: never rewrite them.

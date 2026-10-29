@@ -20,6 +20,7 @@ const tests = [
   'perf.mjs',
   'bake.mjs',
   'bake.mjs --phone',
+  'gamepad.mjs',
 ];
 let failed = 0;
 for (const t of tests) {

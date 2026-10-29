@@ -58,6 +58,14 @@ export class Hud {
     this.controls.replaceChildren(el('div.t', LABELS.controlsTitle), ...UI.controls.flatMap(([k, v]) => [el('kbd', k), el('span', v)]));
   }
 
+  // A controller was picked up or put down: its words on the controls card
+  // and beside the prompt.
+  setPad() {
+    this._fillControls();
+    this._lastPrompt = null;
+    this.setClickToLook(false);
+  }
+
   // 2-in-1 PCs: switch the on-screen controls between touch and mouse.
   setTouch(on) {
     if (on === this.touch) return;
@@ -131,7 +139,7 @@ export class Hud {
       const use = el('button.puse', { type: 'button', onclick: () => this.actions.use(false) }, [el('span', t)]);
       this.prompt.append(use);
       if (alt) this.prompt.append(el('button.puse.alt', { type: 'button', onclick: () => this.actions.use(true) }, `↺ ${LABELS.turnBack}`));
-    } else if (t) this.prompt.append(el('kbd', 'E'), el('span', alt ? `${t} · ${PROMPTS.altMouse}` : t));
+    } else if (t) this.prompt.append(el('kbd', UI.useKey), el('span', alt ? `${t} · ${PROMPTS.altMouse}` : t));
     const hot = !!t;
     if (hot !== this._lastHot) {
       this.cross.classList.toggle('hot', hot);

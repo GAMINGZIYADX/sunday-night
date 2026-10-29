@@ -16,6 +16,13 @@ Controls: **WASD** move · **mouse** look · **E / click** interact (right-click
 turns books, the cipher wheel and the oven dials back) · **Shift** run ·
 **Tab** journal · **H** hint · **M** mute · **Esc** pause.
 
+**Game controller** (Xbox or PlayStation, on a PC or a phone): left stick
+walks (all the way, or a trigger, runs), right stick looks, **A** uses, **X**
+turns back, **Y** journal, **RB** hint, **Start** pause. On menus and puzzle
+screens a little cursor appears: the stick or D-pad moves it, **A** presses,
+**B** goes back, the right stick scrolls. Touch the mouse and it is a mouse
+game again.
+
 ## Play it on a phone (Android)
 
 The same `dist/index.html` switches to touch controls by itself on a phone or
