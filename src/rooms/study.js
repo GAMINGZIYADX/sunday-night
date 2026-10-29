@@ -271,6 +271,8 @@ export function buildStudy(ctx) {
     if (cat && !pzA.found[cat]) {
       ctx.cats.found(cat, hideSpots[i].route);
       pzA.search(i);
+      // Brainy: the other cat heard that and sneaks off.
+      if (pzA.tune.sneakOnFind) ctx.cats.rehide();
       ctx.hud.toast(fill(UI.foundCat, { NAME: CATS[cat].name }), { ms: 2200 });
       if (pzA.isSolved()) ctx.hud.toast(UI.bothFound, { ms: 2600 });
     } else if (cat) {

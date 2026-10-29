@@ -13,7 +13,7 @@ offline, with no server and nothing downloaded. Use a desktop browser (Chrome,
 Edge or Firefox).
 
 Controls: **WASD** move · **mouse** look · **E / click** interact (right-click
-turns books, the cipher wheel and the oven dials back) · **Shift** walk slowly ·
+turns books, the cipher wheel and the oven dials back) · **Shift** run ·
 **Tab** journal · **H** hint · **M** mute · **Esc** pause.
 
 ## Play it on a phone (Android)
@@ -22,7 +22,7 @@ The same `dist/index.html` switches to touch controls by itself on a phone or
 tablet. Hold the phone sideways; it goes full screen when you start.
 
 - **Left thumb:** a stick appears where you touch. Walk with it, and push
-  further to go faster.
+  past its ring to run (it turns pink).
 - **Right thumb:** drag to look around.
 - **Tap** something to use it, or tap the button under the dot. Books, the
   cipher wheel and the oven dials also get a **Turn back** button.
@@ -211,6 +211,7 @@ Everything you'd want to change is in **`src/config.js`**, with comments:
 | Letter pacing                                             | `LETTER_TIMING`                                                                                                                                                                 |
 | Kitchen secret sentence                                   | `CIPHER_SENTENCE`, `CIPHER_WORD` (a word of the sentence) and `CIPHER_SHIFT`, plus more in `CIPHER_SENTENCES`. Keep a one-letter word in each sentence: it is how she cracks it |
 | Oven dial riddles                                         | `DIAL_RIDDLES` (text, answer, middle hint). Each riddle's rule is in `DIAL_RULES` in `src/puzzles/dials.js`; `npm test` checks every riddle has exactly one answer              |
+| Cozy / Normal / Brainy settings                           | `DIFFICULTY` (what each level changes; the words are `UI.levels`)                                                                                                               |
 | Randomiser on or off                                      | `RANDOMIZE`                                                                                                                                                                     |
 | Little finds                                              | `FINDS`                                                                                                                                                                         |
 | The side rooms' names                                     | `SIDE_ROOMS`                                                                                                                                                                    |
@@ -305,6 +306,16 @@ to have GitHub write them from the commits. The check can be switched off with `
 | Garden      | The four memory digits on the gate lock                                                                       | Constellation of month letters (J F M A M J J A S O N D) with repeats and decoys |
 
 Every puzzle has three hints (H, or from the journal), and the last always gives the answer away.
+
+**Cozy, Normal or Brainy.** New game asks how hard the puzzles should be (the
+journal shows the choice). Normal is the game as it was made. Cozy starts the
+frames, sliding picture and books less scrambled, gives five more sudoku numbers,
+two loose stars instead of five, cats that sneak off only every second wrong look,
+and a short maze. Brainy starts no frame in place, the books 12 to 14 turns away,
+eight loose stars, a cat that sneaks off when the other is found, a longer maze
+with no loops, and a minute's wait before each bigger hint. Every setting still
+has exactly one answer per puzzle (`tests/difficulty.test.js`). The side rooms,
+the cipher, the dials, the vases and the lock are the same on all three.
 
 ## Saving
 

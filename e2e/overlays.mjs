@@ -17,6 +17,7 @@ await page.getByRole('button', { name: 'Settings' }).click();
 await snap('settings');
 await page.getByRole('button', { name: 'Done' }).click();
 await page.getByRole('button', { name: 'New game' }).click();
+await page.click('.btn.level >> nth=1'); // Normal
 await page.waitForFunction(() => window.__game?.state() === 'playing');
 await page.waitForTimeout(500);
 const g = (code) => ev(code);

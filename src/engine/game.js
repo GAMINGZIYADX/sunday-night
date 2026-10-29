@@ -180,9 +180,10 @@ export class Game {
     return hasSave();
   }
 
-  newGame() {
+  // `level`: how hard the puzzles are ('cozy', 'normal' or 'brainy').
+  newGame(level = 'normal') {
     this.modals.closeAll();
-    this.gs.reset();
+    this.gs.reset(Math.random, level);
     clearSave();
     this._syncWorld();
     this.player.place(START.x, START.z, START.yaw, -0.05);
@@ -299,7 +300,7 @@ export class Game {
     this.hints.hide();
     playLetter(this, {
       onDone: (choice) => {
-        if (choice === 'again') this.newGame();
+        if (choice === 'again') this.newGame(this.gs.data.level);
         else {
           this.cats.freeRoam();
           this.toast(TOASTS.wandering, { ms: 5000 });
@@ -687,7 +688,7 @@ export class Game {
       this.hud.setPrompt(this.modals.open ? null : prompt, !!hover?.alt);
       if (device.touch) {
         const st = this.input.stick;
-        this.hud.setStick(st && !this.modals.open ? { ox: st.ox, oy: st.oy, dx: st.x - st.ox, dy: st.y - st.oy } : null);
+        this.hud.setStick(st && !this.modals.open ? { ox: st.ox, oy: st.oy, dx: st.x - st.ox, dy: st.y - st.oy, run: this.player.running } : null);
       }
     } else if (this.state === 'menu') {
       // Gentle idle sway behind the menu.

@@ -1,9 +1,10 @@
-import { Puzzle } from './base.js';
+import { Puzzle, shuffled } from './base.js';
 import { SUDOKU_GIVENS, RANDOMIZE } from '../config.js';
 import { solve, sizeOf, countSolutions, shuffleSudoku } from './sudokuMath.js';
 
 // Room 4, puzzle B. 6x6 sudoku on the chalkboard (digits 1-6, 2x3 boxes).
-// Each new game reshuffles the configured puzzle (same logic, new look).
+// Each new game reshuffles the configured puzzle (same logic, new look);
+// Cozy then gives a few more numbers from the answer (still one answer).
 export class SudokuPuzzle extends Puzzle {
   constructor() {
     super('r4b', 3, 'B');
@@ -17,6 +18,13 @@ export class SudokuPuzzle extends Puzzle {
   }
   newGame(rng = Math.random) {
     this.setGivens(RANDOMIZE ? shuffleSudoku(SUDOKU_GIVENS, rng) : SUDOKU_GIVENS);
+    if (this.tune.sudoku) {
+      const give = shuffled(
+        this.givens.map((v, i) => (v ? -1 : i)).filter((i) => i >= 0),
+        rng,
+      ).slice(0, this.tune.sudoku);
+      this.setGivens(this.givens.map((v, i) => (give.includes(i) ? this.solution[i] : v)));
+    }
     this.solved = false;
   }
   isGiven(i) {
@@ -44,7 +52,7 @@ export class SudokuPuzzle extends Puzzle {
       Array.isArray(g) &&
       g.length === SUDOKU_GIVENS.length &&
       g.every((v) => Number.isInteger(v) && v >= 0 && v <= this.n) &&
-      g.filter(Boolean).length === SUDOKU_GIVENS.filter(Boolean).length &&
+      g.filter(Boolean).length >= SUDOKU_GIVENS.filter(Boolean).length &&
       countSolutions(g, 2).count === 1;
     this.setGivens(ok ? g : SUDOKU_GIVENS);
     if (Array.isArray(s.grid) && s.grid.length === this.grid.length)

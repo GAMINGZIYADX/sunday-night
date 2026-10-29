@@ -95,6 +95,7 @@ export class Hud {
     this.stickHint.classList.toggle('hidden', on || !this._playing);
     if (!on) return;
     this.stickBase.style.transform = `translate(${stick.ox}px, ${stick.oy}px)`;
+    this.stickBase.classList.toggle('run', !!stick.run);
     const d = Math.hypot(stick.dx, stick.dy);
     const k = d > 56 ? 56 / d : 1;
     this.stickBase.firstChild.style.transform = `translate(${stick.dx * k}px, ${stick.dy * k}px)`;

@@ -1,6 +1,6 @@
 import { Emitter } from './emitter.js';
 import { createPuzzles, PUZZLE_IDS, ALL_IDS, EXTRA_IDS } from '../puzzles/index.js';
-import { NOTES, FINDS, CLUES, RANDOMIZE, HUNT_COUPON, BAKE_STEPS } from '../config.js';
+import { NOTES, FINDS, CLUES, RANDOMIZE, HUNT_COUPON, BAKE_STEPS, DIFFICULTY, LEVELS } from '../config.js';
 import { BALCONY_ZONE } from './layout.js';
 import { huntSpots, HUNT_SPOT_IDS } from './hunt.js';
 
@@ -42,9 +42,12 @@ export class GameState extends Emitter {
     this.reset();
   }
 
-  reset(rng = Math.random) {
+  // `level` is the difficulty ('cozy', 'normal' or 'brainy', see DIFFICULTY).
+  reset(rng = Math.random, level = 'normal') {
+    if (!LEVELS.includes(level)) level = 'normal';
     this.data = {
       version: SAVE_VERSION,
+      level,
       room: 0,
       player: { x: 0, z: 1.4, yaw: 0, pitch: 0 },
       doors: [false, false, false, false, false],
@@ -60,10 +63,14 @@ export class GameState extends Emitter {
       // (new every game), and how many are found.
       hunt: { spots: [], found: 0 },
       hintTier: {},
+      hintTime: {}, // playTime of each puzzle's last hint (Brainy waits between them)
       finished: false,
       playTime: 0,
     };
-    for (const id of ALL_IDS) this.puzzles[id].newGame(rng);
+    for (const id of ALL_IDS) {
+      this.puzzles[id].tune = DIFFICULTY[level];
+      this.puzzles[id].newGame(rng);
+    }
     // The hedge maze is built from this number (the same number, the same maze).
     this.data.mazeSeed = RANDOMIZE ? Math.floor(rng() * 2 ** 31) : 20070;
     this.data.hunt.spots = huntSpots(rng);
@@ -207,15 +214,31 @@ export class GameState extends Emitter {
     return true;
   }
 
-  // Hints: returns the next tier text for a puzzle (stays on tier 3).
+  tune() {
+    return DIFFICULTY[this.data.level] || DIFFICULTY.normal;
+  }
+  // Seconds before a bigger hint for this puzzle is ready (Brainy only).
+  hintWait(id) {
+    const cur = this.data.hintTier[id] ?? -1;
+    const last = this.data.hintTime[id];
+    if (cur < 0 || cur >= 2 || last === undefined) return 0;
+    return Math.max(0, Math.ceil(last + this.tune().hintWait - this.data.playTime));
+  }
+
+  // Hints: returns the next tier text for a puzzle (stays on tier 3). While a
+  // bigger one is not ready yet, it is the same tier again, with `wait`.
   nextHint(id) {
     const cur = this.data.hintTier[id] ?? -1;
+    const wait = this.hintWait(id);
+    if (wait) return { tier: cur, text: this.puzzles[id].hint(cur), wait };
     const tier = Math.min(2, cur + 1);
+    if (tier > cur) this.data.hintTime[id] = this.data.playTime;
     this.data.hintTier[id] = tier;
     this.emit('hint', { id, tier });
     return { tier, text: this.puzzles[id].hint(tier) };
   }
   hintAt(id, tier) {
+    if (tier > (this.data.hintTier[id] ?? -1)) this.data.hintTime[id] = this.data.playTime;
     this.data.hintTier[id] = Math.max(this.data.hintTier[id] ?? -1, tier);
     this.emit('hint', { id, tier: this.data.hintTier[id] });
     return this.puzzles[id].hint(tier);
@@ -261,6 +284,10 @@ export class GameState extends Emitter {
     if (Array.isArray(obj.clues)) d.clues = obj.clues.filter((c) => typeof c === 'string');
     if (Array.isArray(obj.finds)) d.finds = obj.finds.filter((f, i, a) => FINDS.some((x) => x.id === f) && a.indexOf(f) === i);
     if (obj.hintTier && typeof obj.hintTier === 'object') d.hintTier = { ...obj.hintTier };
+    if (obj.hintTime && typeof obj.hintTime === 'object') d.hintTime = { ...obj.hintTime };
+    // Saves from before the difficulty choice are Normal (the game as it was).
+    d.level = LEVELS.includes(obj.level) ? obj.level : 'normal';
+    for (const id of ALL_IDS) this.puzzles[id].tune = DIFFICULTY[d.level];
     d.finished = !!obj.finished;
     d.playTime = num(obj.playTime, 0);
     // Saves from before a side room have no puzzles for it: those stay as new.

@@ -1,10 +1,10 @@
-import { HINTS } from '../config.js';
+import { HINTS, DIFFICULTY } from '../config.js';
 
 // Every puzzle shares this small interface:
 //   getState() / setState(s)  serialise for saves (includes partial progress)
 //   isSolved()                true once solved (stays solved)
 //   hint(tier)                tier 0..2 -> nudge, bigger nudge, near-answer
-//   newGame(rng)              fresh randomised start
+//   newGame(rng)              fresh randomised start (as hard as this.tune says)
 // Puzzles call this.changed() after any player action. Listeners get
 // (puzzle, justSolved).
 export class Puzzle {
@@ -13,6 +13,7 @@ export class Puzzle {
     this.room = room; // 0-based room index
     this.kind = kind; // 'A' themed (gold key) or 'B' normal (silver key)
     this.solved = false;
+    this.tune = DIFFICULTY.normal; // set by GameState from the chosen difficulty
     this._listeners = [];
   }
 

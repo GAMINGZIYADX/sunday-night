@@ -32,6 +32,7 @@ try {
   const link = await page.$('.update-link');
   if (link) check((await link.getAttribute('href')).endsWith('/releases/latest'), 'the desktop app link opens the latest release');
   await page.getByRole('button', { name: 'New game' }).click();
+  await page.click('.btn.level >> nth=1'); // Normal
   await page.waitForTimeout(6000);
   // Debug shortcuts must not work: Shift+3 would jump to the kitchen in debug builds.
   await page.keyboard.down('Shift');

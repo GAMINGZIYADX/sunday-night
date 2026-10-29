@@ -41,6 +41,7 @@ try {
   await page.mouse.click(640, 400);
   await page.waitForSelector('.menu .btn');
   await page.getByRole('button', { name: 'New game' }).click();
+  await page.click('.btn.level >> nth=1'); // Normal
   await page.waitForFunction(() => window.__game.state() === 'playing');
   await page.waitForTimeout(3000);
   let s = await state();

@@ -11,10 +11,10 @@ export class BooksPuzzle extends Puzzle {
     this.order = BOOK_ORDER.slice();
     this.turns = 0;
   }
-  // A fresh scramble that needs between 9 and 11 turns at best: enough to make
-  // her think, not enough to be a slog.
+  // A fresh scramble that needs `tune.books` turns at best (9 to 11 on
+  // Normal: enough to make her think, not enough to be a slog).
   newGame(rng) {
-    const pool = hardOrders();
+    const pool = ordersNeeding(...this.tune.books);
     this.order = pool[Math.floor(rng() * pool.length)].slice();
     this.turns = 0;
     this.solved = false;
@@ -87,10 +87,11 @@ export function turnDistances() {
   return _dist;
 }
 
-let _hard = null;
-function hardOrders() {
-  if (_hard) return _hard;
-  _hard = [];
-  for (const [k, d] of turnDistances()) if (d >= 9 && d <= 11) _hard.push(k.split(','));
-  return _hard;
+const _pools = {};
+export function ordersNeeding(min, max) {
+  const key = `${min}-${max}`;
+  if (_pools[key]) return _pools[key];
+  const pool = [];
+  for (const [k, d] of turnDistances()) if (d >= min && d <= max) pool.push(k.split(','));
+  return (_pools[key] = pool);
 }

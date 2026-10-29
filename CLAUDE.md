@@ -30,7 +30,7 @@ works from `file://`. Read `README.md` for the player-facing description.
 ```
 npm install
 npm run dev            # dev server, debug tools on
-npm test               # vitest: puzzles, randomiser, saves, updates, side rooms, quality, baking (113 tests)
+npm test               # vitest: puzzles, randomiser, saves, updates, side rooms, quality, baking, difficulty (143 tests)
 npm run build          # -> dist/index.html (the shippable file)
 npm run build:debug    # -> dist-debug/index.html (used by the browser tests)
 npm run e2e            # builds both, then runs every browser test
@@ -135,6 +135,21 @@ the save; old saves fall back to the first variants. Clue cards and textures are
 redrawn from the current puzzle (`GameState.syncText`). When adding a variant,
 **make sure it has exactly one answer** and add it to `tests/randomiser.test.js`
 (brute force for dials, family-of-rules check for vases).
+
+## Difficulty (Cozy / Normal / Brainy)
+
+New game opens `levelPicker` (`ui/screens.js`), then `game.newGame(level)`.
+`gs.data.level` is saved (old saves are `'normal'`); `GameState` sets every
+puzzle's `tune` to `DIFFICULTY[level]` (config.js) before `newGame(rng)` and
+on load, so puzzles read their settings from `this.tune` (frames in place,
+sliding shuffle, book turns, extra sudoku numbers, decoy stars, how often the
+cats sneak). The maze reads `DIFFICULTY[gs.data.level]` in `rebuild`. Brainy's
+hint wait is `gs.hintWait(id)` (play time since that puzzle's last new tier;
+`nextHint` returns the same tier with `wait` until then). **Normal must stay
+the game as it was**: a test pins its numbers. Every level must keep one
+answer per puzzle (`tests/difficulty.test.js`). Browser tests pick a level
+after New game: `startNew(page, level)` in `e2e/lib.mjs`, or click
+`.btn.level` (0 Cozy, 1 Normal, 2 Brainy).
 
 ## Updates
 
@@ -288,9 +303,8 @@ and checks every spot can be reached.
 
 ## Status
 
-All unit tests (113) and browser tests (prod, props, playthrough, continue,
+All unit tests (143) and browser tests (prod, props, playthrough, continue,
 collision, touch, quality, hybrid, cozy, maze, selfupdate, attic, oldphones,
 gfxcheck, gfxtest, siderooms, perf, bake, bake --phone) pass as of the last commit, and the playthrough passes on WebGL 1. The
-playthrough also passes with random scrambles. Ideas not done: a Cozy/Brainy
-difficulty choice, personal photos in the bedroom frames, a spectator mode for
+playthrough also passes with random scrambles. Ideas not done: personal photos in the bedroom frames, a spectator mode for
 the author. The coupon (`HUNT_COUPON.text`) has the author's words: never rewrite them.

@@ -18,7 +18,8 @@ export class Player {
     this.onStep = null;
     this.frozen = false;
     this.speed = 2.5;
-    this.slowSpeed = 1.15;
+    this.runSpeed = 4.6; // Shift, or the thumb pushed past the stick's ring
+    this.running = false;
     this.eyeOffset = 0; // used for the wake-up / sit-down moments
   }
 
@@ -41,9 +42,10 @@ export class Player {
       this.pitch = Math.max(-1.45, Math.min(1.45, this.pitch));
     } else this.input.consumeMouse();
 
-    const a = this.frozen ? { f: 0, s: 0, slow: false } : this.input.axis();
+    const a = this.frozen ? { f: 0, s: 0, slow: false, run: false } : this.input.axis();
     // The thumb stick already scales the speed by how far it is pushed.
-    const speed = a.slow && !a.analog ? this.slowSpeed : this.speed;
+    this.running = a.run && Math.hypot(a.f, a.s) > 0.1;
+    const speed = this.running ? this.runSpeed : this.speed;
     const sin = Math.sin(this.yaw);
     const cos = Math.cos(this.yaw);
     // Forward is -Z at yaw 0.
@@ -65,7 +67,7 @@ export class Player {
     this.bobAmount += ((moving ? 1 : 0) - this.bobAmount) * (1 - Math.exp(-dt * 8));
     this.bobPhase += moved * 5.2;
     this.stepDist += moved;
-    const stride = a.slow ? 0.5 : 0.62;
+    const stride = a.slow ? 0.5 : this.running ? 0.85 : 0.62;
     if (this.stepDist > stride) {
       this.stepDist = 0;
       if (this.onStep) this.onStep(a.slow);

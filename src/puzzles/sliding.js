@@ -38,9 +38,8 @@ export function misplaced(tiles) {
 
 // Shuffle by walking random legal moves away from the solved state, so the
 // result is always solvable. Never steps straight back.
-export function shuffleTiles(rng, moves = 200) {
+export function shuffleTiles(rng, moves = 200, want = Math.min(Math.floor(moves / 2), N * N - 3)) {
   let tiles;
-  const want = Math.min(Math.floor(moves / 2), N * N - 3);
   do {
     tiles = SOLVED_TILES.slice();
     let gap = tiles.indexOf(0);
@@ -65,7 +64,7 @@ export class SlidingPuzzle extends Puzzle {
     this.moves = 0;
   }
   newGame(rng) {
-    this.tiles = shuffleTiles(rng, 220);
+    this.tiles = shuffleTiles(rng, ...this.tune.sliding);
     this.moves = 0;
     this.solved = false;
   }

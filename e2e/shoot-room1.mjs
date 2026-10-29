@@ -8,6 +8,7 @@ await page.waitForSelector('.menu .btn');
 await page.waitForTimeout(500);
 await page.screenshot({ path: `${out}/01-menu.png` });
 await page.getByRole('button', { name: 'New game' }).click();
+await page.click('.btn.level >> nth=1'); // Normal
 await page.waitForTimeout(4000);
 await page.screenshot({ path: `${out}/02-wake.png` });
 const views = [

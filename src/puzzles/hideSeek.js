@@ -4,7 +4,8 @@ import { HIDING_SPOTS, CATS } from '../config.js';
 // Room 4, puzzle A. Two cats hide in two of six spots. Looking in an empty
 // spot makes the cats still hiding sneak somewhere else, so guessing does not
 // work: she has to listen to where the meows come from and look for a tail or
-// ears peeking out.
+// ears peeking out. How often they sneak off is `tune.sneakEvery` (Cozy: every
+// second wrong look); on Brainy, finding one sends the other off too.
 export class HideSeekPuzzle extends Puzzle {
   constructor() {
     super('r4a', 3, 'A');
@@ -30,12 +31,13 @@ export class HideSeekPuzzle extends Puzzle {
     const cat = this.catAt(spotIndex);
     if (cat && !this.found[cat]) {
       this.found[cat] = true;
+      if (this.tune.sneakOnFind) this.relocate(rng, spotIndex);
       this.changed();
       return cat;
     }
     if (!cat) {
       this.misses++;
-      this.relocate(rng, spotIndex);
+      if (this.misses % this.tune.sneakEvery === 0) this.relocate(rng, spotIndex);
     }
     this.changed();
     return null;

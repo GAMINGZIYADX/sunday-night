@@ -101,6 +101,9 @@ try {
   await page.waitForSelector('.menu .btn');
   await checkFits('menu');
   await tapButton('New game');
+  const normal = await page.locator('.btn.level').nth(1).boundingBox();
+  if (!normal) fail('no difficulty choice after New game');
+  await tap(normal.x + normal.width / 2, normal.y + normal.height / 2);
   await waitFor(() => window.__game && window.__game.state() === 'playing');
   await page.waitForTimeout(3600); // wake-up animation
   for (const sel of ['.touch-bar', '.stick-hint', '.controls']) if (!(await page.isVisible(sel))) fail(`${sel} not shown`);

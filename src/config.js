@@ -112,6 +112,59 @@ export const ROOM_TITLES = ['Strangers', 'Tulips', 'Sunday', 'The Cats', 'The La
 // always play the first version of each (the ones written first below).
 export const RANDOMIZE = true;
 
+// How hard the puzzles are, chosen with each new game (saved with it; old
+// saves are 'normal', the game as it always was). Every setting keeps one
+// answer per puzzle (tests/difficulty.test.js).
+//   frames     most frames that may start in their right place
+//   sliding    [random moves in the shuffle, fewest tiles out of place] (13 of 15 is already a full scramble)
+//   books      fewest turns the shelf needs, [min, max] (the most any order needs is 14)
+//   sudoku     extra numbers given from the answer (8 is already the fewest a 6x6 can have)
+//   decoys     loose lettered stars round the heart
+//   sneakEvery the cats sneak off after every Nth wrong look
+//   sneakOnFind finding one cat makes the other sneak off too
+//   mazeLoops  extra openings in the hedge maze (more loops, more ways round)
+//   mazeRoute  [fewest, most] cells on the way to the middle (the closest of 12 tries; 999 = no most)
+//   hintWait   seconds before the next, bigger hint for the same puzzle
+export const DIFFICULTY = {
+  cozy: {
+    frames: 2,
+    sliding: [30, 8],
+    books: [5, 7],
+    sudoku: 5,
+    decoys: 2,
+    sneakEvery: 2,
+    sneakOnFind: false,
+    mazeLoops: 8,
+    mazeRoute: [0, 30],
+    hintWait: 0,
+  },
+  normal: {
+    frames: 1,
+    sliding: [220, 13],
+    books: [9, 11],
+    sudoku: 0,
+    decoys: 5,
+    sneakEvery: 1,
+    sneakOnFind: false,
+    mazeLoops: 3,
+    mazeRoute: [40, 999],
+    hintWait: 0,
+  },
+  brainy: {
+    frames: 0,
+    sliding: [220, 13],
+    books: [12, 14],
+    sudoku: 0,
+    decoys: 8,
+    sneakEvery: 1,
+    sneakOnFind: true,
+    mazeLoops: 0,
+    mazeRoute: [48, 999],
+    hintWait: 60,
+  },
+};
+export const LEVELS = ['cozy', 'normal', 'brainy'];
+
 // The final gate lock's four digits are picked at random every new game (see
 // puzzles/lock.js). Each opened door shows one on its memory tulip, in room order.
 
@@ -695,6 +748,13 @@ export const UI = {
   getDesktopApp: 'Get the desktop app',
   continue: 'Continue',
   newGame: 'New game',
+  levelTitle: 'How should the puzzles be?',
+  levels: {
+    cozy: { name: 'Cozy', text: 'Gentler puzzles, cats that sit still a little longer, a short maze.' },
+    normal: { name: 'Normal', text: 'The house as it was made.' },
+    brainy: { name: 'Brainy', text: 'Tougher puzzles, sneakier cats, and hints that take their time.' },
+  },
+  level: 'Puzzles: {L}',
   settings: 'Settings',
   resume: 'Resume',
   journal: 'Journal',
@@ -702,7 +762,7 @@ export const UI = {
     ['W A S D', 'move'],
     ['Mouse', 'look around'],
     ['E / Click', 'interact'],
-    ['Shift', 'walk slowly'],
+    ['Shift', 'run'],
     ['Tab', 'journal'],
     ['H', 'hint'],
     ['M', 'mute'],
@@ -937,6 +997,7 @@ export const LABELS = {
   hintTitle: 'Hint {T} of 3 · {NAME}',
   hintMore: 'Press H for more',
   biggerHint: 'A bigger hint',
+  hintWait: 'A bigger hint in {S} s',
   thanks: 'Thanks',
   // sliding
   peek: 'Peek',
@@ -1080,7 +1141,7 @@ export const TOUCH_TEXT = {
   UI: {
     clickToStart: 'Tap to start',
     controls: [
-      ['Left thumb', 'walk (push further to go faster)'],
+      ['Left thumb', 'walk (push past the ring to run)'],
       ['Right thumb', 'drag to look around'],
       ['Tap', 'use what you tap, or the button under the dot'],
       ['Buttons', 'journal, hint and pause, top right'],

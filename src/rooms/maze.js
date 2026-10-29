@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import { COLORS, PROMPTS, TOASTS, UI } from '../config.js';
+import { COLORS, PROMPTS, TOASTS, UI, DIFFICULTY } from '../config.js';
 import { mat, mesh, group, rbox, box, cyl, sphere } from '../engine/materials.js';
 import { makeCanvas, canvasTexture, glowTexture, paperTexture, grass } from '../engine/textures.js';
 import { mulberry32 } from '../puzzles/base.js';
@@ -54,17 +54,22 @@ function hedgeTexture() {
 // same seed, so one seed is always one maze).
 export const MIN_ROUTE = 40;
 
-export function generateMaze(cols, rows, seed, entranceRow) {
+// `tune` is the difficulty (DIFFICULTY in config.js): mazeRoute is the
+// [shortest, longest] way to the middle wanted (MIN_ROUTE on Normal); the try
+// closest to it is kept. mazeLoops is how many extra openings.
+export function generateMaze(cols, rows, seed, entranceRow, tune = { mazeRoute: [MIN_ROUTE, 999], mazeLoops: 3 }) {
+  const [lo, hi] = tune.mazeRoute;
+  const off = (m) => Math.max(0, lo - m.route, m.route - hi);
   let best = null;
   for (let attempt = 0; attempt < 12; attempt++) {
-    const m = growMaze(cols, rows, (seed + attempt * 7919) >>> 0, entranceRow);
-    if (!best || m.route > best.route) best = m;
-    if (m.route >= MIN_ROUTE) break;
+    const m = growMaze(cols, rows, (seed + attempt * 7919) >>> 0, entranceRow, tune.mazeLoops);
+    if (!best || off(m) < off(best) || (off(m) === off(best) && hi === 999 && m.route > best.route)) best = m;
+    if (!off(m)) break;
   }
   return best;
 }
 
-function growMaze(cols, rows, seed, entranceRow) {
+function growMaze(cols, rows, seed, entranceRow, loops) {
   const rng = mulberry32(seed >>> 0);
   const cells = Array.from({ length: rows }, () => Array.from({ length: cols }, () => ({ n: false, s: false, e: false, w: false })));
   const cr = Math.floor(rows / 2) - 1;
@@ -107,7 +112,7 @@ function growMaze(cols, rows, seed, entranceRow) {
   // A couple of extra openings make small loops, so one wrong turn is not a
   // long walk back. (Made before the clearing's door is chosen, so they can
   // never turn into a shortcut to the middle.)
-  for (let k = 0; k < 3; k++) {
+  for (let k = 0; k < loops; k++) {
     const r = Math.floor(rng() * rows);
     const c = Math.floor(rng() * (cols - 1));
     if (!inRoom(r, c) && !inRoom(r, c + 1)) link(r, c, r, c + 1);
@@ -295,7 +300,7 @@ export function buildMaze(ctx, { room, x0, zTop, cols = 11, rows = 9, cell = 1.2
 
   function rebuild(seed) {
     clear();
-    layout = generateMaze(cols, rows, seed, entranceRow);
+    layout = generateMaze(cols, rows, seed, entranceRow, DIFFICULTY[ctx.gs.data.level] || DIFFICULTY.normal);
     const { cells } = layout;
     // Wall runs: horizontal lines between rows (and the south/north edges),
     // vertical lines between columns (the west edge is the garden wall).

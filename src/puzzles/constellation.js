@@ -66,7 +66,7 @@ export class ConstellationPuzzle extends Puzzle {
     this.decoys = decoyStars();
   }
   newGame(rng = Math.random) {
-    this.decoys = RANDOMIZE ? randomDecoys(rng) : decoyStars();
+    this.decoys = RANDOMIZE ? randomDecoys(rng, this.tune.decoys) : decoyStars().slice(0, this.tune.decoys);
     this.progress = 0;
     this.solved = false;
   }

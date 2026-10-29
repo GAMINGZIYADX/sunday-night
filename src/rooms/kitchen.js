@@ -61,12 +61,16 @@ export function buildKitchen(ctx) {
   const cx = R.x1 - 0.32;
   const z0 = R.zS - 0.6;
   const z1 = R.zN + 0.45;
-  const clen = z0 - z1;
-  const cmid = (z0 + z1) / 2;
   const cab = mat(0xa9c4b0, { rough: 0.6 });
   const top = mat(0xf4efe6, { rough: 0.35 });
-  g.add(mesh(rbox(0.62, 0.86, clen, 0.02), cab, { pos: [cx, 0.43, cmid] }));
-  g.add(mesh(rbox(0.68, 0.05, clen + 0.04, 0.015), top, { pos: [cx - 0.02, 0.885, cmid] }));
+  // In two runs either side of the stove: one worktop through it would sit
+  // level with the hob and flicker (z-fighting).
+  const run = (a, b, grow) => {
+    g.add(mesh(rbox(0.62, 0.86, b - a, 0.02), cab, { pos: [cx, 0.43, (a + b) / 2] }));
+    g.add(mesh(rbox(0.68, 0.05, b - a + grow, 0.015), top, { pos: [cx - 0.02, 0.885, (a + b) / 2 + (a < fz ? -grow / 2 : grow / 2)] }));
+  };
+  run(z1, fz - 0.392, 0.02);
+  run(fz + 0.392, z0, 0.02);
   col.add(cx - 0.36, z1 - 0.02, R.x1, z0 + 0.02);
   // cupboard doors + knobs
   const doorM = mat(0xb9d2bf, { rough: 0.6 });

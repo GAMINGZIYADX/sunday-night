@@ -39,12 +39,14 @@ export async function openGame(browser, url, { width = 1280, height = 720 } = {}
   return { page, problems };
 }
 
-export async function startNew(page) {
+// `level`: the difficulty picked after New game.
+export async function startNew(page, level = 'normal') {
   await page.click('.start-hint');
   await page.waitForSelector('.menu .btn');
   await page.getByRole('button', { name: 'New game' }).click();
   const confirm = page.getByRole('button', { name: 'Yes' });
   if (await confirm.count()) await confirm.click();
+  await page.click(`.btn.level >> nth=${['cozy', 'normal', 'brainy'].indexOf(level)}`);
   await page.waitForFunction(() => window.__game && window.__game.state() === 'playing');
   await page.waitForTimeout(400);
 }

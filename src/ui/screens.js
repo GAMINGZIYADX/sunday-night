@@ -6,7 +6,7 @@ import { photoOverlay } from './overlays.js';
 import { recipeCard } from './recipeCard.js';
 import { KEY_SVG } from './dom.js';
 import { exportCode, importCode } from '../engine/save.js';
-import { LABELS, TOASTS } from '../config.js';
+import { LABELS, TOASTS, LEVELS } from '../config.js';
 import { fill } from '../engine/text.js';
 import { device, enterFullscreen, isFullscreen } from '../engine/device.js';
 import { autoQuality } from '../engine/quality.js';
@@ -42,8 +42,8 @@ export function mainMenu(game) {
     button(
       UI.newGame,
       () => {
-        if (hasSave) confirmBox(game, LABELS.confirmNewGame, () => game.newGame());
-        else game.newGame();
+        if (hasSave) confirmBox(game, LABELS.confirmNewGame, () => levelPicker(game));
+        else levelPicker(game);
       },
       hasSave ? '' : 'primary',
     ),
@@ -53,6 +53,21 @@ export function mainMenu(game) {
   const c = el('div.card', [tulips(), el('h1', GAME_TITLE), el('p.sub', UI.subtitle), el('div.menu', items), foot]);
   if (updatesEnabled()) updateNotice().then((u) => u && showUpdate(game, foot, u));
   return game.modals.show(c, { name: 'main', escClose: false });
+}
+
+// Before a new game: how hard the puzzles should be (DIFFICULTY in config.js).
+export function levelPicker(game) {
+  let m;
+  const pick = (level) => game.newGame(level);
+  const rows = LEVELS.map((level) =>
+    el('button.btn.level' + (level === 'normal' ? '.primary' : ''), { type: 'button', onclick: () => pick(level) }, [
+      el('b', UI.levels[level].name),
+      el('small', UI.levels[level].text),
+    ]),
+  );
+  const c = card(UI.levelTitle, [el('div.menu', rows)], { cls: 'level-card', onClose: () => game.modals.close(m) });
+  m = game.modals.show(c, { name: 'level' });
+  return m;
 }
 
 // "A new version is ready" with Update now (self-update, see selfUpdate.js)
@@ -310,7 +325,8 @@ export function journal(game) {
             () => {
               const h = gs.nextHint(id);
               hintBox.classList.remove('hidden');
-              hintBox.textContent = fill(LABELS.hintLine, { T: h.tier + 1, TEXT: h.text });
+              hintBox.textContent =
+                fill(LABELS.hintLine, { T: h.tier + 1, TEXT: h.text }) + (h.wait ? ' ' + fill(LABELS.hintWait, { S: h.wait }) : '');
             },
             'small',
           ),
@@ -338,6 +354,7 @@ export function journal(game) {
     [
       el('div.journal', [
         el('section', [
+          el('p.note-small', fill(UI.level, { L: UI.levels[gs.data.level].name })),
           el('h3', LABELS.keys),
           keys,
           el('h3', LABELS.memoryTulips),
@@ -431,15 +448,27 @@ export class HintCard {
     const h = sameCard ? gs.nextHint(id) : { tier: Math.max(0, gs.data.hintTier[id] ?? 0), text: null };
     if (!sameCard) h.text = gs.hintAt(id, h.tier);
     this.id = id;
-    this.render(id, h.tier, h.text);
+    this.render(id, h.tier, h.text, gs.hintWait(id));
   }
-  render(id, tier, text) {
+  render(id, tier, text, wait = 0) {
     this.hide();
     const dots = el(
       'div.tiers',
       [0, 1, 2].map((i) => el(`i${i <= tier ? '.on' : ''}`)),
     );
-    const more = tier < 2 ? button(LABELS.biggerHint, () => this.show(id), 'small') : null;
+    // Brainy: the bigger hint comes after a wait (the button counts down).
+    const more = tier < 2 ? button(wait ? fill(LABELS.hintWait, { S: wait }) : LABELS.biggerHint, () => this.show(id), 'small') : null;
+    if (more && wait) {
+      more.disabled = true;
+      let left = wait;
+      const tick = setInterval(() => {
+        left = this.game.gs.hintWait(id);
+        if (!more.isConnected) return clearInterval(tick);
+        more.textContent = left ? fill(LABELS.hintWait, { S: left }) : LABELS.biggerHint;
+        more.disabled = !!left;
+        if (!left) clearInterval(tick);
+      }, 1000);
+    }
     this.node = el('div.hint-card', [
       el('div.hd', { html: TULIP_SVG('#6f9be0', 20) }, []),
       el('div.tx', text),

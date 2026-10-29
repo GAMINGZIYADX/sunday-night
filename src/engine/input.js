@@ -1,6 +1,7 @@
 import { device } from './device.js';
 
 const STICK_R = 56; // px a thumb travels for full speed
+const RUN_PAST = 1.35; // a thumb this far past the centre (in STICK_R) runs
 const TOUCH_LOOK = 1.5; // touch drag pixels -> mouse-like look pixels
 const TAP_MOVE = 12; // px a finger may wander and still count as a tap
 const TAP_MS = 380;
@@ -187,22 +188,21 @@ export class Input {
     return d;
   }
 
-  // f/s are -1..1. Keys give full steps; the thumb stick is analog, and a
-  // gentle push walks slowly.
+  // f/s are -1..1. Keys give full steps (Shift runs); the thumb stick is
+  // analog, a gentle push walks slowly and a push past the ring runs.
   axis() {
     const k = this.keys;
-    if (!this.enabled) return { f: 0, s: 0, slow: false };
+    if (!this.enabled) return { f: 0, s: 0, slow: false, run: false };
     let f = (k.has('KeyW') || k.has('ArrowUp') ? 1 : 0) - (k.has('KeyS') || k.has('ArrowDown') ? 1 : 0);
     let s = (k.has('KeyD') || k.has('ArrowRight') ? 1 : 0) - (k.has('KeyA') || k.has('ArrowLeft') ? 1 : 0);
-    let slow = k.has('ShiftLeft') || k.has('ShiftRight');
+    const run = k.has('ShiftLeft') || k.has('ShiftRight');
     const st = this.stickVector();
     if (st && !f && !s) {
       f = -st.y;
       s = st.x;
-      slow = st.mag < 0.55;
-      return { f, s, slow, analog: true };
+      return { f, s, slow: st.mag < 0.55, run: st.run, analog: true };
     }
-    return { f, s, slow };
+    return { f, s, slow: false, run };
   }
 
   // The stick as a vector with length 0..1 (0 inside the dead zone).
@@ -214,8 +214,9 @@ export class Input {
     const d = Math.hypot(dx, dy);
     const dead = 0.14;
     const raw = Math.min(1, d / STICK_R);
-    if (raw < dead) return { x: 0, y: 0, mag: 0, dx, dy };
+    if (raw < dead) return { x: 0, y: 0, mag: 0, dx, dy, run: false };
     const mag = (raw - dead) / (1 - dead);
-    return { x: (dx / d) * mag, y: (dy / d) * mag, mag, dx, dy };
+    // Past the ring (the thumb keeps going) is a run.
+    return { x: (dx / d) * mag, y: (dy / d) * mag, mag, dx, dy, run: d > STICK_R * RUN_PAST };
   }
 }

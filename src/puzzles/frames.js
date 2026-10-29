@@ -12,9 +12,9 @@ export class FramesPuzzle extends Puzzle {
   }
   newGame(rng) {
     let o;
-    // A real scramble: at most one frame already in its place.
+    // A real scramble: at most `tune.frames` frames already in their place.
     do o = shuffled(FRAME_SOLUTION, rng);
-    while (o.filter((v, i) => v === FRAME_SOLUTION[i]).length > 1);
+    while (o.filter((v, i) => v === FRAME_SOLUTION[i]).length > this.tune.frames || o.every((v, i) => v === FRAME_SOLUTION[i]));
     this.order = o;
     this.solved = false;
   }

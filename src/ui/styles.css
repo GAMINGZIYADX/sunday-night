@@ -456,6 +456,20 @@ body {
   max-width: 300px;
   margin: 0 auto;
 }
+.level-card .menu {
+  max-width: 360px;
+}
+.btn.level {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+.btn.level small {
+  font-weight: 400;
+  font-size: 14px;
+  opacity: 0.8;
+}
 .btn {
   font-family: var(--round);
   font-size: 17px;
@@ -1460,6 +1474,13 @@ body.touch .prompt {
   border-radius: 50%;
   background: rgba(253, 247, 236, 0.78);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+/* Running: the thumb went past the ring. */
+.stick.run {
+  border-color: rgba(255, 200, 210, 0.85);
+}
+.stick.run .knob {
+  background: rgba(255, 214, 222, 0.92);
 }
 /* Where the stick lives, while no thumb is on it. */
 .stick-hint {

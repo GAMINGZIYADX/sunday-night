@@ -45,6 +45,7 @@ try {
   // A game in progress, so there is a save to keep.
   await toMenu();
   await page.getByRole('button', { name: 'New game' }).click();
+  await page.click('.btn.level >> nth=1'); // Normal
   await page.waitForTimeout(4000);
   await page.reload();
   await toMenu();
